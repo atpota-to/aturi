@@ -1,7 +1,7 @@
 import SwiftUI
 import AturiCore
 
-/// The tab bar: four `NavigationStack`s, each bound to its path on the
+/// The tab bar: one `NavigationStack` per tab, each bound to its path on the
 /// router so deep links and in-app pushes go through the same state.
 struct RootView: View {
     @Environment(AppRouter.self) private var router
@@ -29,6 +29,13 @@ struct RootView: View {
             }
             .tabItem { Label(Tab.lexicons.title, systemImage: Tab.lexicons.systemImage) }
             .tag(Tab.lexicons)
+
+            NavigationStack(path: $router.toolsPath) {
+                ToolsView()
+                    .withRouteDestinations()
+            }
+            .tabItem { Label(Tab.tools.title, systemImage: Tab.tools.systemImage) }
+            .tag(Tab.tools)
 
             NavigationStack(path: $router.settingsPath) {
                 SettingsView()
@@ -70,6 +77,8 @@ struct RouteDestinationView: View {
             PreviewView(components: components)
         case .search(let query):
             SearchResultsView(query: query)
+        case .tool(let slug, let query):
+            ToolPageView(slug: slug, query: query)
         }
     }
 }

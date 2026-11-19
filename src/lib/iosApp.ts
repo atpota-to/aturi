@@ -49,6 +49,8 @@ export const IOS_METADATA_SCOPE = [
  * `/account` are claimed exactly, with no wildcard: they are the app's Links
  * tab and its settings (`/account#redirects` opens the Redirects screen, as
  * the remember bar on a link page does), and nothing lives beneath either.
+ * `/tools` and `/tools/*` are the app's Tools tab and each tool, which read
+ * the same query the web tools keep their input in.
  */
 export const IOS_UNIVERSAL_LINK_PATHS = [
   '/profile/*',
@@ -57,6 +59,8 @@ export const IOS_UNIVERSAL_LINK_PATHS = [
   '/at:*',
   '/links',
   '/account',
+  '/tools',
+  '/tools/*',
 ] as const;
 
 export function buildIosClientMetadata(origin: string): Record<string, unknown> {

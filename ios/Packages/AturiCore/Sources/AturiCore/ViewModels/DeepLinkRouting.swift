@@ -1,11 +1,12 @@
 import Foundation
 
-/// The app's four top-level sections, as a link can name them. The app's
-/// tab bar maps onto these one to one.
+/// The app's top-level sections, as a link can name them. The app's tab
+/// bar maps onto these one to one.
 public enum LinkSection: String, Hashable, Sendable, CaseIterable {
     case explore
     case links
     case lexicons
+    case tools
     case settings
 }
 
@@ -24,6 +25,9 @@ public enum DeepLinkDestination: Hashable, Sendable {
     case lexiconList(String)
     /// A section's root page.
     case section(LinkSection)
+    /// A tool's page, `/tools/{slug}`, with the query it reads its input
+    /// from (each tool's `useToolQuery` keys). Only slugs in `ToolCatalog`.
+    case tool(slug: String, query: [String: String])
 }
 
 /// Pure URL-to-destination mapping for the app's deep links, kept here
@@ -174,6 +178,13 @@ public enum DeepLinkRouting {
 
         case "account":
             return .section(.settings)
+
+        case "tools":
+            /* The hub, or one tool by its catalog slug; the query is the
+               tool's input, which it keeps in the address on the web. */
+            guard let slug = rest.first else { return .section(.tools) }
+            guard rest.count == 1, ToolCatalog.tool(slug) != nil else { return nil }
+            return .tool(slug: slug, query: parts.query)
 
         case "profile":
             guard let handle = rest.first.map(decode), !handle.isEmpty else { return nil }

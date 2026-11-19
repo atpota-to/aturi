@@ -43,6 +43,8 @@ extension Route {
             }
         case .search:
             return nil
+        case .tool(let slug, _):
+            return ToolCatalog.tool(slug)?.title
         }
     }
 
@@ -66,6 +68,8 @@ extension Route {
             return Set([components.identifier, components.collection, components.rkey].compactMap { $0 })
         case .search:
             return []
+        case .tool(let slug, let query):
+            return Set([slug] + query.values.filter { !$0.isEmpty })
         }
     }
 }

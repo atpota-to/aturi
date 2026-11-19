@@ -7,6 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4A317E3B1B39385A0F5C58E1 /* ActivityToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86886EEF532FF5D48985121 /* ActivityToolView.swift */; };
+		6F63BB50FE36A9520929A7CC /* CarToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F453D8F146ADCD6D3DCBDD4B /* CarToolView.swift */; };
+		9049D9E59E91FB08E5BBCE6F /* DecodeToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077A1D4886320A028813BB49 /* DecodeToolView.swift */; };
+		E978F7A8C334DD85B9CFEA2E /* FeedToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7EF46AC4E2622EE9115B7B /* FeedToolView.swift */; };
+		9D6075C90937514A0F524CE0 /* HandleToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53727B9FC31B915D73EAE156 /* HandleToolView.swift */; };
+		501D978EFB3AE8E5F5E705E4 /* LabelsToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20C1B8CAB0AF2C9B19645E2 /* LabelsToolView.swift */; };
+		B706CCF15A151295975F2857 /* LexiconToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9217BC766D3BBDD673B99D16 /* LexiconToolView.swift */; };
+		C70A87BBD64288F29CFF31FC /* MembershipsToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E32CC8C5BE597CB1AB22364C /* MembershipsToolView.swift */; };
+		DCEB987CBC7ED1553BE11D96 /* MutualsToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5572FE306954A9D07CE3A851 /* MutualsToolView.swift */; };
+		ACC32A938873E9AD81CDB3AC /* OAuthToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB51A44023E62C83A6534683 /* OAuthToolView.swift */; };
+		180267F4F0D5369DAF6C5A83 /* PageToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0685021A253627B46176FA /* PageToolView.swift */; };
+		C21628ADBEA270BF36160393 /* PostToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DD6F31973E99D522D98E0E /* PostToolView.swift */; };
+		4812291A684842D567C701D1 /* RelayToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF7689FF5064CE26F4B71F4 /* RelayToolView.swift */; };
+		1EB8A51FC54C46CCFA155AE0 /* ResolveToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF1B4854777ADA96D9747AD /* ResolveToolView.swift */; };
+		ABC271C38FAA3FE17C78B45E /* ShadowbanToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF53B59A9AB333F53F08773 /* ShadowbanToolView.swift */; };
+		6FDBC42C33AEDAE3A8A8F2FE /* ShareToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D85DA81F29E8E1B16734AB /* ShareToolView.swift */; };
+		5A231139F571051C65854C53 /* StreamToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D5A69BB64D3FADDF85121 /* StreamToolView.swift */; };
+		DE55A018A7E032A50A3F7669 /* ToolSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E604F52E7E9D4A57F9D3D9 /* ToolSupport.swift */; };
+		A1FC3ADDF8A3F17195B93976 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E64A2E4517D628EAC232A00 /* ToolsView.swift */; };
+		C5ABFA27C9348156FD444210 /* ValidateToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F24D9C1B755287110BE23ED /* ValidateToolView.swift */; };
+		5DA2BFB611134A45700BE612 /* XrpcToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22033F0733885C1B2E49CB9A /* XrpcToolView.swift */; };
 		0141B9246C01EB50065F1968 /* Chip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B52CB81073F457C29423E46 /* Chip.swift */; };
 		027DE4B22C5B42B02A62F150 /* LinkIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C1FB3F1038A8C813D221D5 /* LinkIntents.swift */; };
 		06A8CD10582E1362E4EF7DD7 /* AccountSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E7217B596BD341FFA1D68C1 /* AccountSettingsView.swift */; };
@@ -119,6 +140,27 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D86886EEF532FF5D48985121 /* ActivityToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityToolView.swift; sourceTree = "<group>"; };
+		F453D8F146ADCD6D3DCBDD4B /* CarToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarToolView.swift; sourceTree = "<group>"; };
+		077A1D4886320A028813BB49 /* DecodeToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodeToolView.swift; sourceTree = "<group>"; };
+		4C7EF46AC4E2622EE9115B7B /* FeedToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedToolView.swift; sourceTree = "<group>"; };
+		53727B9FC31B915D73EAE156 /* HandleToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleToolView.swift; sourceTree = "<group>"; };
+		E20C1B8CAB0AF2C9B19645E2 /* LabelsToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelsToolView.swift; sourceTree = "<group>"; };
+		9217BC766D3BBDD673B99D16 /* LexiconToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconToolView.swift; sourceTree = "<group>"; };
+		E32CC8C5BE597CB1AB22364C /* MembershipsToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipsToolView.swift; sourceTree = "<group>"; };
+		5572FE306954A9D07CE3A851 /* MutualsToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutualsToolView.swift; sourceTree = "<group>"; };
+		CB51A44023E62C83A6534683 /* OAuthToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthToolView.swift; sourceTree = "<group>"; };
+		5F0685021A253627B46176FA /* PageToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageToolView.swift; sourceTree = "<group>"; };
+		77DD6F31973E99D522D98E0E /* PostToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostToolView.swift; sourceTree = "<group>"; };
+		9BF7689FF5064CE26F4B71F4 /* RelayToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayToolView.swift; sourceTree = "<group>"; };
+		ADF1B4854777ADA96D9747AD /* ResolveToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolveToolView.swift; sourceTree = "<group>"; };
+		0BF53B59A9AB333F53F08773 /* ShadowbanToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowbanToolView.swift; sourceTree = "<group>"; };
+		E4D85DA81F29E8E1B16734AB /* ShareToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareToolView.swift; sourceTree = "<group>"; };
+		C77D5A69BB64D3FADDF85121 /* StreamToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamToolView.swift; sourceTree = "<group>"; };
+		35E604F52E7E9D4A57F9D3D9 /* ToolSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolSupport.swift; sourceTree = "<group>"; };
+		2E64A2E4517D628EAC232A00 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		0F24D9C1B755287110BE23ED /* ValidateToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateToolView.swift; sourceTree = "<group>"; };
+		22033F0733885C1B2E49CB9A /* XrpcToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XrpcToolView.swift; sourceTree = "<group>"; };
 		009349C67D798548E920F84B /* ExploreLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreLandingView.swift; sourceTree = "<group>"; };
 		01452C22764A59A2533DA2A9 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		021F6F630F57EC4110F09747 /* Figtree-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-ExtraBold.ttf; sourceTree = "<group>"; };
@@ -285,8 +327,37 @@
 				D4F3A3CD65FE480BDC2400F6 /* Links */,
 				43E470918FAADD735D2E781D /* Session */,
 				D8BDC701535AECA9ACCE9C4A /* Settings */,
+				4770854AB9E7F661270831CA /* Tools */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4770854AB9E7F661270831CA /* Tools */ = {
+			isa = PBXGroup;
+			children = (
+				D86886EEF532FF5D48985121 /* ActivityToolView.swift */,
+				F453D8F146ADCD6D3DCBDD4B /* CarToolView.swift */,
+				077A1D4886320A028813BB49 /* DecodeToolView.swift */,
+				4C7EF46AC4E2622EE9115B7B /* FeedToolView.swift */,
+				53727B9FC31B915D73EAE156 /* HandleToolView.swift */,
+				E20C1B8CAB0AF2C9B19645E2 /* LabelsToolView.swift */,
+				9217BC766D3BBDD673B99D16 /* LexiconToolView.swift */,
+				E32CC8C5BE597CB1AB22364C /* MembershipsToolView.swift */,
+				5572FE306954A9D07CE3A851 /* MutualsToolView.swift */,
+				CB51A44023E62C83A6534683 /* OAuthToolView.swift */,
+				5F0685021A253627B46176FA /* PageToolView.swift */,
+				77DD6F31973E99D522D98E0E /* PostToolView.swift */,
+				9BF7689FF5064CE26F4B71F4 /* RelayToolView.swift */,
+				ADF1B4854777ADA96D9747AD /* ResolveToolView.swift */,
+				0BF53B59A9AB333F53F08773 /* ShadowbanToolView.swift */,
+				E4D85DA81F29E8E1B16734AB /* ShareToolView.swift */,
+				C77D5A69BB64D3FADDF85121 /* StreamToolView.swift */,
+				35E604F52E7E9D4A57F9D3D9 /* ToolSupport.swift */,
+				2E64A2E4517D628EAC232A00 /* ToolsView.swift */,
+				0F24D9C1B755287110BE23ED /* ValidateToolView.swift */,
+				22033F0733885C1B2E49CB9A /* XrpcToolView.swift */,
+			);
+			path = Tools;
 			sourceTree = "<group>";
 		};
 		43E470918FAADD735D2E781D /* Session */ = {
@@ -626,6 +697,27 @@
 				36E98B61895F09D20A5000C3 /* WaypointGroupsView.swift in Sources */,
 				7C952BD1E09E3CD7139FC429 /* WaypointMark.swift in Sources */,
 				13076952E48F2186B33B3F53 /* WaypointPickerView.swift in Sources */,
+				4A317E3B1B39385A0F5C58E1 /* ActivityToolView.swift in Sources */,
+				6F63BB50FE36A9520929A7CC /* CarToolView.swift in Sources */,
+				9049D9E59E91FB08E5BBCE6F /* DecodeToolView.swift in Sources */,
+				E978F7A8C334DD85B9CFEA2E /* FeedToolView.swift in Sources */,
+				9D6075C90937514A0F524CE0 /* HandleToolView.swift in Sources */,
+				501D978EFB3AE8E5F5E705E4 /* LabelsToolView.swift in Sources */,
+				B706CCF15A151295975F2857 /* LexiconToolView.swift in Sources */,
+				C70A87BBD64288F29CFF31FC /* MembershipsToolView.swift in Sources */,
+				DCEB987CBC7ED1553BE11D96 /* MutualsToolView.swift in Sources */,
+				ACC32A938873E9AD81CDB3AC /* OAuthToolView.swift in Sources */,
+				180267F4F0D5369DAF6C5A83 /* PageToolView.swift in Sources */,
+				C21628ADBEA270BF36160393 /* PostToolView.swift in Sources */,
+				4812291A684842D567C701D1 /* RelayToolView.swift in Sources */,
+				1EB8A51FC54C46CCFA155AE0 /* ResolveToolView.swift in Sources */,
+				ABC271C38FAA3FE17C78B45E /* ShadowbanToolView.swift in Sources */,
+				6FDBC42C33AEDAE3A8A8F2FE /* ShareToolView.swift in Sources */,
+				5A231139F571051C65854C53 /* StreamToolView.swift in Sources */,
+				DE55A018A7E032A50A3F7669 /* ToolSupport.swift in Sources */,
+				A1FC3ADDF8A3F17195B93976 /* ToolsView.swift in Sources */,
+				C5ABFA27C9348156FD444210 /* ValidateToolView.swift in Sources */,
+				5DA2BFB611134A45700BE612 /* XrpcToolView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

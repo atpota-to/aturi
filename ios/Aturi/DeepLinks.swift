@@ -2,13 +2,14 @@ import SwiftUI
 import Observation
 import AturiCore
 
-/// The four top-level destinations, in tab-bar order. `Sendable` is spelled
+/// The top-level destinations, in tab-bar order. `Sendable` is spelled
 /// out because the App Intents conformance (Intents/NavigationIntents.swift)
 /// requires it, and Swift wants it declared in this file.
 enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
     case explore
     case links
     case lexicons
+    case tools
     case settings
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .explore: return "Explore"
         case .links: return "Links"
         case .lexicons: return "Lexicons"
+        case .tools: return "Tools"
         case .settings: return "Settings"
         }
     }
@@ -27,6 +29,7 @@ enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .explore: return "magnifyingglass"
         case .links: return "link"
         case .lexicons: return "book.closed"
+        case .tools: return "wrench.and.screwdriver"
         case .settings: return "gearshape"
         }
     }
@@ -47,6 +50,9 @@ enum Route: Hashable {
     case preview(AtUriComponents)
     /// Free-text search results from the explore landing.
     case search(String)
+    /// A tool's page (`/tools/{slug}`), with the input a link handed it in
+    /// the query the web tool reads (`?handle=`, `?actor=`, ...).
+    case tool(slug: String, query: [String: String] = [:])
 }
 
 extension Route {
@@ -109,7 +115,7 @@ extension Route {
             return .lexicon(nsid: nsid)
         case .lexiconGroup(let prefix):
             return .lexiconGroup(prefix: prefix)
-        case .preview, .search:
+        case .preview, .search, .tool:
             return nil
         }
     }
@@ -126,6 +132,8 @@ extension Route {
             return URL(string: generateAturiLink(components))
         case .search:
             return nil
+        case .tool(let slug, let query):
+            return URL(string: Endpoints.aturiBase.absoluteString + "/tools/" + slug + Route.queryString(query))
         default:
             guard let path = explorePath else { return nil }
             return URL(string: Endpoints.aturiBase.absoluteString + path + tabQuery)
@@ -139,14 +147,27 @@ extension Route {
         return "?tab=" + URIEncoding.encodeComponent(tab)
     }
 
+    /// `?a=1&b=2` with the keys sorted, so one input is always one URL;
+    /// empty for no query.
+    static func queryString(_ query: [String: String]) -> String {
+        guard !query.isEmpty else { return "" }
+        let pairs = query.keys.sorted().map { key in
+            URIEncoding.encodeComponent(key) + "=" + URIEncoding.encodeComponent(query[key] ?? "")
+        }
+        return "?" + pairs.joined(separator: "&")
+    }
+
     /// The tab a route belongs to when nothing else decides: universal
-    /// links land on Links, lexicon pages on Lexicons, the rest on Explore.
+    /// links land on Links, lexicon pages on Lexicons, tools on Tools, the
+    /// rest on Explore.
     var defaultTab: Tab {
         switch self {
         case .preview:
             return .links
         case .lexicon, .lexiconGroup:
             return .lexicons
+        case .tool:
+            return .tools
         case .repo, .collection, .record, .pds, .search:
             return .explore
         }
@@ -190,6 +211,8 @@ enum DeepLinks {
             return .tabRoot(.lexicons)
         case .section(let section):
             return .tabRoot(Tab(section))
+        case .tool(let slug, let query):
+            return .route(.tool(slug: slug, query: query), tab: .tools)
         }
     }
 
@@ -213,6 +236,7 @@ extension Tab {
         case .explore: self = .explore
         case .links: self = .links
         case .lexicons: self = .lexicons
+        case .tools: self = .tools
         case .settings: self = .settings
         }
     }
@@ -228,6 +252,7 @@ final class AppRouter {
     var explorePath = NavigationPath()
     var linksPath = NavigationPath()
     var lexiconsPath = NavigationPath()
+    var toolsPath = NavigationPath()
     var settingsPath = NavigationPath()
     /// Set by the "Open Copied Link" shortcut, cleared by the Links tab when
     /// it reads the clipboard. The read waits for the Links tab because iOS
@@ -253,6 +278,7 @@ final class AppRouter {
         case .explore: explorePath.append(route)
         case .links: linksPath.append(route)
         case .lexicons: lexiconsPath.append(route)
+        case .tools: toolsPath.append(route)
         case .settings: settingsPath.append(route)
         }
     }
@@ -277,6 +303,7 @@ final class AppRouter {
         case .explore: explorePath = NavigationPath()
         case .links: linksPath = NavigationPath()
         case .lexicons: lexiconsPath = NavigationPath()
+        case .tools: toolsPath = NavigationPath()
         case .settings: settingsPath = NavigationPath()
         }
     }

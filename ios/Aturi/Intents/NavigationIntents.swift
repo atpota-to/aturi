@@ -20,6 +20,11 @@ extension Tab: AppEnum {
             subtitle: "Every lexicon in the Atmosphere",
             image: DisplayRepresentation.Image(systemName: "book.closed")
         ),
+        .tools: DisplayRepresentation(
+            title: "Tools",
+            subtitle: "Handle, record, feed and network checks",
+            image: DisplayRepresentation.Image(systemName: "wrench.and.screwdriver")
+        ),
         .settings: DisplayRepresentation(
             title: "Settings",
             subtitle: "Waypoints, redirects and your account",
@@ -31,9 +36,9 @@ extension Tab: AppEnum {
 struct OpenSectionIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Section in Aturi"
     static let description = IntentDescription(
-        "Opens Aturi on one of its tabs, Explore, Links, Lexicons or Settings, back at the top of the tab.",
+        "Opens Aturi on one of its tabs, Explore, Links, Lexicons, Tools or Settings, back at the top of the tab.",
         categoryName: "Navigation",
-        searchKeywords: ["tab", "explore", "links", "lexicons", "settings"]
+        searchKeywords: ["tab", "explore", "links", "lexicons", "tools", "settings"]
     )
     static let openAppWhenRun = true
 

@@ -269,4 +269,17 @@ final class DeepLinkRoutingTests: XCTestCase {
         XCTAssertEqual(destination(twice), .explore(.repo("alice.test")))
         XCTAssertNil(destination(thrice))
     }
+
+    // MARK: Tools
+
+    func testToolLinksOpenTheHubOrATool() {
+        XCTAssertEqual(DeepLinkRouting.destination(for: "https://aturi.to/tools"), .section(.tools))
+        XCTAssertEqual(
+            DeepLinkRouting.destination(for: "https://aturi.to/tools/handle?handle=alice.test"),
+            .tool(slug: "handle", query: ["handle": "alice.test"])
+        )
+        XCTAssertEqual(DeepLinkRouting.destination(for: "https://aturi.to/tools/decode"), .tool(slug: "decode", query: [:]))
+        XCTAssertNil(DeepLinkRouting.destination(for: "https://aturi.to/tools/nope"), "a slug the catalog does not list stays with Safari")
+        XCTAssertNil(DeepLinkRouting.destination(for: "https://aturi.to/tools/handle/extra"))
+    }
 }

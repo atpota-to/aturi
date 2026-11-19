@@ -55,7 +55,7 @@ Three routes in, all handled by `Aturi/DeepLinks.swift`, which maps the destinat
 
 | Link | Handled by |
 | --- | --- |
-| `https://aturi.to/profile/…`, `/explore/…`, `/at/…`, `/at://…`, `/links`, `/account` | Universal links (associated domains) |
+| `https://aturi.to/profile/…`, `/explore/…`, `/at/…`, `/at://…`, `/links`, `/account`, `/tools/…` | Universal links (associated domains) |
 | `at://did:plc:…/collection/rkey` | The `at` URL scheme |
 | `aturi://open?url=<encoded link>` | The `aturi` URL scheme, used by the share extension |
 
@@ -85,7 +85,7 @@ The app's main jobs are App Intents, in `Aturi/Intents/`, so they appear as acti
 | Explore in Aturi | The explorer for a handle, DID, AT URI, link or PDS host, routed like the search box | Yes |
 | Open Lexicon in Aturi | A lexicon's page, or a namespace's group page | Yes |
 | Open My Repo in Aturi | The signed-in account's repo | Yes |
-| Open Section in Aturi | Explore, Links, Lexicons or Settings | Yes |
+| Open Section in Aturi | Explore, Links, Lexicons, Tools or Settings | Yes |
 
 Ten of them are also App Shortcuts (`AturiShortcuts.swift`). iOS lists those in the Shortcuts app, in Spotlight and in the Action button settings, and Siri runs them by phrase: "Open copied link in Aturi", "Open Lexicons in Aturi", "Resolve a handle with Aturi" and the others in that file. Siri cannot take a URL by voice, so the phrases favour actions that need no link or that take a handle. A handle dictated as "dame dot is" is read as `dame.is`.
 
@@ -118,7 +118,7 @@ This port was written in a Linux session without Xcode. Be clear-eyed about what
 
 ### The November 2026 parity pass
 
-A later pass, also on Linux and this time without a Swift toolchain at all, brought the app up to the web's design and pages as of mid-November 2026 (the explorer's record, collection and repo pages, the link-page heading and `?stay=1`, lexicon pins, site links and Watch, the Field Notes tokens and controls added since the first port, and the landing's "This week in the Atmosphere"). Nothing in that pass was compiled or run here: the package changes come with tests, and both they and the app build are left to the `ios` CI job on a pull request.
+A later pass, also on Linux and this time without a Swift toolchain at all, brought the app up to the web's design and pages as of mid-November 2026 (the explorer's record, collection and repo pages, the link-page heading and `?stay=1`, lexicon pins, site links and Watch, the Field Notes tokens and controls added since the first port, and the landing's "This week in the Atmosphere"). Nothing in that pass was compiled or run here: the package changes come with tests, and both they and the app build are left to the `ios` CI job on a pull request. The Tools tab's files (`Aturi/Features/Tools/`) were added to `Aturi.xcodeproj` by hand in XcodeGen's layout, as the Shortcuts files were; the next `xcodegen generate` gives those entries new IDs.
 
 ## Out of scope for this port
 

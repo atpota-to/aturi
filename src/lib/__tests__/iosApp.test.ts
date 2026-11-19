@@ -50,7 +50,7 @@ test('the association file names the app and only the link paths it handles', ()
   };
   assert.deepEqual(body.applinks.details[0].appIDs, [`ABCDE12345.${IOS_BUNDLE_ID}`]);
   const paths = body.applinks.details[0].components.map((c) => c['/']);
-  assert.deepEqual(paths, ['/profile/*', '/explore/*', '/at/*', '/at:*', '/links', '/account']);
+  assert.deepEqual(paths, ['/profile/*', '/explore/*', '/at/*', '/at:*', '/links', '/account', '/tools', '/tools/*']);
   // Claiming the root would pull /about, /docs and every other page into the
   // app; the bare-handle links stay in Safari by design.
   assert.ok(!paths.includes('/*'));
