@@ -1141,12 +1141,27 @@
   .fn-lp-scroll {
     bottom: calc(var(--fn-phone-bar-h) + 1rem);
   }
+
+  /* The toolbar goes slim while the page scrolls down (chrome.css), and the
+     bar follows it down at the toolbar's own pace, so no strip of the list
+     opens up between them. */
+  .fn-lp-remember {
+    transition: bottom 0.2s ease;
+  }
+
+  body:has(.fn-phone-bar[data-condensed]) .fn-lp-remember {
+    bottom: calc(var(--fn-phone-bar-slim-h) + 1rem);
+  }
 }
 
 @media (max-width: 600px) {
   .fn-lp-remember {
     bottom: var(--fn-phone-bar-h);
     padding-bottom: 0.875rem;
+  }
+
+  body:has(.fn-phone-bar[data-condensed]) .fn-lp-remember {
+    bottom: var(--fn-phone-bar-slim-h);
   }
 }
 
