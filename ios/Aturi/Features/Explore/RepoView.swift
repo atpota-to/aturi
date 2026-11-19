@@ -2151,3 +2151,71 @@ private struct RepoVisibilityPostRow: View {
         .buttonStyle(.plain)
     }
 }
+
+// MARK: Author card
+
+/// The author of a record with the author's two checks, port of
+/// `AuthorChecks`: the record page has no account card, and this is the
+/// answer the card would give. The name opens the author's repo page, and
+/// so do the rows, since a repo route here carries no tab. Name and avatar
+/// come from the label check's first answer, which is a getProfile, so the
+/// card costs no request of its own.
+struct AccountChecksAuthorCard: View {
+    let identity: IdentityBundle
+
+    @State private var model: AccountChecksModel
+
+    @Environment(AppRouter.self) private var router
+    @Environment(\.aturiTheme) private var theme
+
+    init(identity: IdentityBundle) {
+        self.identity = identity
+        _model = State(initialValue: AccountChecksStore.shared.model(for: identity))
+    }
+
+    var body: some View {
+        let view = model.base.data?.view
+        let handle = identity.handle ?? view?.handle
+        let name = view?.displayName ?? (handle.map { "@\($0)" } ?? shortDid(identity.did))
+        let repo = handle ?? identity.did
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Author")
+                .aturiLabel()
+                .foregroundStyle(theme.textTertiary)
+                .padding(.top, 12)
+                .accessibilityAddTraits(.isHeader)
+            NavigationLink(value: Route.repo(repo)) {
+                HStack(spacing: 10) {
+                    AvatarView(url: view?.avatar, size: 30)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(name)
+                            .font(AturiFont.sans(.subheadline, weight: .semibold))
+                            .foregroundStyle(theme.textPrimary)
+                            .lineLimit(1)
+                        if let handle, name != "@\(handle)" {
+                            Text("@\(handle)")
+                                .font(AturiFont.monoSmall)
+                                .foregroundStyle(theme.textTertiary)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(AturiFont.caption2)
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            Divider()
+            AccountChecksRows(model: model) { _ in
+                router.open(.repo(repo))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardBackground()
+    }
+}

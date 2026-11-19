@@ -189,13 +189,34 @@ private struct RecordScreen: View {
                 signInPrompt
             }
         case .loaded(let record):
-            ForEach(model.sections) { section in
+            /* The web's record page has no account card, so the author's
+               label and visibility checks head its side column
+               (`AuthorChecks`, e56c568). In one column the web orders it
+               with the rich preview, ahead of the record's data
+               (`SLOT_ORDER`), so it follows the preview here, or leads
+               when the record has none. */
+            let sections = model.sections
+            if !sections.contains(where: { $0.id == "richPreview" }) {
+                authorCard
+            }
+            ForEach(sections) { section in
                 sectionView(section, record: record)
+                if section.id == "richPreview" {
+                    authorCard
+                }
             }
             /* No "Open this record in" row: the web dropped it (6fa671a),
                since picking an app is the universal link page's job, and
                the copy card links there. */
             editChip
+        }
+    }
+
+    @ViewBuilder
+    private var authorCard: some View {
+        if let identity = model.identityBundle {
+            AccountChecksAuthorCard(identity: identity)
+                .id(identity.did)
         }
     }
 
