@@ -16,11 +16,13 @@ struct ExploreLandingView: View {
 
 /// Port of `ExploreLanding.tsx` + `SearchBox.tsx` + `SearchRecommendations.tsx`:
 /// the headline, the search box with its typeahead and history, the "Try:"
-/// chips, "This week in the Atmosphere" and the live feed.
+/// chips, the atmospheric conditions, "This week in the Atmosphere" and the
+/// live feed.
 private struct ExploreLandingScreen: View {
     let sessionState: SessionState
 
     @State private var model: ExploreLandingModel
+    @State private var conditions = AtmosphericConditionsModel()
     @State private var pulse = AtmospherePulseModel()
     @FocusState private var fieldFocused: Bool
 
@@ -40,6 +42,7 @@ private struct ExploreLandingScreen: View {
                 header
                 searchArea
                 exampleChips
+                AtmosphericConditionsCard(model: conditions)
                 AtmospherePulseSection(model: pulse)
                 /* The explorer dashboard variant, as `ExploreLanding.tsx`
                    mounts it: every operation with its pill, the op and
@@ -69,7 +72,9 @@ private struct ExploreLandingScreen: View {
         }
         .refreshable {
             model.history.reload()
+            let reading = conditions.load()
             await pulse.load().value
+            await reading.value
         }
         .onChange(of: sessionState) { _, next in
             model.session = next
@@ -345,6 +350,195 @@ private struct ExploreLandingScreen: View {
         let destination = model.pick(entry: entry)
         fieldFocused = false
         ExploreNavigator.open(destination, router: router, openURL: openURL)
+    }
+}
+
+/// "Atmospheric conditions", port of `AtmosphericConditions.tsx` (6d89186,
+/// slimmed in 3152ca8): the last minute of the whole firehose from
+/// atpota.to's weather station in four stats, two to a row as the web lays
+/// them out on a phone, with the reading's time and the way out to the full
+/// report in the header.
+///
+/// A new reading every minute, and only while someone can see it: the
+/// `.task(id:)` restarts when the card appears and when the scene changes
+/// phase, asks for a reading if the last one is a minute old, then once a
+/// minute while the scene stays active. SwiftUI cancels it when the scene
+/// leaves `.active` or the landing is covered (a pushed page, another tab),
+/// as the web stops asking for a hidden tab. A refresh that fails keeps the
+/// last reading, whose time says how old it is.
+private struct AtmosphericConditionsCard: View {
+    let model: AtmosphericConditionsModel
+
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
+    @Environment(\.aturiTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            if model.isDown {
+                Text(AtmosphericConditionsModel.downMessage)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+            } else if dynamicTypeSize.isAccessibilitySize {
+                /* Accessibility sizes leave no room for two columns. */
+                VStack(spacing: 0) {
+                    ForEach(Array(model.stats.enumerated()), id: \.element.id) { index, stat in
+                        if index > 0 {
+                            Divider()
+                        }
+                        statCell(stat, order: index)
+                    }
+                }
+            } else {
+                VStack(spacing: 0) {
+                    statRow(model.rightNow, model.againstUsual, firstOrder: 0)
+                    Divider()
+                    statRow(model.diversity, model.hosting, firstOrder: 2)
+                }
+            }
+        }
+        .cardBackground()
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            model.refreshIfStale()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(AtmosphericConditionsModel.refreshInterval))
+                guard !Task.isCancelled else { return }
+                model.refreshIfStale()
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(AtmosphericConditionsModel.title)
+                    .font(AturiFont.subtitle)
+                    .foregroundStyle(theme.textPrimary)
+                Text(AtmosphericConditionsModel.subtitle)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                if let measuredAt = model.measuredAt {
+                    updatedLabel(measuredAt)
+                }
+                Spacer(minLength: 0)
+                Button {
+                    openURL(AtpotatoWeather.weatherReportURL)
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(AtmosphericConditionsModel.reportLinkLabel)
+                        Image(systemName: "arrow.up.right")
+                            .imageScale(.small)
+                    }
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
+                    .foregroundStyle(theme.textAccent)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens outside the app")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    /// "Updated 7:17 PM" in the device's own clock format, behind the live
+    /// dot. The dot holds still and bounces once when a new reading lands;
+    /// a refresh that failed keeps the old time, so it stays still.
+    private func updatedLabel(_ measuredAt: Date) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "circle.fill")
+                .font(AturiFont.caption2)
+                .imageScale(.small)
+                .foregroundStyle(theme.statusLive)
+                .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? "" : (model.reading?.measuredAt ?? ""))
+                .accessibilityHidden(true)
+            Text("Updated \(measuredAt, format: .dateTime.hour().minute())")
+                .font(AturiFont.caption)
+                .monospacedDigit()
+                .foregroundStyle(theme.textTertiary)
+        }
+    }
+
+    /// Two stats side by side with a hairline between, the row as tall as
+    /// the taller of them.
+    private func statRow(_ leading: AtmosphericStat, _ trailing: AtmosphericStat, firstOrder: Int) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            statCell(leading, order: firstOrder)
+            Divider()
+            statCell(trailing, order: firstOrder + 1)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// One stat: the label, then the figure with its level and the line
+    /// under it, or skeleton bars until the first load lands. When it does,
+    /// each stat's figures rise into place 70ms after the one before, as
+    /// the web's `Stat` does; Reduce Motion drops the rise.
+    private func statCell(_ stat: AtmosphericStat, order: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(stat.label)
+                .font(AturiFont.sans(.caption, weight: .semibold))
+                .foregroundStyle(theme.textTertiary)
+            if model.hasLoaded {
+                VStack(alignment: .leading, spacing: 4) {
+                    valueLine(stat)
+                    Text(stat.note)
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .transition(AnyTransition.opacity.combined(with: AnyTransition.offset(y: 4)))
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    SkeletonBar(width: 72, height: 22, cornerRadius: 6)
+                    SkeletonBar(width: 120, height: 10)
+                }
+                .padding(.top, 2)
+                .accessibilityHidden(true)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .animation(
+            AturiMotion.animation(AturiMotion.soft(AturiMotion.panel).delay(Double(order) * 0.07), reduceMotion: reduceMotion),
+            value: model.hasLoaded
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The figure, a dash when its part is missing, with its level beside
+    /// it. Figures roll to each new reading; the condition is a word.
+    private func valueLine(_ stat: AtmosphericStat) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(stat.value ?? "\u{2013}")
+                .font(AturiFont.sans(.title2, weight: .bold))
+                .tracking(-0.4)
+                .monospacedDigit()
+                .foregroundStyle(stat.value == nil ? theme.textTertiary : theme.textPrimary)
+                .contentTransition(.numericText())
+                .animation(AturiMotion.animation(AturiMotion.soft(AturiMotion.arrive), reduceMotion: reduceMotion), value: stat.value)
+            if stat.value != nil, let level = stat.level {
+                Text(level)
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
+                    .foregroundStyle(theme.textAccent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
     }
 }
 
