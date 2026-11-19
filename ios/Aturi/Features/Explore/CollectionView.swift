@@ -39,7 +39,9 @@ struct CollectionView: View {
                     ExploreNotFoundPanel(
                         eyebrow: RecordModel.identityFailureEyebrow,
                         headline: RecordModel.identityFailureHeadline,
-                        message: model.notFoundMessage ?? message
+                        message: model.notFoundMessage ?? message,
+                        details: message,
+                        query: model.repo
                     ) {
                         model.load()
                     }
@@ -164,6 +166,13 @@ struct CollectionView: View {
                 }
                 .buttonStyle(.aturiSecondary)
                 .accessibilityHint("Flips the listing order")
+                /* The web's Lexicon button: this collection's usage across
+                   the network, on the lexicon's own page. */
+                NavigationLink(value: Route.lexicon(nsid: model.collection)) {
+                    Label("Lexicon", systemImage: "book")
+                }
+                .buttonStyle(.aturiSecondary)
+                .accessibilityHint("This collection's lexicon and its usage across the network")
                 Spacer(minLength: 0)
             }
             ExploreFilterField("Search records", text: $model.filter, label: "Search records in this collection")
@@ -305,22 +314,32 @@ struct CollectionView: View {
             }
             .cardBackground()
         }
-        if model.canLoadMore {
-            Button {
-                model.loadMore()
-            } label: {
-                HStack(spacing: 6) {
-                    if model.isLoadingPage {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "plus")
+        /* The web's records foot: how much is in, and Load more while the
+           PDS holds more. The label stays put; only a spinner joins it. */
+        if let footer = model.footerLabel {
+            HStack(spacing: 10) {
+                Text(footer)
+                    .font(AturiFont.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textTertiary)
+                Spacer(minLength: 0)
+                if model.canLoadMore {
+                    Button {
+                        model.loadMore()
+                    } label: {
+                        HStack(spacing: 6) {
+                            if model.isLoadingPage {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                            Text("Load more")
+                        }
                     }
-                    Text("Fetch \(CollectionModel.recordsPerPage) more")
+                    .buttonStyle(.aturiSecondary)
+                    .disabled(model.isLoadingPage)
+                    .accessibilityHint("Fetches the next \(CollectionModel.recordsPerPage) records")
                 }
             }
-            .buttonStyle(.aturiSecondary)
-            .disabled(model.isLoadingPage)
         }
     }
 

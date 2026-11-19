@@ -21,9 +21,11 @@ import FoundationNetworking
 // disappear.
 
 /// The rendered card above the field table, when the record has one:
-/// the Bluesky post card or one of the at.margin.* cards.
+/// the Bluesky post card, the account's profile card for its
+/// `app.bsky.actor.profile/self` record, or one of the at.margin.* cards.
 public enum RecordRichCard: Hashable, Sendable {
     case post(BskyPost, parent: BskyPost?)
+    case profile(RepoProfileHeader)
     case margin(MarginLexiconType, AtRecord)
 }
 
@@ -255,6 +257,11 @@ public final class RecordModel {
     /// AppView has no live post for the URI (no card, as on the web).
     /// `idle` for anything but a post.
     public private(set) var postThread: Loadable<PostThread?> = .idle
+    /// The profile card behind the `app.bsky.actor.profile/self` record's
+    /// rich preview: the AppView profile with the record's extras.
+    /// `loaded(nil)` when the AppView has no profile; `idle` for any other
+    /// record.
+    public private(set) var profileHeader: Loadable<RepoProfileHeader?> = .idle
     /// The engagement strip's figures; `loaded([])` renders nothing. `idle`
     /// for a post, whose figures are on the card.
     public private(set) var engagement: Loadable<[RecordEngagementStat]> = .idle
@@ -316,6 +323,7 @@ public final class RecordModel {
         identity = .loading
         record = .idle
         postThread = .idle
+        profileHeader = .idle
         engagement = .idle
         lexiconUsage = .idle
         loadTask = Task { [weak self] in
@@ -361,8 +369,9 @@ public final class RecordModel {
         backlinks.load(target: atUri)
 
         record = .loading
+        let fetched: AtRecord
         do {
-            let fetched = try await pds.getRecord(pds: bundle.pds, repo: bundle.did, collection: collection, rkey: decodedRkey)
+            fetched = try await pds.getRecord(pds: bundle.pds, repo: bundle.did, collection: collection, rkey: decodedRkey)
             guard !Task.isCancelled else { return }
             record = .loaded(fetched)
         } catch {
@@ -372,8 +381,10 @@ public final class RecordModel {
         }
 
         let isPost = self.isPost
+        let isProfileRecord = self.isProfileRecord
         let wantsEngagement = isEngagementApplicable
         if isPost { postThread = .loading }
+        if isProfileRecord { profileHeader = .loading }
         if wantsEngagement { engagement = .loading }
         lexiconUsage = .loading
         let did = bundle.did
@@ -381,7 +392,10 @@ public final class RecordModel {
             if isPost {
                 group.addTask { [weak self] in await self?.loadPostThread(atUri) }
             }
-            if wantsEngagement {
+            if isProfileRecord {
+                /* One profile read feeds the card and the counts. */
+                group.addTask { [weak self] in await self?.loadProfileCard(bundle, record: fetched) }
+            } else if wantsEngagement {
                 group.addTask { [weak self] in await self?.loadEngagement(did: did, atUri: atUri) }
             }
             group.addTask { [weak self] in await self?.loadLexiconUsage() }
@@ -393,6 +407,18 @@ public final class RecordModel {
         let thread = await appView.getPostThread(atUri)
         guard !Task.isCancelled else { return }
         postThread = .loaded(thread)
+    }
+
+    /// The profile record's card, as `RichRecordCard.tsx` draws it with
+    /// `ProfileHeader`: the AppView profile merged with this very record's
+    /// extras (website, pronouns). The same profile carries the counts the
+    /// engagement strip shows when the card is hidden.
+    private func loadProfileCard(_ bundle: IdentityBundle, record fetched: AtRecord) async {
+        let profile = await appView.getProfile(bundle.did)
+        guard !Task.isCancelled else { return }
+        engagement = .loaded(profile.map { RecordModel.engagementStats(of: $0) } ?? [])
+        let extras = ProfileRecordExtras(recordValue: fetched.value)
+        profileHeader = .loaded(profile.map { RepoProfileHeader(profile: $0, identity: bundle, extras: extras) })
     }
 
     /// Port of EngagementSidecar's effect: feed records ask the AppView for
@@ -456,10 +482,11 @@ public final class RecordModel {
         did.map { "at://\($0)/\(collection)/\(decodedRkey)" }
     }
 
-    /// The not-found panel's body when the repo would not resolve.
+    /// The not-found panel's body when the repo would not resolve, in the
+    /// web's words; the resolver's own error goes under "Technical details".
     public var identityFailureBody: String? {
-        guard let message = identity.errorMessage else { return nil }
-        return "We tried to resolve \"\(repo)\" and the AT Protocol resolver returned: \(message). Try another handle, DID, or AT URI below."
+        guard identity.errorMessage != nil else { return nil }
+        return "We couldn\u{2019}t find an account for \u{201C}\(repo)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
     }
 
     // MARK: Record
@@ -482,10 +509,25 @@ public final class RecordModel {
         MarginLexicons.type(of: collection)
     }
 
-    /// `recordHasRichCard`: posts and the at.margin.* lexicons get a card;
-    /// a generic record's rich view is the field table.
+    /// Whether the card's AppView read is still out: the card's place
+    /// shows a skeleton until it lands, then the card or nothing.
+    public var isRichCardLoading: Bool {
+        if isPost { return postThread.isIdle || postThread.isLoading }
+        if isProfileRecord { return profileHeader.isIdle || profileHeader.isLoading }
+        return false
+    }
+
+    /// The account's own profile record. Only `self` gets the profile card:
+    /// the card shows the account's AppView profile, not the record, so a
+    /// record under any other rkey would be passed off as the real profile.
+    public var isProfileRecord: Bool {
+        collection == RecordModel.profileCollection && decodedRkey == "self"
+    }
+
+    /// `recordHasRichCard`: posts, the profile record and the at.margin.*
+    /// lexicons get a card; a generic record's rich view is the field table.
     public var hasRichCard: Bool {
-        isPost || marginType != nil
+        isPost || isProfileRecord || marginType != nil
     }
 
     /// The card to draw, nil while a post's thread loads, when the AppView
@@ -495,10 +537,21 @@ public final class RecordModel {
             guard case .loaded(let thread?) = postThread else { return nil }
             return .post(thread.post, parent: thread.parent)
         }
+        if isProfileRecord {
+            guard case .loaded(let header?) = profileHeader, !header.isEmpty else { return nil }
+            return .profile(header)
+        }
         if let type = marginType, let value = record.value {
             return .margin(type, value)
         }
         return nil
+    }
+
+    /// The profile record's counts sit on its card while the card is shown,
+    /// so the strip steps aside then, as `RecordExplorer.tsx`'s
+    /// `countsInCard` has it.
+    public var countsInCard: Bool {
+        isProfileRecord && !isRichPreviewHidden
     }
 
     /// The engagement strip belongs to non-post records; a post's counts
@@ -590,7 +643,7 @@ public final class RecordModel {
     public func isSectionApplicable(_ id: String) -> Bool {
         switch id {
         case "richPreview": return hasRichCard
-        case "engagement": return isEngagementApplicable
+        case "engagement": return isEngagementApplicable && !countsInCard
         case "signIn": return showsSignInPrompt
         default: return true
         }

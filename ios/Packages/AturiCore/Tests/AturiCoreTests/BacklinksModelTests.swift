@@ -130,6 +130,15 @@ final class BacklinksModelTests: XCTestCase {
         XCTAssertEqual(model.totals?.accounts, nil, "no source reported distinct DIDs, so the accounts figure is hidden")
     }
 
+    func testSourcesWithNoLinksAreDropped() async {
+        let body = #"{"links":{"app.bsky.feed.like":{".subject.uri":{"records":4,"distinct_dids":4}},"app.bsky.feed.repost":{".subject.uri":{"records":0,"distinct_dids":0}}}}"#
+        let transport = transport(overrides: [(Self.sourcesPath, .reply(status: 200, body: body))])
+        let model = makeModel(transport)
+        await model.loadAndWait(target: Self.target)
+        XCTAssertEqual(model.sourceList.map(\.source), [Self.likeSource])
+        XCTAssertEqual(model.summaryText, "across 1 source \u{00B7} from 4 accounts")
+    }
+
     func testUnavailableIndexIsAFailure() async {
         let transport = transport(overrides: [(Self.sourcesPath, .reply(status: 503, body: "down"))])
         let model = makeModel(transport)

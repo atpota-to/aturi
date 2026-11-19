@@ -21,11 +21,15 @@ struct BacklinksSection: View {
         if showsSummary {
             VStack(alignment: .leading, spacing: 0) {
                 summaryHeader
-                Divider()
-                VStack(alignment: .leading, spacing: 8) {
-                    sourcesBody(emptyMessage: BacklinksModel.emptySummaryMessage)
+                /* With nothing linking in, the header's "no records
+                   reference this yet" says it all, as on the web. */
+                if !model.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        sourcesBody(emptyMessage: BacklinksModel.emptySummaryMessage)
+                    }
+                    .padding(12)
                 }
-                .padding(12)
             }
             .cardBackground()
         } else {
