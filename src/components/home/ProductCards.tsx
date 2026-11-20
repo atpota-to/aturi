@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ChevronRight, Download, Leaf, Link2, Telescope } from 'lucide-react';
+import { ChevronRight, Download, Leaf, Link2, Signpost, Telescope } from 'lucide-react';
 import {
   WAYPOINT_DESTINATIONS,
   getWaypointCount,
@@ -10,7 +10,6 @@ import {
 } from '@/utils/waypoints';
 
 const DEMO_HANDLE = 'aturi.to';
-const UNIVERSAL_LINK_HREF = `/profile/${DEMO_HANDLE}`;
 
 /** Waypoints shown in the extension popup sketch, first one as the default. */
 const POPUP_WAYPOINT_IDS = ['anisota', 'bluesky', 'reddwarf'];
@@ -91,15 +90,14 @@ export default function ProductCards() {
     },
     {
       id: 'links',
-      kicker: 'Universal links',
-      title: 'One link, every client',
+      kicker: 'Waypoints',
+      title: 'Every record, in every app',
       copy:
-        'Share an aturi.to link and whoever opens it picks the app they like to read in. No lock-in, no login.',
-      short: 'Share one link; readers open it in the app they like.',
-      icon: <Link2 size={19} />,
-      href: UNIVERSAL_LINK_HREF,
-      linkLabel: 'See a universal link page',
-      dynamic: true,
+        'Share an aturi.to link and whoever opens it picks the app they like to read in, or build the same picker into your own app. No lock-in, no login.',
+      short: 'Links that open in any app, and the kit to build them into yours.',
+      icon: <Signpost size={19} />,
+      href: '/waypoints',
+      linkLabel: 'How waypoints work',
       visual: <LinkSketch />,
     },
   ];
