@@ -79,7 +79,7 @@ export function LexiconRouteSkeleton() {
         </div>
         <div className="fx-wb-toolbar-end">
           <SkeletonBar width="7.5rem" height="28px" shape="control" />
-          <SkeletonBar width="13rem" height="28px" shape="control" />
+          <SkeletonBar width="102px" height="28px" shape="control" />
         </div>
       </header>
       <div className="fx-wb-body">
