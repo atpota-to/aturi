@@ -97,8 +97,9 @@ npm run build:safari     # .output/safari-mv3/
 It needs Safari 18.4 or later, which the manifest declares in
 `browser_specific_settings.safari.strict_min_version`. The redirect rules need
 DNR `regexSubstitution` (Safari 17), and before 18.4 `storage.onChanged` left
-out the name of the storage area that changed, which the settings, sign-in and
-page-scan code all check. There is no `dev:safari`: WXT can't launch Safari.
+out the name of the storage area that changed, which the settings, debug log
+and page-scan code all check. There is no `dev:safari`: WXT can't launch
+Safari.
 
 ### Running it
 
@@ -167,40 +168,7 @@ what the next section lists.
   a tab is showing anyway. The popup's auto-redirect switch still turns
   redirects off everywhere.
 - **Settings sync.** `storage.sync` works, but Safari never syncs it, so
-  preferences stay on the device they were set on. Waypoint groups and custom
-  waypoints saved on aturi.to can be brought onto each device with
-  Settings > Account > Import waypoint settings.
-
-### Signing in
-
-Safari has no `identity` API, so the Safari build doesn't ask for `identity`
-and signs in through an ordinary tab instead of `launchWebAuthFlow`:
-
-1. Settings > Account asks for access to aturi.to first. The request is the
-   first thing the Sign in button does, because Safari only shows the prompt
-   while the click is being handled. Without the grant Safari hides the
-   sign-in tab's URL from the extension, so it could never see the result.
-2. The extension opens aturi.to's login URL in a new tab, with `return` set to
-   `https://aturi.to/api/oauth/extension/return`, a static page on aturi.to
-   that runs no script.
-3. When the tab lands there with `#code=…`, the background (told by
-   `tabs.onUpdated`, or by the Safari-only `signin-return` content script on
-   that page) redeems the code with the verifier it kept in `storage.local`.
-   The verifier stays there until the flow ends and is never used after ten
-   minutes; a flow nobody finishes is removed the next time Settings >
-   Account opens or the background starts. If the handle that was typed
-   resolves to a different account from the one that signed in, it signs that
-   session straight back out. Then it closes the tab and switches back to
-   Settings.
-
-`lib/tabSignIn.ts` has the extension side, and
-[docs/backend-oauth.md](../docs/backend-oauth.md) ("Safari: sign-in in a tab")
-has the design and why the return page is safe. The server accepts that one
-return URL for extension sign-ins, which touches OAuth and needs a
-maintainer's review. One known risk: App Review has rejected sign-in in a
-Safari tab before (guideline 4.0), although Apple's extension documentation
-recommends it. The fallback would be `ASWebAuthenticationSession` in the host
-apps.
+  preferences stay on the device they were set on.
 
 ### Where the Safari code lives
 
@@ -209,10 +177,10 @@ apps.
   bundle; code that needs to tell them apart uses
   `runtime.getPlatformInfo().os` (`"mac"` or `"ios"`).
 - `wxt.config.ts`: the Safari manifest (`activeTab` and
-  `declarativeNetRequestWithHostAccess` instead of `identity`, extra 64, 256
-  and 512 px icons, `browser_specific_settings.safari`), and a hook that
-  replaces WXT's service worker with a non-persistent background page
-  (`background.scripts` with `persistent: false`).
+  `declarativeNetRequestWithHostAccess`, extra 64, 256 and 512 px icons,
+  `browser_specific_settings.safari`), and a hook that replaces WXT's service
+  worker with a non-persistent background page (`background.scripts` with
+  `persistent: false`).
 - `entrypoints/background.ts`: on Safari, no per-tab tracking and no
   `tabs.query({})`, which makes Safari ask about every open tab on a site it
   hasn't been allowed and can block for up to two minutes. Before it updates
@@ -221,7 +189,6 @@ apps.
 - `lib/safariRegex.ts`: a port of WebKit's content-blocker regex parser,
   used only by tests, which run every redirect and bypass rule through it.
 - `lib/siteAccess.ts`: the Site access panel.
-- `lib/tabSignIn.ts` and `entrypoints/signin-return.content.ts`: sign-in.
 - `lib/activeTab.ts` and `entrypoints/popup/host.ts`: the popup's tab lookup,
   and its full-width layout when iPhone shows it as a sheet.
 - The popup's settings button always opens the settings page with
@@ -233,8 +200,8 @@ apps.
 The Safari build was written and unit-tested without a Mac. It has not yet run
 in Safari on a Mac, iPhone or iPad, so the behaviour above is what WebKit's
 source and Apple's documentation say, not what has been seen on a device. The
-first things to check are redirects after allowing sites, the sign-in tab on
-iOS, whether the count badge shows on iOS, and the popup in the iPhone sheet.
+first things to check are redirects after allowing sites, whether the count
+badge shows on iOS, and the popup in the iPhone sheet.
 
 ## Architecture
 

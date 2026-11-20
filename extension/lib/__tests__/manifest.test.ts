@@ -4,8 +4,9 @@ import config from '../../wxt.config';
 
 /**
  * The manifest is a function of the target browser. Safari gets its own
- * permissions, icons and settings; Chrome and Firefox must keep exactly what
- * they had. These call the config the way WXT does, without a build.
+ * permissions, icons and settings; Chrome and Firefox keep what they had,
+ * minus what the removed sign-in needed. These call the config the way WXT
+ * does, without a build.
  */
 
 type Manifest = Record<string, unknown> & {

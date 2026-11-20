@@ -243,6 +243,17 @@ gap in the first place.
 
 ### Extension sign-in, as built
 
+> **Update, 20 November 2026.** The browser extension no longer signs in on
+> Chrome, Firefox or Safari. Its sign-in and the Account tab in its settings
+> were removed (the Safari build never had the `identity` permission; Chrome
+> and Firefox no longer ask for it), and on install or update it deletes the session token an earlier version stored, without
+> contacting aturi.to. The server's extension endpoints (`client=extension` in
+> `/api/oauth/login`, `/api/oauth/exchange` and the `exchange_codes` table)
+> stay for now, because copies already installed from the stores may still
+> use them until they update. They can be removed later, as a separate server
+> change. The rest of this section, and §8, describe the design as it was
+> built.
+
 Read-only, and off unless a user goes looking for it: Settings → Account, a
 handle, and a browser-managed consent window. `?scopes=` is sent empty, which
 yields `atproto` plus the AppView read token and nothing that can write — a
@@ -280,6 +291,13 @@ claim is scoped so it stays true for someone who never signs in, because for
 them it is.
 
 ### Still open
+
+> **Update, 20 November 2026.** The extension no longer signs in, so the
+> Web Store "Authentication information" item and the Safari and Firefox for
+> Android item below no longer apply, and pinning the Chrome key matters only
+> for the storage reasons it gives. The manifest declares no `identity`
+> permission and no `authenticationInfo` data collection, so the Web Store
+> listing should not claim authentication information either.
 
 - **`testing.aturi.to`'s Vercel project.** Decides whether staging shares
   production's signing key. Needs a look at the dashboard.
@@ -1249,6 +1267,9 @@ and never `credentials: 'include'`. Nothing about this migration reaches them.
 ---
 
 ## 8. Extension sign-in
+
+> **Update, 20 November 2026.** The extension no longer signs in. See the
+> note under [Extension sign-in, as built](#extension-sign-in-as-built).
 
 **Ships in its own phase and its own release.** The code is ~150 lines with
 **zero new extension dependencies** — `@types/chrome` is already in

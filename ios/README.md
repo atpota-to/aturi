@@ -1,6 +1,6 @@
 # Aturi for iOS
 
-A native port of [aturi.to](https://aturi.to): the Atmosphere Explorer, the universal-link waypoint picker, and your waypoint preferences, as a SwiftUI app. Same catalog, same parsers, same `to.aturi.actor.preferences/self` record as the web app and the extension.
+A native port of [aturi.to](https://aturi.to): the Atmosphere Explorer, the universal-link waypoint picker, and your waypoint preferences, as a SwiftUI app. Same catalog and parsers as the web app and the extension, and the same `to.aturi.actor.preferences/self` record as the web app.
 
 The same project also packages the browser extension in `extension/` for Safari on iOS, iPadOS and macOS: the iOS app carries the iOS extension, and a small Mac app carries the Mac one. See [The Safari extension](#the-safari-extension).
 
@@ -110,7 +110,7 @@ Universal links only work once the site publishes its association file. The web 
 
 ## Signing in
 
-Sign-in is the same atproto OAuth flow the web app uses, run as a native client: the app's metadata is served by the site at `/oauth-client-metadata-ios.json` with `application_type: native` and the reverse-domain redirect `to.aturi:/oauth/callback`, tokens are DPoP-bound to a P-256 key kept in the Keychain, and the granted scope is chosen in the same picker (create, update, delete records, upload blobs) with the AppView `rpc:` grant always included. Signing in reads your preferences record and writes local changes back to it, debounced, so groups, favourites, custom waypoints and colour scheme follow you between the site, the extension and the phone.
+Sign-in is the same atproto OAuth flow the web app uses, run as a native client: the app's metadata is served by the site at `/oauth-client-metadata-ios.json` with `application_type: native` and the reverse-domain redirect `to.aturi:/oauth/callback`, tokens are DPoP-bound to a P-256 key kept in the Keychain, and the granted scope is chosen in the same picker (create, update, delete records, upload blobs) with the AppView `rpc:` grant always included. Signing in reads your preferences record and writes local changes back to it, debounced, so groups, favourites, custom waypoints and colour scheme follow you between the site and the phone.
 
 Nothing about the account is stored anywhere but the device: there is no Aturi server in the loop.
 

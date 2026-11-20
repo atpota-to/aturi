@@ -43,8 +43,9 @@ export default defineConfig({
     startUrls: ['about:debugging#/runtime/this-firefox'],
   },
   // One `safari` build serves both macOS and iOS (`wxt build -b safari`).
-  // Chrome and Firefox get exactly the manifest they had before this became a
-  // function; only the Safari branch differs.
+  // Chrome and Firefox get the manifest they had before this became a
+  // function, minus what sign-in needed (the `identity` permission and the
+  // `authenticationInfo` declaration); only the Safari branch adds anything.
   manifest: ({ browser }) => {
     const isSafari = browser === 'safari';
     return {
