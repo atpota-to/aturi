@@ -13,6 +13,7 @@ import {
 import { allWaypoints, DID_REQUIRED_WAYPOINTS, visibleWaypointIds } from '../../../lib/catalog';
 import { clearSeenLately, loadSeenLately } from '../../../lib/seenLately';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
+import DeclaredClientsImport from '../components/DeclaredClientsImport';
 
 type Props = {
   prefs: Prefs;
@@ -181,6 +182,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 })}
               </div>
             )}
+
+            <DeclaredClientsImport prefs={prefs} onChange={onChange} />
 
             <div className="options-card-subhead">
               <h3>When to leave a link alone</h3>

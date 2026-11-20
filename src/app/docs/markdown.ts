@@ -335,6 +335,77 @@ being in the catalog at all. The oEmbed pointer is emitted for posts, so a link
 to your page previews as the post it is. They're static strings describing a
 record you already display, and serving them hands nothing to aturi.to.
 
+## Preferred clients
+
+People can publish which client they use for each kind of link, as a public
+\`to.aturi.client.declaration/self\` record in their own repository (schema:
+https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/client/declaration.json).
+If your app links out to Bluesky posts or atproto records, read the signed-in
+viewer's declaration and send them straight to their client, instead of
+bsky.app or a picker.
+
+\`\`\`ts
+import {
+  PREFERRED_CLIENTS_NSID,
+  getPreferredClient,
+  getPreferredClientUrl,
+  parsePreferredClients,
+} from '@aturi.to/waypoints';
+
+// The signed-in viewer's declaration: one getRecord on their own repo.
+const res = await agent.com.atproto.repo
+  .getRecord({ repo: viewerDid, collection: PREFERRED_CLIENTS_NSID, rkey: 'self' })
+  .catch(() => null); // not declared, or unreachable: keep your default
+const declaration = parsePreferredClients(res?.data.value);
+
+const client = getPreferredClient(declaration, 'bluesky-social', { platform: 'mobile' });
+const href = client && getPreferredClientUrl(client, 'at://did:plc:abc/app.bsky.feed.post/3k7');
+// 'https://blacksky.community/profile/did:plc:abc/post/3k7', or null
+\`\`\`
+
+Two categories are defined so far: \`bluesky-social\` (Bluesky posts, profiles
+and lists, in a Bluesky client) and \`atproto-explorer\` (any record or
+repository, in a raw record explorer). Each preference has a \`client\` for any
+device and may add \`mobile\` and \`desktop\` overrides. Pass \`platform\` when you
+know the viewer's device (\`clientPlatformFromUserAgent\` reads one off a user
+agent); without it, only \`client\` counts.
+
+\`\`\`json
+{
+  "$type": "to.aturi.client.declaration",
+  "preferences": [
+    {
+      "category": "bluesky-social",
+      "client": {
+        "url": "https://bsky.app",
+        "name": "Bluesky",
+        "waypoint": "bluesky",
+        "templates": {
+          "profile": "https://bsky.app/profile/{handle}",
+          "post": "https://bsky.app/profile/{handle}/post/{rkey}",
+          "list": "https://bsky.app/profile/{handle}/lists/{rkey}"
+        }
+      },
+      "mobile": { "url": "https://blacksky.community", "name": "Blacksky", … }
+    },
+    { "category": "atproto-explorer", "client": { "url": "https://pdsls.dev", … } }
+  ],
+  "updatedAt": "2026-10-27T12:00:00.000Z"
+}
+\`\`\`
+
+Every declared client carries its own URL templates, so you don't need the
+package to act on a record: \`{handle}\`, \`{did}\`, \`{actor}\` (the DID, else the
+handle), \`{collection}\` and \`{rkey}\`, filled with percent-encoded values.
+Follow the result only if it's an http(s) URL: the record is the viewer's to
+write, and \`getPreferredClientUrl\` already refuses anything else.
+
+To write one, \`clientFromWaypoint('blacksky')\` turns a catalog entry into a
+declared client, templates included, and \`buildPreferredClientsRecord\` stamps
+the result ready for \`putRecord\`. Signed-in visitors can publish theirs from
+the Clients settings tab (https://aturi.to/account#clients), and aturi.to's own
+auto-redirect follows it wherever they haven't picked a favorite.
+
 ## License
 
 \`@aturi.to/waypoints\` and \`@aturi.to/waypoints-react\` are MIT © atpotato, LLC.

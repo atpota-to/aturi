@@ -8,13 +8,21 @@ import {
   WAYPOINT_ORDER,
   type RedirectCompatFamily,
 } from '@/utils/waypoints.data';
-import { waypointHost } from '@/utils/autoRedirect';
+import {
+  currentClientPlatform,
+  declaredFavoriteFor,
+  waypointHost,
+  type DeclaredClients,
+} from '@/utils/autoRedirect';
 import {
   getRedirectCompatFor,
   setAutoRedirect,
   setFavoriteForFamily,
+  setFollowDeclaredClients,
 } from '@/utils/preferences';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
+import { usePreferredClients } from '@/components/PreferredClientsProvider';
 import Toggle from '../Toggle';
 
 /**
@@ -23,6 +31,10 @@ import Toggle from '../Toggle';
  * (`extension/entrypoints/options/tabs/DefaultsTab.tsx`) — same preference
  * shape, same rule for which families are worth showing — in the web app's
  * own idiom.
+ *
+ * A signed-in account's declared clients (the Clients tab) fill any family
+ * left on "Don't redirect", unless the follow switch below is off; that
+ * family's empty option names the client that will be used instead.
  */
 type FamilyRow = {
   family: RedirectCompatFamily;
@@ -31,6 +43,8 @@ type FamilyRow = {
 
 export default function RedirectsTab() {
   const { prefs, update } = usePreferences();
+  const { did } = useAtprotoSession();
+  const { record } = usePreferredClients();
   const enabled = prefs.autoRedirect;
 
   // Which waypoints are unusable as destinations depends on the host actually
@@ -45,6 +59,19 @@ export default function RedirectsTab() {
     () => buildFamilyRows(prefs, selfHost),
     [prefs, selfHost],
   );
+
+  // Which half of a mobile/desktop split this browser falls on: the same
+  // read the redirect itself makes, so the labels below name what happens.
+  const [platform] = useState(() => currentClientPlatform());
+  const declared: DeclaredClients | null = record ? { record, platform } : null;
+  const declaredName = (family: RedirectCompatFamily): string | null => {
+    if (!declared || !prefs.followDeclaredClients) return null;
+    const client = declaredFavoriteFor(declared, family)?.client;
+    if (!client) return null;
+    return client.name ?? hostOf(client.url);
+  };
+  const declaresAny =
+    declared !== null && COMPAT_FAMILY_ORDER.some((f) => declaredFavoriteFor(declared, f));
 
   return (
     <section className="settings-card">
@@ -67,6 +94,21 @@ export default function RedirectsTab() {
         onChange={(next) => update((p) => setAutoRedirect(p, next))}
       />
 
+      {did && (
+        <Toggle
+          id="auto-redirect-declared"
+          label="Use the clients you declared"
+          description={
+            declaresAny
+              ? 'Families you haven’t picked a client for below open in the ones you published on the Clients tab.'
+              : 'You haven’t declared any clients yet. Publish them on the Clients tab and they fill in here.'
+          }
+          checked={prefs.followDeclaredClients}
+          disabled={!enabled}
+          onChange={(next) => update((p) => setFollowDeclaredClients(p, next))}
+        />
+      )}
+
       {rows.length === 0 ? (
         <p className="settings-card-sub">
           No client families to configure yet. Waypoints are only offered here
@@ -77,6 +119,7 @@ export default function RedirectsTab() {
         rows.map(({ family, destinations }) => {
           const meta = COMPAT_FAMILIES[family];
           const current = prefs.favoriteByFamily?.[family] ?? '';
+          const fallback = declaredName(family);
           return (
             <div className={`settings-toggle-row${enabled ? '' : ' is-gated'}`} key={family}>
               <label className="settings-toggle-label" htmlFor={`redirect-${family}`}>
@@ -94,7 +137,9 @@ export default function RedirectsTab() {
                 }
                 className="settings-select"
               >
-                <option value="">Don&rsquo;t redirect</option>
+                <option value="">
+                  {fallback ? `Your declared client (${fallback})` : 'Don’t redirect'}
+                </option>
                 {destinations.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -107,6 +152,14 @@ export default function RedirectsTab() {
       )}
     </section>
   );
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
 }
 
 /**

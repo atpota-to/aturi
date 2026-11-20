@@ -20,6 +20,11 @@
  * site you're browsing names the compat family (bsky.app → `bluesky-social`).
  * A universal link has no source site, only a record, so we invert it — walk
  * the user's family favorites and take the first that can render this record.
+ *
+ * A signed-in visitor's public `to.aturi.client.declaration` record
+ * fills in any family they haven't picked a favorite for here (see
+ * `effectiveFavorites`). It never overrides a favorite, and the master switch
+ * still decides whether anything redirects at all.
  */
 
 import {
@@ -35,6 +40,14 @@ import {
   type CustomWaypoint,
   type Preferences,
 } from './preferences';
+import {
+  clientPlatformFromUserAgent,
+  getPreferredClient,
+  getPreferredClientUrl,
+  type ClientPlatform,
+  type DeclaredClient,
+  type PreferredClientsRecord,
+} from './preferredClients';
 
 /** The record a universal-link page is about. */
 export type AutoRedirectContext = {
@@ -92,6 +105,23 @@ export type AutoRedirectCache = {
   enabled: boolean;
   byFamily: Partial<Record<RedirectCompatFamily, string>>;
 };
+
+/**
+ * The signed-in account's declaration, as auto-redirect reads it: the record,
+ * and which half of each mobile/desktop split applies on this device.
+ */
+export type DeclaredClients = {
+  record: PreferredClientsRecord;
+  platform: ClientPlatform;
+};
+
+/**
+ * Prefix of the favorite id a declared client stands under when it isn't a
+ * catalog waypoint, e.g. `declared:bluesky-social`. Like `custom:` ids, the
+ * pre-paint script can't resolve these (their templates are in the record,
+ * not the page), so seeing one tells it to leave the decision to the gate.
+ */
+export const DECLARED_CLIENT_ID_PREFIX = 'declared:';
 
 /**
  * Whether a resolved destination is safe to navigate to without a click.
@@ -200,6 +230,80 @@ export function waypointHost(waypointId: string): string | null {
   return null;
 }
 
+/** This browser's side of a mobile/desktop split; desktop when it can't tell. */
+export function currentClientPlatform(): ClientPlatform {
+  if (typeof navigator === 'undefined') return 'desktop';
+  return clientPlatformFromUserAgent(navigator.userAgent, navigator.maxTouchPoints ?? 0);
+}
+
+/**
+ * Families a declared client from outside the catalog may serve, and the
+ * collections it may open in each. Catalog clients bring their own
+ * `expectedCollections`; these bring only templates, so the family's scope
+ * stands in: a Bluesky client opens `app.bsky.*` records and profiles, and an
+ * explorer opens anything. Any other family counts a declaration only when it
+ * names a catalog waypoint, because nothing here says which collections an
+ * arbitrary template-only client renders.
+ */
+const TEMPLATE_CLIENT_FAMILIES: ReadonlySet<RedirectCompatFamily> = new Set<RedirectCompatFamily>([
+  'bluesky-social',
+  'atproto-explorer',
+]);
+
+function declaredTemplatesCover(
+  family: RedirectCompatFamily,
+  collection: string | undefined,
+): boolean {
+  if (family === 'bluesky-social') return !collection || collection.startsWith('app.bsky.');
+  return TEMPLATE_CLIENT_FAMILIES.has(family);
+}
+
+/**
+ * The declared client auto-redirect would follow for a family, and the
+ * favorite id it stands under: the catalog id when the client is a catalog
+ * waypoint of that family, else a `declared:` id when the family is one a
+ * template-only client may serve. Null when the declaration names nothing
+ * usable for the family.
+ */
+export function declaredFavoriteFor(
+  declared: DeclaredClients,
+  family: RedirectCompatFamily,
+): { id: string; client: DeclaredClient } | null {
+  const client = getPreferredClient(declared.record, family, { platform: declared.platform });
+  if (!client) return null;
+  if (client.waypoint && WAYPOINT_DESTINATIONS_DATA[client.waypoint]?.redirectCompat.includes(family)) {
+    return { id: client.waypoint, client };
+  }
+  if (TEMPLATE_CLIENT_FAMILIES.has(family)) {
+    return { id: `${DECLARED_CLIENT_ID_PREFIX}${family}`, client };
+  }
+  return null;
+}
+
+/**
+ * The favorites auto-redirect acts on: the user's own, with their declared
+ * clients filling the families they left empty (when `followDeclaredClients`
+ * allows). A favorite always wins, even one that can't render the page in
+ * hand, so choosing a client here is never second-guessed by the record.
+ */
+export function effectiveFavorites(
+  prefs: Preferences,
+  declared?: DeclaredClients | null,
+): Partial<Record<RedirectCompatFamily, string>> {
+  const out: Partial<Record<RedirectCompatFamily, string>> = {};
+  for (const family of COMPAT_FAMILY_ORDER) {
+    const own = prefs.favoriteByFamily?.[family];
+    if (own) {
+      out[family] = own;
+      continue;
+    }
+    if (!declared || !prefs.followDeclaredClients) continue;
+    const fill = declaredFavoriteFor(declared, family);
+    if (fill) out[family] = fill.id;
+  }
+  return out;
+}
+
 /**
  * The winning destination, or null for "show the picker".
  *
@@ -258,37 +362,70 @@ function buildCustomCandidates(
 }
 
 /**
- * The full client-side decision: master switch, then built-ins, then customs.
- * `selfHost` is the current `location.host`, so a waypoint pointing back at
- * whatever host is serving the app (including a preview deployment) is
- * rejected rather than looped.
+ * Candidates for the declared clients standing under `declared:` ids, built
+ * from the record's own templates. Catalog clients need none of this: they
+ * stand under their catalog id and `buildAutoRedirectCandidates` already
+ * resolved them, under the same rules as any favorite.
+ */
+function buildDeclaredCandidates(
+  declared: DeclaredClients,
+  favorites: Partial<Record<RedirectCompatFamily, string>>,
+  ctx: AutoRedirectContext,
+  selfHost?: string,
+): AutoRedirectCandidate[] {
+  const out: AutoRedirectCandidate[] = [];
+  for (const family of COMPAT_FAMILY_ORDER) {
+    const id = `${DECLARED_CLIENT_ID_PREFIX}${family}`;
+    if (favorites[family] !== id) continue;
+    if (!declaredTemplatesCover(family, ctx.collection)) continue;
+    const client = declaredFavoriteFor(declared, family)?.client;
+    if (!client) continue;
+    const url = getPreferredClientUrl(client, {
+      handle: ctx.handle,
+      did: ctx.did,
+      collection: ctx.collection,
+      rkey: ctx.rkey,
+    });
+    if (!url || !isSafeRedirectUrl(url, selfHost)) continue;
+    out.push({ id, url, families: [family] });
+  }
+  return out;
+}
+
+/**
+ * The full client-side decision: master switch, then built-ins, customs and
+ * declared clients, over the effective favorites. `selfHost` is the current
+ * `location.host`, so a waypoint pointing back at whatever host is serving
+ * the app (including a preview deployment) is rejected rather than looped.
  */
 export function resolveAutoRedirect(
   prefs: Preferences,
   ctx: AutoRedirectContext,
   selfHost?: string,
+  declared?: DeclaredClients | null,
 ): AutoRedirectTarget | null {
   if (!prefs.autoRedirect) return null;
+  const favorites = effectiveFavorites(prefs, declared);
   const candidates = buildAutoRedirectCandidates(ctx, selfHost);
   candidates.push(...buildCustomCandidates(prefs.customWaypoints, ctx, selfHost));
-  return resolveAutoRedirectTarget(prefs.favoriteByFamily, candidates);
+  if (declared) candidates.push(...buildDeclaredCandidates(declared, favorites, ctx, selfHost));
+  return resolveAutoRedirectTarget(favorites, candidates);
 }
 
 // --- Pre-paint cache -------------------------------------------------------
 
 /**
- * The slice of preferences the pre-paint script needs. Custom waypoint ids are
- * included even though the script can't resolve their URLs: seeing one tells
- * it to leave the page hidden for the gate to finish the job, instead of
- * flashing the picker on its way to a redirect.
+ * The slice of preferences the pre-paint script needs: the effective
+ * favorites, declared clients included, resolved for this device. Custom and
+ * `declared:` ids are included even though the script can't resolve their
+ * URLs: seeing one tells it to leave the page hidden for the gate to finish
+ * the job, instead of flashing the picker on its way to a redirect.
  */
-export function autoRedirectCacheFor(prefs: Preferences): AutoRedirectCache {
-  const byFamily: Partial<Record<RedirectCompatFamily, string>> = {};
-  for (const family of COMPAT_FAMILY_ORDER) {
-    const id = prefs.favoriteByFamily?.[family];
-    if (id) byFamily[family] = id;
-  }
-  return { enabled: prefs.autoRedirect, byFamily };
+export function autoRedirectCacheFor(
+  prefs: Preferences,
+  declared?: DeclaredClients | null,
+): AutoRedirectCache {
+  return { enabled: prefs.autoRedirect, byFamily: effectiveFavorites(prefs, declared) };
 }
 
 export function readAutoRedirectCache(): AutoRedirectCache | null {

@@ -556,6 +556,21 @@
   max-width: 100%;
 }
 
+/* Import your declared clients: a handle field and its button on one line. */
+.defaults-import-form {
+  flex-wrap: nowrap;
+}
+
+.defaults-import-form .aturi-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.defaults-import-error {
+  color: var(--danger);
+  font-size: var(--fs-md);
+}
+
 /* Segmented control. */
 .appearance-row > .options-row-title {
   flex: 1 1 200px;

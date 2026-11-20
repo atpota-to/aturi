@@ -34,6 +34,12 @@ public final class PreferencesStore {
     public nonisolated static let syncDebounce: TimeInterval = 1.5
 
     public private(set) var prefs: Preferences
+    /// The signed-in account's `to.aturi.client.declaration` record,
+    /// as the session layer last read it. Held here, beside the preferences,
+    /// because everything that decides an auto-redirect already reads this
+    /// store. Not persisted: it lives in the account's repository and the
+    /// session layer reads it on every launch and sign-in.
+    public private(set) var declaration: DeclarationState = .idle
 
     /// Set by the session layer when signed in; nil means no mirroring.
     @ObservationIgnored public weak var sync: PreferencesSync?
@@ -82,6 +88,17 @@ public final class PreferencesStore {
     /// Re-read from storage, for when another process (the extension) wrote.
     public func reload() {
         prefs = PreferencesStore.readLocal(from: defaults, key: storageKey)
+    }
+
+    /// Set by the session layer as the declaration loads, publishes, or the
+    /// account signs out.
+    public func setDeclaration(_ state: DeclarationState) {
+        declaration = state
+    }
+
+    /// The declaration as auto-redirect reads it on this device.
+    public var declaredClients: DeclaredClients? {
+        declaration.record.map { DeclaredClients(record: $0, platform: .mobile) }
     }
 
     // MARK: Updates
