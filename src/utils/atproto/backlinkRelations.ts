@@ -309,6 +309,32 @@ export function bucketRecordSources(
   );
 }
 
+/**
+ * A relationship's apps (most links first) split into the few that get a
+ * chip of their own and the rest, which fold behind a searchable list.
+ *
+ * Links are spread very unevenly across apps. Measured on five large
+ * accounts, the top three apps held 95–100% of the links in any
+ * relationship with more than four apps (60–90% in vouches and other
+ * links), and most of the rest had fewer than ten each. A chip per app made
+ * a wall of forty for the long tail. Folding a single app would only swap
+ * its chip for a button, so up to `inline + 1` apps all stay chips.
+ */
+export function foldApps(
+  apps: readonly RelationApp[],
+  inline = 3,
+): { shown: RelationApp[]; folded: RelationApp[] } {
+  if (apps.length <= inline + 1) return { shown: [...apps], folded: [] };
+  return { shown: apps.slice(0, inline), folded: apps.slice(inline) };
+}
+
+/** Apps whose name or domain contains `query`, ignoring case and spaces at the ends. */
+export function appsMatching(apps: readonly RelationApp[], query: string): RelationApp[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...apps];
+  return apps.filter(({ app }) => app.name.toLowerCase().includes(q) || app.key.toLowerCase().includes(q));
+}
+
 /** The key of the bucket that holds every relationship's sources at once. */
 export const ALL_LINKS = 'all';
 

@@ -4,9 +4,11 @@ import {
   ALL_LINKS,
   allLinksBucket,
   appForCollection,
+  appsMatching,
   backlinkPathLabels,
   bucketRecordSources,
   bucketSources,
+  foldApps,
   recordRelationOf,
   relationOf,
   shortBacklinkPath,
@@ -240,4 +242,53 @@ test('the all-links bucket sums every relationship and keeps their order', () =>
 
 test('no buckets, no all-links bucket', () => {
   assert.equal(allLinksBucket([]), null);
+});
+
+/** Apps behind one bucket, most links first, as bucketBy ranks them. */
+function apps(...collections: [string, number][]) {
+  return collections.map(([collection, count]) => ({ app: appForCollection(collection), count }));
+}
+
+test('the top apps keep chips and the long tail folds', () => {
+  const list = apps(
+    ['app.bsky.graph.follow', 900],
+    ['place.stream.chat.message', 40],
+    ['sh.tangled.graph.follow', 12],
+    ['so.sprk.graph.follow', 3],
+    ['network.cosmik.follow', 1],
+  );
+  const { shown, folded } = foldApps(list);
+  assert.deepEqual(
+    shown.map((a) => a.app.name),
+    ['Bluesky', 'Streamplace', 'Tangled'],
+  );
+  assert.deepEqual(
+    folded.map((a) => a.app.key),
+    ['sprk.so', 'cosmik.network'],
+  );
+});
+
+test('one app past the chips is a chip, not a fold', () => {
+  const list = apps(
+    ['app.bsky.graph.follow', 900],
+    ['place.stream.chat.message', 40],
+    ['sh.tangled.graph.follow', 12],
+    ['so.sprk.graph.follow', 3],
+  );
+  assert.equal(foldApps(list).shown.length, 4);
+  assert.deepEqual(foldApps(list).folded, []);
+});
+
+test('apps match by name or domain, ignoring case', () => {
+  const list = apps(['app.bsky.graph.follow', 900], ['so.sprk.graph.follow', 3], ['sh.tangled.graph.follow', 12]);
+  assert.deepEqual(
+    appsMatching(list, ' BLUE').map((a) => a.app.name),
+    ['Bluesky'],
+  );
+  assert.deepEqual(
+    appsMatching(list, 'sprk').map((a) => a.app.key),
+    ['sprk.so'],
+  );
+  assert.equal(appsMatching(list, '').length, 3);
+  assert.deepEqual(appsMatching(list, 'nothing'), []);
 });

@@ -2127,6 +2127,97 @@ a.fx-bl-tile {
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
+/* Filtering a relationship by app (BacklinkAppFilter): "All" and the top
+   apps as chips, the long tail behind a "N more" chip whose list opens in
+   the flow under the row. Once an app from that list is chosen, the chip
+   names it and wears the pressed look. */
+.fx-bl-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fx-bl-more-apps-chev {
+  margin-right: -3px;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+.fx-bl-more-apps[aria-expanded='true'] .fx-bl-more-apps-chev {
+  transform: rotate(180deg);
+}
+.fx-bl-more-apps[data-picked] {
+  border-color: var(--accent-moss);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+.fx-bl-more-apps[data-picked] .fx-bl-more-apps-chev {
+  color: inherit;
+}
+.fx-bl-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 420px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.fx-bl-picker input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.fx-bl-picker-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fx-bl-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.fx-bl-picker-item[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+.fx-bl-picker-item[data-current] {
+  font-weight: 600;
+}
+.fx-bl-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-bl-picker-check {
+  flex: none;
+  color: var(--text-accent);
+}
+.fx-bl-picker-count {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.fx-bl-picker-item[aria-selected='true'] .fx-bl-picker-count {
+  color: inherit;
+}
+.fx-bl-picker-empty {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
 /* Narrowed to one source from the Sources list: says which, with a way
    back to the whole relationship. */
 .fx-bl-narrow {

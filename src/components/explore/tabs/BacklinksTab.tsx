@@ -42,6 +42,7 @@ import {
 import { parseAtUri } from '@/utils/atproto/urls';
 import { formatCount } from '@/utils/ufos/format';
 import { BacklinkRelationsSkeleton, BacklinksTabSkeleton } from '../skeletons/pages';
+import BacklinkAppFilter from './BacklinkAppFilter';
 import { AppMark, BacklinkRowList, useMergedBacklinks, type RowKind } from './BacklinkRows';
 
 /**
@@ -423,28 +424,14 @@ function BacklinkRelations({
         </div>
 
         {showApps && (
-          <div className="fx-bl-apps" role="group" aria-label="Filter by app">
-            <button
-              type="button"
-              className="fx-chip"
-              aria-pressed={!narrow.app && !narrow.source}
-              onClick={() => setNarrowing(whole)}
-            >
-              All <span className="fx-bl-chip-count">{formatCount(bucket.count)}</span>
-            </button>
-            {bucket.apps.map(({ app, count }) => (
-              <button
-                key={app.key}
-                type="button"
-                className="fx-chip"
-                aria-pressed={narrow.app === app.key}
-                onClick={() => setNarrowing({ ...whole, app: app.key })}
-              >
-                <AppMark app={app} />
-                {app.name} <span className="fx-bl-chip-count">{formatCount(count)}</span>
-              </button>
-            ))}
-          </div>
+          <BacklinkAppFilter
+            key={bucket.relation}
+            apps={bucket.apps}
+            total={bucket.count}
+            selected={narrow.source ? null : narrow.app}
+            whole={!narrow.app && !narrow.source}
+            onSelect={(app) => setNarrowing(app ? { ...whole, app } : whole)}
+          />
         )}
 
         {narrowedTo && (
