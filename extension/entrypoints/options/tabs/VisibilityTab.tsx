@@ -684,18 +684,20 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // pointerdown, not mousedown: iOS only sends mouse events for a tap on
+  // something clickable, so a tap on empty page left the picker open.
   useEffect(() => {
-    function onDocClick(e: MouseEvent) {
+    function onDocClick(e: PointerEvent) {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(e.target as Node)) onClose();
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
-    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('pointerdown', onDocClick);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('pointerdown', onDocClick);
       document.removeEventListener('keydown', onKey);
     };
   }, [onClose]);

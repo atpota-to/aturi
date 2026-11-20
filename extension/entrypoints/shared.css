@@ -201,6 +201,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* iOS enlarges text it judges too small when a page turns to landscape;
+   these pages set their own sizes. 100% means "no adjustment", which is what
+   desktop browsers do anyway. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 button {
   font: inherit;
   color: inherit;

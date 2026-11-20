@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { browser } from '#imports';
-import { Check, Compass, Copy, Pause, Search, Shuffle, X } from 'lucide-react';
+import { Check, Compass, Copy, Pause, Search, Shuffle, TriangleAlert, X } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, isSupportedHost } from '@aturi/reverseParsers';
@@ -39,6 +40,8 @@ import { WaypointIcon } from '../../lib/Icons';
 import { cachedRepoCollections, scanRepoCollections } from '../../lib/repoScan';
 import { useInspectScan } from '../../lib/inspectScan';
 import { buildExploreUrl } from '../../lib/aturiUrl';
+import { IS_SAFARI } from '../../lib/platform';
+import { activeTabOnSafari, retryOnceIfUnanswered } from '../../lib/activeTab';
 import {
   initialOf,
   kindLabel,
@@ -78,11 +81,14 @@ type PopupState =
 //
 // When `tab` is passed, we always go through tabs.create so the URL hash makes
 // it through — `openOptionsPage()` doesn't accept a target route.
+//
+// Safari always goes through tabs.create too: runtime.openOptionsPage() called
+// from an action popup crashes Safari (WebKit bug 290843).
 async function openOptionsPage(tab?: string) {
   const fallbackUrl = browser.runtime.getURL(
     tab ? `/options.html#${tab}` : '/options.html'
   );
-  if (tab) {
+  if (tab || IS_SAFARI) {
     await browser.tabs.create({ url: fallbackUrl });
     window.close();
     return;
@@ -251,6 +257,8 @@ export default function App() {
   const [state, setState] = useState<PopupState>({ phase: 'loading' });
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  /** A problem to show inline, where a desktop page would use alert(). */
+  const [problem, setProblem] = useState<string | null>(null);
   const [openKey, setOpenKey] = useState<string>(PAGE_KEY);
   const [tabsTouched, setTabsTouched] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -488,6 +496,7 @@ export default function App() {
   function selectRecord(key: string) {
     setOpenKey(key);
     setTabsTouched(true);
+    setProblem(null);
   }
 
   const closeDrawer = useCallback(() => {
@@ -501,7 +510,13 @@ export default function App() {
       return;
     }
     if (drawerOpen) closeDrawer();
-    else setDrawerOpen(true);
+    else if (IS_SAFARI) {
+      // iOS only raises the keyboard for a focus made while the tap is being
+      // handled, and the drawer's own focus runs after paint. Render the
+      // drawer now and focus its field from here.
+      flushSync(() => setDrawerOpen(true));
+      drawerInputRef.current?.focus({ preventScroll: true });
+    } else setDrawerOpen(true);
   }
 
   // `/` anywhere outside a field goes to the go-to field: the drawer on a
@@ -575,14 +590,16 @@ export default function App() {
   }
 
   // Resolve a waypoint's URL for the open record, resolving the handle to a
-  // DID first when the waypoint needs one.
+  // DID first when the waypoint needs one. A failure is said in the popup
+  // itself: alert() shows nothing in Safari's popup.
   async function waypointUrl(waypoint: WaypointData, match: ReverseMatch, prefs: Prefs) {
     const { parsed } = match;
     let did = parsed.did;
+    setProblem(null);
     if (requiresDid(waypoint.id, prefs.customWaypoints) && !did) {
       const resolved = await resolveHandleToDid(parsed.handle);
       if (!resolved) {
-        alert(`Couldn't resolve ${parsed.handle} to a DID.`);
+        setProblem(`Couldn't resolve ${parsed.handle} to a DID.`);
         return null;
       }
       did = resolved;
@@ -731,6 +748,8 @@ export default function App() {
               />
             </>
           )}
+
+          {problem && <PopupProblem message={problem} onDismiss={() => setProblem(null)} />}
         </div>
       </main>
     </div>
@@ -913,6 +932,29 @@ function PageBand({ tabId }: { tabId: number | null }) {
           {paused ? 'Resume' : 'Pause for this page'}
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * A problem with what the user just asked for, said where they are looking:
+ * it sticks to the bottom of the view, so it shows up however far down the
+ * row that raised it was.
+ */
+function PopupProblem({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div className="popup-problem" role="alert">
+      <TriangleAlert size={14} aria-hidden />
+      <span className="popup-problem-text">{message}</span>
+      <button
+        type="button"
+        className="popup-icon-btn popup-problem-dismiss"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        title="Dismiss"
+      >
+        <X size={14} aria-hidden />
+      </button>
     </div>
   );
 }
@@ -1369,7 +1411,10 @@ async function queryHeadForAtUri(tab: AnyTab): Promise<ReverseMatch | null> {
   if (!tabId) return null;
 
   try {
-    const response = await browser.tabs.sendMessage(tabId, { type: 'aturi:query-head' });
+    const ask = () => browser.tabs.sendMessage(tabId, { type: 'aturi:query-head' });
+    // On Safari the content script may still be arriving: the popup's click
+    // is what injects it on a site allowed only through activeTab.
+    const response = IS_SAFARI ? await retryOnceIfUnanswered(ask) : await ask();
     if (response?.atUri) {
       return parseAtUri(response.atUri);
     }
@@ -1392,6 +1437,12 @@ async function getActiveTab(): Promise<AnyTab | null> {
       return [];
     }
   };
+
+  // Safari: the popup's own window, then the last focused one, and nothing
+  // wider. Its tabs report an empty url wherever the user hasn't allowed
+  // Aturi, so the "find one with a url" walk below would end up on another
+  // window's tab (lib/activeTab.ts).
+  if (IS_SAFARI) return activeTabOnSafari(tryQuery);
 
   // Prefer the window the popup is attached to. Querying a bare {active:true}
   // first returns the active tab of EVERY window (with the 'tabs' permission

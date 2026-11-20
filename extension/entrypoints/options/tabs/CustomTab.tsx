@@ -27,6 +27,19 @@ type Draft = {
 
 const NEW_GROUP_VALUE = '__new__';
 
+/**
+ * Domains, paths and URLs are typed as they are: no capital first letter, no
+ * autocorrect (both iOS habits) and no spellcheck. spellCheck is the string
+ * "false" on purpose: Preact drops a `false` value for a prop that isn't a
+ * DOM property, and the property is `spellcheck`, so `{false}` would leave
+ * spellcheck on.
+ */
+const VERBATIM_INPUT = {
+  autoCapitalize: 'none',
+  autoCorrect: 'off',
+  spellCheck: 'false',
+} as const;
+
 function emptyDraft(defaultGroupId: string = 'custom'): Draft {
   return {
     id: `custom:${crypto.randomUUID()}`,
@@ -355,6 +368,8 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
               className="aturi-input is-mono"
               value={draft.domain}
               placeholder="myapp.com"
+              inputMode="url"
+              {...VERBATIM_INPUT}
               onChange={e => onChange({ ...draft, domain: e.target.value })}
               onBlur={() => setTouched(true)}
             />
@@ -419,6 +434,7 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
                       aria-label={`${type} template`}
                       value={draft.templates[type] ?? ''}
                       placeholder={defaultTemplateFor(type)}
+                      {...VERBATIM_INPUT}
                       onChange={e => setTemplate(type, e.target.value)}
                     />
                   </span>
@@ -453,6 +469,8 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
             className="aturi-input is-mono"
             aria-label="URL to test"
             placeholder={`https://${draft.domain || 'example.com'}${defaultTemplateFor('profile').replace('{handle}', 'alice.bsky.social')}`}
+            inputMode="url"
+            {...VERBATIM_INPUT}
             value={sampleUrl}
             onChange={e => setSampleUrl(e.target.value)}
           />
