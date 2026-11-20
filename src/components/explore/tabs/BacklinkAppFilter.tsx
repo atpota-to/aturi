@@ -100,21 +100,26 @@ export default function BacklinkAppFilter({
   return (
     <div ref={wrapRef} className="fx-bl-filter">
       <div className="fx-bl-apps" role="group" aria-label="Filter by app">
-        <button type="button" className="fx-chip" aria-pressed={whole} onClick={() => choose(null)}>
-          All <span className="fx-bl-chip-count">{formatCount(total)}</span>
-        </button>
-        {shown.map(({ app, count }) => (
-          <button
-            key={app.key}
-            type="button"
-            className="fx-chip"
-            aria-pressed={selected === app.key}
-            onClick={() => choose(app.key)}
-          >
-            <AppMark app={app} />
-            {app.name} <span className="fx-bl-chip-count">{formatCount(count)}</span>
+        {/* Where the panel is narrow, the chips scroll sideways in one line
+            and "N more" stays put at its end, so the way to the rest of
+            the apps never scrolls out of sight. */}
+        <div className="fx-bl-apps-scroll">
+          <button type="button" className="fx-chip" aria-pressed={whole} onClick={() => choose(null)}>
+            All <span className="fx-bl-chip-count">{formatCount(total)}</span>
           </button>
-        ))}
+          {shown.map(({ app, count }) => (
+            <button
+              key={app.key}
+              type="button"
+              className="fx-chip"
+              aria-pressed={selected === app.key}
+              onClick={() => choose(app.key)}
+            >
+              <AppMark app={app} />
+              {app.name} <span className="fx-bl-chip-count">{formatCount(count)}</span>
+            </button>
+          ))}
+        </div>
         {folded.length > 0 && (
           <button
             ref={moreRef}

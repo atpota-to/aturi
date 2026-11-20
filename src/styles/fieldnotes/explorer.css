@@ -2136,6 +2136,44 @@ a.fx-bl-tile {
   flex-direction: column;
   gap: 6px;
 }
+/* Where there is room the chips wrap as one row with "N more"; the
+   scroller is not a box of its own. */
+.fx-bl-apps-scroll {
+  display: contents;
+}
+/* The panel's own width decides when its chip rows stop wrapping and
+   scroll sideways instead: it is hosted on a full page, in a pane beside
+   an inspector and in a narrow card, so the viewport says little. */
+.fx-bl {
+  container: fx-bl / inline-size;
+}
+@container fx-bl (max-width: 560px) {
+  .fx-bl-filter .fx-bl-apps {
+    flex-wrap: nowrap;
+  }
+  /* One line that scrolls, fading out at its end to say there is more.
+     The padding the fade covers lets the last chip scroll fully clear. */
+  .fx-bl-apps-scroll {
+    display: flex;
+    flex: 0 1 auto;
+    gap: 6px;
+    min-width: 0;
+    padding-right: 20px;
+    margin-right: -6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  }
+  .fx-bl-apps-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .fx-bl-apps-scroll > .fx-chip,
+  .fx-bl-more-apps {
+    flex: none;
+  }
+}
 .fx-bl-more-apps-chev {
   margin-right: -3px;
   color: var(--text-tertiary);
