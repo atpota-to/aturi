@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { browser } from '#imports';
+import { IS_SAFARI } from '../../../lib/platform';
 import type { CustomWaypoint, Prefs, WaypointGroup } from '../../../lib/prefs';
 import {
   SignInUnavailableError,
@@ -9,6 +11,16 @@ import {
   xrpcGet,
   type StoredSession,
 } from '../../../lib/session';
+import {
+  ATURI_ORIGINS,
+  beginTabSignIn,
+  cancelTabSignIn,
+  getPendingTabSignIn,
+  onTabSignInChanged,
+  requestTabSignInCheck,
+  takeTabSignInOutcome,
+  type PendingView,
+} from '../../../lib/tabSignIn';
 
 /**
  * Optional sign-in to aturi.to, and the one thing it currently buys: pulling
@@ -23,6 +35,11 @@ import {
  * The grant is read-only. The extension asks for nothing that can write, which
  * is why the import below is one-directional: your settings come down from the
  * website, and nothing goes back up.
+ *
+ * Safari has no launchWebAuthFlow, so there the button opens sign-in in a
+ * normal tab and the background finishes it (`lib/tabSignIn.ts`). This page
+ * shows that the flow is waiting, offers to cancel it, and shows how it ended,
+ * all read from storage because the background is what completes it.
  */
 
 const PREFERENCES_NSID = 'to.aturi.actor.preferences';
@@ -118,6 +135,11 @@ type Status =
   | { kind: 'imported'; groups: number; custom: number; skipped: number }
   | { kind: 'empty' };
 
+const SAFARI_ACCESS_REFUSED =
+  'Aturi needs access to aturi.to to finish signing in. Choose Allow when Safari asks, ' +
+  "then try again. If Safari doesn't ask, allow Aturi on aturi.to in Safari's extension settings.";
+const SAFARI_TIMED_OUT = 'That sign-in took too long. Try again.';
+
 export default function AccountTab({
   prefs,
   onUpdate,
@@ -128,11 +150,49 @@ export default function AccountTab({
   const [session, setSession] = useState<StoredSession | null>(null);
   const [handle, setHandle] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [pending, setPending] = useState<PendingView | null>(null);
 
   useEffect(() => {
     void getSession().then(setSession);
     return onSessionChanged(setSession);
   }, []);
+
+  // Safari: follow the flow the background is finishing. Whenever this page
+  // comes back into view, also ask the background to look at the sign-in tab,
+  // in case Safari let it sleep through the tab arriving.
+  useEffect(() => {
+    if (!IS_SAFARI) return;
+    const refresh = async () => {
+      setPending(await getPendingTabSignIn());
+      const outcome = await takeTabSignInOutcome();
+      if (outcome) {
+        setStatus(outcome.ok ? { kind: 'idle' } : { kind: 'error', message: outcome.message });
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') requestTabSignInCheck();
+    };
+    void refresh();
+    requestTabSignInCheck();
+    const unsubscribe = onTabSignInChanged(() => void refresh());
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      unsubscribe();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  // A flow the user walked away from ends on its own, at the same ten minutes
+  // the server forgets it.
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => {
+      void cancelTabSignIn().then((was) => {
+        if (was) setStatus({ kind: 'error', message: SAFARI_TIMED_OUT });
+      });
+    }, Math.max(0, pending.expiresAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [pending]);
 
   const doSignIn = useCallback(async () => {
     const value = handle.trim();
@@ -153,6 +213,48 @@ export default function AccountTab({
       });
     }
   }, [handle]);
+
+  /**
+   * Safari's submit handler. Requesting aturi.to access is its FIRST statement,
+   * ahead of every await and state update: Safari shows the prompt only while
+   * a user gesture is being handled, and the first await ends it. The grant is
+   * what lets the extension see the sign-in tab's URL when it comes back.
+   */
+  const submitOnSafari = (e: { preventDefault(): void }) => {
+    let access: Promise<boolean>;
+    try {
+      access = browser.permissions.request({ origins: ATURI_ORIGINS });
+    } catch (err) {
+      access = Promise.reject(err);
+    }
+    e.preventDefault();
+    const value = handle.trim();
+    void (async () => {
+      const granted = await access.catch(() => false);
+      if (!granted) {
+        setStatus({ kind: 'error', message: SAFARI_ACCESS_REFUSED });
+        return;
+      }
+      if (!value) return;
+      setStatus({ kind: 'busy', what: 'signin' });
+      try {
+        await beginTabSignIn(value);
+        setPending(await getPendingTabSignIn());
+        setStatus({ kind: 'idle' });
+      } catch (err) {
+        setStatus({
+          kind: 'error',
+          message: err instanceof Error && err.message ? err.message : 'Sign-in failed.',
+        });
+      }
+    })();
+  };
+
+  const doCancel = useCallback(async () => {
+    await cancelTabSignIn();
+    setPending(null);
+    setStatus({ kind: 'idle' });
+  }, []);
 
   const doImport = useCallback(async () => {
     setStatus({ kind: 'busy', what: 'import' });
@@ -244,10 +346,26 @@ export default function AccountTab({
             </button>
           </div>
         </>
+      ) : pending ? (
+        <>
+          <p className="aturi-muted" role="status">
+            Finish signing in as <strong>{pending.handle}</strong> in the tab that just opened.
+            This page updates when you're done.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="aturi-btn" type="button" onClick={() => void doCancel()}>
+              Cancel
+            </button>
+          </div>
+        </>
       ) : (
         <form
           style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
           onSubmit={(e) => {
+            if (IS_SAFARI) {
+              submitOnSafari(e);
+              return;
+            }
             e.preventDefault();
             void doSignIn();
           }}
@@ -266,6 +384,12 @@ export default function AccountTab({
           <button className="aturi-btn" type="submit" disabled={busy || !handle.trim()}>
             {status.kind === 'busy' && status.what === 'signin' ? 'Signing in…' : 'Sign in'}
           </button>
+          {IS_SAFARI && (
+            <p className="aturi-muted" style={{ flexBasis: '100%', margin: 0 }}>
+              Sign-in opens in a new tab. If Safari asks, allow Aturi on aturi.to so the
+              extension can pick up the result when you finish.
+            </p>
+          )}
         </form>
       )}
 

@@ -27,6 +27,11 @@ import { ATURI_BASE } from './aturiUrl';
  * Note also that none of this is an atproto redirect_uri. The authorization
  * server only ever knows aturi.to's own callback; the hand-off to the
  * extension happens afterwards, at the application layer.
+ *
+ * Safari has no identity API at all. Its build runs the same flow in an
+ * ordinary tab instead and reads the code off that tab (`lib/tabSignIn.ts`);
+ * the verifier, the code and `redeem()` below are shared, so the binding is
+ * the same on every browser.
  */
 
 /**
@@ -82,7 +87,8 @@ export async function getSession(): Promise<StoredSession | null> {
   }
 }
 
-async function putSession(session: StoredSession): Promise<void> {
+/** Exported for `lib/tabSignIn.ts`, which redeems Safari's code itself. */
+export async function putSession(session: StoredSession): Promise<void> {
   await localArea()?.set({ [SESSION_KEY]: session });
 }
 
@@ -124,6 +130,61 @@ function base64Url(bytes: ArrayBuffer | Uint8Array): string {
 async function challengeFor(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   return base64Url(digest);
+}
+
+/**
+ * A fresh verifier and the challenge sent in its place. The verifier is the
+ * secret: it goes to `/exchange` in a POST body and nowhere else, never into a
+ * URL and never into a log.
+ */
+export async function newVerifier(): Promise<{ verifier: string; challenge: string }> {
+  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  return { verifier, challenge: await challengeFor(verifier) };
+}
+
+/** The `/api/oauth/login` URL for an extension flow returning to `returnTo`. */
+export function loginUrl(handle: string, challenge: string, returnTo: string): string {
+  const params = new URLSearchParams({
+    handle: handle.trim(),
+    client: 'extension',
+    scopes: '',
+    challenge,
+    return: returnTo,
+  });
+  return `${ATURI_BASE}/api/oauth/login?${params.toString()}`;
+}
+
+/**
+ * Trade a one-time code and its verifier for a session. Does not store it:
+ * the caller decides whether to keep what came back.
+ */
+export async function redeem(code: string, verifier: string): Promise<StoredSession> {
+  const res = await fetch(`${ATURI_BASE}/api/oauth/exchange`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code, verifier }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error || 'Could not complete sign-in.');
+  }
+  const body = (await res.json()) as { token: string; did: string; expiresAt?: string };
+
+  return {
+    token: body.token,
+    did: body.did,
+    expiresAt: body.expiresAt ? Date.parse(body.expiresAt) : 0,
+  };
+}
+
+/** End one session on the server. Never throws: the caller drops it locally either way. */
+export async function endSession(token: string): Promise<void> {
+  await fetch(`${ATURI_BASE}/api/oauth/logout`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  }).catch(() => {
+    // The local token is what this browser uses; drop it either way.
+  });
 }
 
 /* ------------------------------------------------------------------- flow */
@@ -181,20 +242,11 @@ export async function signIn(handle: string): Promise<StoredSession> {
     throw new SignInUnavailableError();
   }
 
-  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
-  const challenge = await challengeFor(verifier);
+  const { verifier, challenge } = await newVerifier();
   const redirectUri = identity.getRedirectURL();
 
-  const params = new URLSearchParams({
-    handle: handle.trim(),
-    client: 'extension',
-    scopes: '',
-    challenge,
-    return: redirectUri,
-  });
-
   const finalUrl = await identity.launchWebAuthFlow({
-    url: `${ATURI_BASE}/api/oauth/login?${params.toString()}`,
+    url: loginUrl(handle, challenge, redirectUri),
     interactive: true,
   });
 
@@ -207,22 +259,7 @@ export async function signIn(handle: string): Promise<StoredSession> {
     throw new Error(queryError || 'Sign-in was cancelled.');
   }
 
-  const res = await fetch(`${ATURI_BASE}/api/oauth/exchange`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ code, verifier }),
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error || 'Could not complete sign-in.');
-  }
-  const body = (await res.json()) as { token: string; did: string; expiresAt?: string };
-
-  const session: StoredSession = {
-    token: body.token,
-    did: body.did,
-    expiresAt: body.expiresAt ? Date.parse(body.expiresAt) : 0,
-  };
+  const session = await redeem(code, verifier);
   await putSession(session);
   return session;
 }
@@ -230,14 +267,7 @@ export async function signIn(handle: string): Promise<StoredSession> {
 /** End this extension's session. Leaves any browser session on aturi.to alone. */
 export async function signOut(): Promise<void> {
   const session = await getSession();
-  if (session) {
-    await fetch(`${ATURI_BASE}/api/oauth/logout`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${session.token}` },
-    }).catch(() => {
-      // The local token is what this browser uses; drop it either way.
-    });
-  }
+  if (session) await endSession(session.token);
   await clearSession();
 }
 

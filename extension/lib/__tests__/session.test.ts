@@ -112,3 +112,65 @@ describe('imported record hygiene', () => {
     expect(local).toBeGreaterThan(seed);
   });
 });
+
+/**
+ * The pieces Safari's tab flow shares with launchWebAuthFlow. Factored out of
+ * signIn() so both paths bind the code the same way; these pin that the
+ * factoring changed nothing a server or a reviewer would notice.
+ */
+describe('shared flow pieces', () => {
+  it('builds the same login URL signIn always sent', async () => {
+    const { loginUrl } = await import('../session');
+    expect(loginUrl(' alice.test ', 'CHALLENGE', 'https://abc.chromiumapp.org/')).toBe(
+      'https://aturi.to/api/oauth/login?handle=alice.test&client=extension&scopes=' +
+        '&challenge=CHALLENGE&return=https%3A%2F%2Fabc.chromiumapp.org%2F',
+    );
+  });
+
+  it('pairs a 32-byte verifier with its SHA-256 challenge', async () => {
+    const { newVerifier } = await import('../session');
+    const { createHash } = await import('node:crypto');
+    const a = await newVerifier();
+    const b = await newVerifier();
+    expect(a.verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(a.challenge).toBe(createHash('sha256').update(a.verifier).digest('base64url'));
+    expect(a.verifier).not.toBe(b.verifier);
+  });
+
+  it('redeem sends the verifier only in the POST body, and stores nothing', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true, token: 't', did: 'did:plc:x', expiresAt: '2030-01-01T00:00:00Z' }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { redeem } = await import('../session');
+      await expect(redeem('c0de', 'the-verifier')).resolves.toEqual({
+        token: 't',
+        did: 'did:plc:x',
+        expiresAt: Date.parse('2030-01-01T00:00:00Z'),
+      });
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+      expect(url).toBe('https://aturi.to/api/oauth/exchange');
+      expect(url).not.toContain('the-verifier');
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(String(init.body))).toEqual({ code: 'c0de', verifier: 'the-verifier' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('redeem surfaces the server message on failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ ok: false, error: 'Invalid or expired code' }), { status: 400 })),
+    );
+    try {
+      const { redeem } = await import('../session');
+      await expect(redeem('c0de', 'v')).rejects.toThrow('Invalid or expired code');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

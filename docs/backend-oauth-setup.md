@@ -185,7 +185,7 @@ Optional, all with working defaults. Leave them unset unless you need them:
 | --- | --- | --- |
 | `ATURI_APP_SESSION_TTL_DAYS` | `30` | Session lifetime, as days of inactivity (it slides on use). Clamped to 1–365. |
 | `ATURI_OAUTH_JWK_RETIRED` | — | Only during a key rotation. Published but never used to sign. |
-| `ATURI_EXTENSION_RETURN_ORIGINS` | — | Only for an extension build whose redirect host the browsers do not reserve, a Safari build for example. Chrome and Firefox are matched by pattern already. |
+| `ATURI_EXTENSION_RETURN_ORIGINS` | — | Only for an extension build whose return target is none of the built-in ones. No shipped build needs it: Chrome and Firefox are matched by pattern, and Safari's return page (`/api/oauth/extension/return` on the same origin) is accepted in code. |
 | `ATURI_DB_DRIVER` | `postgrest` | Only `postgrest` ships. |
 | `NEXT_PUBLIC_BFF_ORIGIN` | — | Bearer callers only (the extension, local dev). The web app cannot use it. |
 
@@ -407,9 +407,17 @@ process:
    Settings → Account and is read-only: the server pins the extension to the
    base scope, so it cannot write to a repository whatever it asks for.
 
-Safari has no `browser.identity` at all, so extension sign-in does not work
-there; the extension says so rather than hanging. Firefox for Android is
-unconfirmed.
+Safari has no `browser.identity`, so the Safari build signs in through an
+ordinary tab that comes back to `https://aturi.to/api/oauth/extension/return`,
+a static page this app serves. There is nothing to configure: the login route
+accepts exactly that URL on its own origin, so staging works the same way.
+When someone presses Sign in, Safari asks them to allow Aturi on aturi.to;
+without that grant the extension cannot see the tab come back. App Review has
+rejected sign-in in a Safari tab before (guideline 4.0), so describe the flow
+in the review notes. The fallback, if it is rejected, is
+`ASWebAuthenticationSession` in the containing app (`docs/backend-oauth.md`
+§8). Firefox for Android has no `identity` API at all and still shows a "not
+supported" message.
 
 ---
 
@@ -420,6 +428,7 @@ unconfirmed.
 | Every route 404/503, metadata absent | A required variable is not reaching this deployment. Check its environment scope and branch, then redeploy. |
 | PostgREST 404s everywhere, code looks right | The schema is not in the Data API's exposed schemas (A2). |
 | Signed in on staging, then signed out of production | Staging is on the `aturi` schema. Set `ATURI_DB_SCHEMA=aturi_staging` for Preview (`testing`) and redeploy. |
+| Safari: the sign-in tab stays on "You can close this tab" and the extension stays signed out | The extension cannot see aturi.to. Allow Aturi on aturi.to in Safari's extension settings (an "Allow for one day" grant expires), then sign in again. |
 | `Sign-in must start from the app` | The sign-in did not begin as a same-origin navigation. Deliberate: it stops a hostile page starting a flow. Use the sign-in button. |
 | `This sign-in did not start in this browser` | The flow cookie is missing or stale: cookies blocked, or more than ten minutes between starting and finishing. |
 | Signed in, but writes fail | The permissions ticked at sign-in did not include them. Check `scope` on `/api/oauth/session`. |

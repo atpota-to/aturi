@@ -270,6 +270,11 @@ Three things are enforced rather than documented:
 - **Only the backend's own auth failures clear the token.** A 401 relayed from
   a PDS is about the record, not the session.
 
+Safari has no consent window to hand the flow to, so its build opens the same
+flow in an ordinary tab and reads the code off the tab when it lands on a
+first-party page, `/api/oauth/extension/return`. §8 ("Safari: sign-in in a
+tab") has the design and the reasons it is safe.
+
 Store paperwork is done in the same change, which is the only way it stays
 true: `data_collection_permissions` is now `['authenticationInfo']` (and
 deliberately not `websiteContent` — page scanning still never leaves the
@@ -293,10 +298,16 @@ them it is.
   against a signed-in state means signing in again per build.
 - **Chrome Web Store's Privacy practices tab** has to tick "Authentication
   information" to match the manifest. The store cross-references them.
-- **Safari and Firefox for Android.** Safari Web Extensions do not implement
-  `browser.identity` at all, and Android support is unconfirmed. The extension
-  fails with a clear message rather than hanging, and §8's nonce-and-claim
-  flow is the portable alternative if either becomes a target.
+- **Safari sign-in needs a maintainer's review and a device test.** The server
+  half is one exact-match comparison in `validateReturn`, a static landing
+  page and one CORS header (§8, "Safari: sign-in in a tab"). It touches OAuth,
+  so it needs sign-off under AGENTS.md. Not yet seen on a real Safari: whether
+  `tabs.onUpdated` reports the `#code` fragment, whether the background wakes
+  for it on iOS, and how App Review treats a sign-in tab.
+- **Firefox for Android has no `identity` API.** MDN browser-compat-data
+  8.1.10 lists it as unsupported. The Android build still fails with a clear
+  message rather than hanging; the Safari tab flow is how to add it if
+  Android becomes a target.
 
 ---
 
@@ -341,8 +352,11 @@ Assumed, and worth checking before Phase 0 closes:
   staging shares production's signing key. It is **not** in that project's domain
   list despite `src/app/oauth-client-metadata.json/route.ts` allowlisting it.
 - Whether `launchWebAuthFlow` works on Firefox for Android (the manifest targets
-  `gecko_android` 142+). Safari Web Extensions do **not** implement
-  `browser.identity` at all.
+  `gecko_android` 142+). **Answered (November 2026): it does not.** MDN
+  browser-compat-data 8.1.10 lists `identity` as unsupported on Firefox for
+  Android, Safari and Safari on iOS, and Apple's compatibility page says of
+  Safari: "`identity`: Not supported. Initiate an OAuth flow in a new tab."
+  Safari now signs in through a tab (§8).
 - The `clientAttestation` wire format for `#allowList` spaces. No implementation
   exists in either released or spaces-alpha `oauth-provider` builds.
 
@@ -542,7 +556,7 @@ Accepts **exactly these parameters** and forwards nothing else:
 | `handle` | handle \| DID \| https URL shape; https URLs go through `src/utils/ssrfGuard.ts` before `authorize()` performs discovery against them |
 | `scopes` | comma-separated `ScopeId`; validated against `ALL_SCOPE_IDS`; **any unknown id is a 400, never a silent narrowing** |
 | `client` | `web` \| `extension` |
-| `return` | root-relative path (web) or exact-match entry in `ATURI_EXTENSION_RETURN_ORIGINS` |
+| `return` | web: a root-relative path. extension: a browser-reserved redirect host (`*.chromiumapp.org`, `*.extensions.allizom.org`, `http://127.0.0.1/mozoauth2/…`), exactly `<this origin>/api/oauth/extension/return` (Safari, §8), or an exact-match entry in `ATURI_EXTENSION_RETURN_ORIGINS` |
 | `challenge` | extension only — base64url `SHA-256(verifier)`, see §8 |
 
 Then `buildScopeString(new Set(ids))`, and **always pass an explicit `scope`** —
@@ -655,6 +669,19 @@ exchange row stores the challenge. Redemption requires
 makes the loose return-origin situation (§8) safe: a hostile extension that
 somehow observes the redirect still cannot redeem the code.
 
+### `GET /api/oauth/extension/return`
+
+Where Safari's sign-in tab lands, with `#code=…` or `?oauth_error=…` (§8). A
+static page and nothing else: no script, no analytics, nothing from the URL
+echoed back, and `Content-Security-Policy: default-src 'none'; style-src
+'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+`Referrer-Policy: no-referrer`, `Cache-Control: no-store`,
+`X-Robots-Tag: noindex`. The extension reads the URL off the tab; the page
+only has to exist. It must never be added to `IOS_UNIVERSAL_LINK_PATHS`
+(`src/lib/iosApp.ts`): iOS would then hand the code to the app instead of the
+Safari tab the extension is watching. `src/lib/__tests__/oauthExtensionReturn.test.ts`
+pins all of this.
+
 ### `GET|POST|PUT|DELETE /api/oauth/xrpc/[nsid]`
 
 The NSID arrives as **our own route segment**; the upstream path is rebuilt
@@ -716,7 +743,12 @@ Mechanics that are not optional:
 
 Applied to `/api/oauth/*` only: `Access-Control-Allow-Origin: *`,
 `Access-Control-Max-Age: 86400`, allow-headers
-`Content-Type, Authorization, atproto-proxy, atproto-accept-labelers, accept-language`.
+`Content-Type, Authorization, atproto-proxy, atproto-accept-labelers, accept-language`,
+and `Access-Control-Expose-Headers: x-aturi-oauth-error`. The extension reads
+that header to tell a dead session from a 401 the PDS relayed, and Safari
+treats the extension's fetch as cross-origin whenever the user has not granted
+it aturi.to (a grant they can withdraw, or let lapse with "Allow for one
+day"). Without the expose header a revoked session would go unnoticed there.
 **No `Access-Control-Allow-Credentials`** — it is invalid with `*`, and its
 absence is precisely what makes the wildcard safe, because the cookie path is
 same-origin only.
@@ -1355,21 +1387,99 @@ for v1 — it matches the read-only framing and removes the trap entirely.
 - Add "Sign out this device" / "Sign out everywhere" to
   `src/components/account/tabs/AccountTab.tsx`.
 
-### Safari / Firefox-for-Android contingency
+### Safari: sign-in in a tab
 
-Safari Web Extensions do not implement `browser.identity`, and
-`launchWebAuthFlow` on Firefox for Android is unconfirmed while the manifest
-targets `gecko_android` 142+. If either is a shipping target, build the
-**portable nonce-and-claim flow** instead: the extension generates a verifier,
-opens `https://aturi.to/extension/connect#c=<challenge>` in a normal tab, the page
-runs the ordinary web sign-in, the BFF mints an extension-scoped token keyed by
-that challenge, and the extension polls
-`GET /api/oauth/extension/claim?c=…&v=…` (short TTL, single use, delete-on-read).
+Safari Web Extensions have no `browser.identity`. Apple's compatibility page
+says so ("`identity`: Not supported. Initiate an OAuth flow in a new tab."),
+and MDN browser-compat-data 8.1.10 agrees for Safari and Safari on iOS. So the
+Safari build runs the same flow in an ordinary tab. Chrome and Firefox keep
+`launchWebAuthFlow` and see no change.
 
-**Explicitly reject the postMessage-from-a-tab variant**: `externally_connectable`
-for web pages is Chromium-only, and the Firefox workaround requires a third
-content script on `<all_urls>` that reads a long-lived token out of page
-JavaScript.
+1. Settings → Account. The submit handler's first statement is
+   `permissions.request({ origins: ['https://aturi.to/*'] })`: Safari shows the
+   prompt only during a user gesture, and the grant is needed because Safari
+   blanks a tab's URL for every site the user has not allowed.
+2. Verifier and challenge as above. The pending flow
+   `{verifier, challenge, handle, tabId, optionsTabId, startedAt}` is kept in
+   `storage.local` under `aturi.signin.pending.v1` (never sync, never the
+   prefs key) for at most ten minutes, the server's own state TTL.
+3. `tabs.create` the login URL with
+   `return=https://aturi.to/api/oauth/extension/return`. The tab opens in the
+   background and comes forward once the record is written, so a code can
+   never arrive before its record.
+4. The callback sends the tab to `/api/oauth/extension/return#code=…`, or a
+   failure to `?oauth_error=…`. Two things report it: the background's
+   `tabs.onUpdated` (Safari has no URL filter for it, so the URL is checked by
+   hand) and a Safari-only content script on that page. The options page also
+   asks for a check whenever it becomes visible. All three go through one
+   queue in `extension/lib/tabSignIn.ts`, which requires an exact origin and
+   path, requires the reporting tab to be the one the flow opened, and removes
+   the pending record before any network call, so a code is redeemed once.
+5. Redeem at `/api/oauth/exchange` exactly as on Chrome. Then, as defence in
+   depth, if the typed handle or DID resolves to a different DID from the one
+   that came back, that session is logged out and the user is told. A server
+   URL, or a lookup that fails, is accepted as before.
+6. Close the sign-in tab, go back to the options tab, and report how it ended
+   through `storage.local` (`aturi.signin.outcome.v1`).
+
+On the server that is all of it:
+
+- `validateReturn` accepts, for `client=extension` only, a `return` exactly
+  equal to `${origin}/api/oauth/extension/return`, where `origin` is the
+  request's own resolved origin. String equality, not a pattern and not an
+  environment variable, so no deployment can be configured into sending codes
+  elsewhere, and staging returns to staging by itself.
+- `GET /api/oauth/extension/return` (§2): a static page with no script.
+- `Access-Control-Expose-Headers: x-aturi-oauth-error` (§2, CORS).
+
+Callback, exchange, logout, xrpc, the schema and the rate limits are unchanged.
+
+**Why a page on aturi.to is a safe return target** when the comment on
+`BROWSER_REDIRECT_HOSTS` says a real host is not: that warning is about
+somebody else's server. This host is ours, the fragment never reaches a
+server, and the page runs no script. What can still read the tab's URL is
+local history and extensions the user has let see it (on Safari, those granted
+aturi.to). A hostile page that starts a flow with its own challenge gets its
+code delivered to a tab it cannot read, and a hostile extension that can read
+tabs is the same already-installed precondition the browser-host patterns
+accept. The code lives 60
+seconds, works once, and is worthless without the verifier either way.
+
+**Why not nonce-and-claim**, the design this section used to propose (open
+`/extension/connect#c=<challenge>`, run a web sign-in there, poll a claim
+endpoint with the verifier). It throws away the delivery channel: whoever
+holds the verifier both starts the flow and collects the result. An attacker
+mints a pair, sends a victim the genuine first-party link by email or DM, and
+collects a session for the victim's DID once they approve. That is RFC 8628
+§5.4, "Remote Phishing", and `Sec-Fetch-Site` cannot stop it, because the
+click on the page is same-origin and a link opened from Mail arrives as
+`none`. What is left is a pairing code the user has to compare and a short
+TTL. The tab flow keeps the code inside the browser that asked for it.
+
+**`externally_connectable` is no longer Chromium-only.** Safari has supported
+`matches` (not `ids`) since 15.4, per Apple's "Messaging between a webpage and
+your Safari web extension". It is still not used here: WebKit gates it on the
+same aturi.to grant, and it would let every script on aturi.to message the
+extension, which the content script does not. Firefox still lacks it.
+
+**Firefox for Android** has no `identity` either (browser-compat-data
+8.1.10). It keeps throwing `SignInUnavailableError`. The tab flow is the way to
+add it, with the content script built for Android too and a check on a device.
+
+**Known risks.**
+
+- App Review. A November 2024 forum thread
+  (developer.apple.com/forums/thread/768435) quotes a rejection under
+  guideline 4.0 for taking the user "to a new Safari window or tab to sign
+  in", while Apple's extension documentation says to "initiate an OAuth flow
+  in a new tab". If review objects, the fallback is `ASWebAuthenticationSession`
+  in the containing app, with the session passed to the extension through
+  native messaging and the app group. That means native code and a sign-in
+  screen in both host apps.
+- Not yet seen on a device: whether Safari's `tabs.onUpdated` keeps the `#code`
+  fragment (WebKit's does), whether the permission prompt appears from the
+  options tab on iOS, and whether the background wakes for the return after
+  Safari has unloaded it.
 
 ---
 
@@ -1381,7 +1491,7 @@ JavaScript.
 | Staging | `https://testing.aturi.to` | `https://testing.aturi.to/oauth/client-metadata.json` — host-keyed, so staging stays a separate OAuth client with separate consent records | same shape on that host | cookie |
 | Vercel previews | per-deploy `*.vercel.app` | **none** — signed out, **and no BFF secrets present** | — | — |
 | localhost | `http://localhost:3000` | none of its own | — | bearer against staging, or legacy browser client |
-| Extension | `chrome-extension://…` / `moz-extension://…` | reuses the web client_id | web `/api/oauth/callback` → app-level hand-off | bearer in `Authorization` |
+| Extension | `chrome-extension://…` / `moz-extension://…` / `safari-web-extension://…` | reuses the web client_id | web `/api/oauth/callback` → app-level hand-off | bearer in `Authorization` |
 | Fork, unconfigured | any | legacy public client | `/oauth/callback` | IndexedDB, as today |
 
 **Previews stay signed out.** Do not "fix" this by allowlisting a `*.vercel.app`
@@ -1718,8 +1828,12 @@ Each has a recommendation, but each is genuinely the maintainer's.
    explicitly rather than assuming it**.
 
 9. **Is Safari a shipping target for the extension, and does Firefox for Android
-   support `launchWebAuthFlow`?** If either is yes, build the nonce-and-claim flow
-   first and treat `launchWebAuthFlow` as the Chrome/Firefox fast path.
+   support `launchWebAuthFlow`?** **Answered (November 2026):** Safari is a
+   target, on macOS and iOS. Firefox for Android does not support it: MDN
+   browser-compat-data 8.1.10 lists `identity`, `getRedirectURL` and
+   `launchWebAuthFlow` as unsupported there, and on both Safaris. Safari signs
+   in through a tab rather than nonce-and-claim (§8 says why). Firefox for
+   Android keeps its "not supported" message for now.
 
 10. **Is multi-account in scope?** **Not recommended for v1** — it is scope creep
     on an auth swap — but the schema should not preclude it, and it does not.

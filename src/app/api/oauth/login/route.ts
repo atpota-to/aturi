@@ -108,23 +108,58 @@ const BROWSER_REDIRECT_HOSTS = [
 ];
 
 /**
+ * Safari's return target: a page on THIS origin, matched exactly.
+ *
+ * Safari has no identity API and reserves no redirect host, so its build
+ * runs this flow in an ordinary tab and reads the code off the tab when it
+ * lands here. Safari reports a tab's URL only for sites the user has
+ * granted the extension, so that build asks for aturi.to access first.
+ *
+ * The comment above says a real host would not be safe. That is true of
+ * somebody else's host; this one is ours. The fragment never reaches a
+ * server, the page runs no script, and what else can read the tab's URL is
+ * local history and extensions the user has let see it. So a hostile page
+ * that starts a flow in a visitor's browser with its own challenge gets its
+ * code delivered to a tab it cannot read, and a hostile extension that can
+ * read tabs is the same already-installed precondition the browser-host
+ * patterns accept. The code is single-use, lives 60 seconds and is
+ * worthless without the verifier either way.
+ *
+ * Compared against the request's own origin rather than an environment
+ * list, so no deployment can be configured into returning codes elsewhere,
+ * and staging returns to staging without anyone setting anything. Kept out
+ * of BROWSER_REDIRECT_HOSTS on purpose: that list is patterns for hosts that
+ * resolve nowhere, and this is one exact URL on a host that does.
+ *
+ * Not exported: a Next route module may only export route fields. The page
+ * itself is `src/app/api/oauth/extension/return/route.ts`.
+ */
+const EXTENSION_TAB_RETURN_PATH = '/api/oauth/extension/return';
+
+/**
  * Where the user lands after the callback.
  *
  * Web returns take a root-relative path only. A backslash is rejected
  * alongside a second slash: some URL parsers normalise `/\evil.example` into a
  * protocol-relative URL, which would make every failure path an open redirect
  * carrying a live session.
+ *
+ * `origin` is the request's own, already validated by `resolveOrigin`. It is
+ * only used for the extension's first-party return above.
  */
 function validateReturn(
   raw: string | null,
   client: 'web' | 'extension',
   allowedOrigins: readonly string[],
+  origin: string,
 ): string | null {
   if (client === 'extension') {
     if (!raw) return null;
     if (BROWSER_REDIRECT_HOSTS.some((re) => re.test(raw))) return raw;
-    // Anything else must be named explicitly — a Safari build, say, which has
-    // no identity API and needs the nonce-and-claim flow instead.
+    // String equality, not a prefix or a pattern: no suffix, query, trailing
+    // slash or other host gets through.
+    if (raw === `${origin}${EXTENSION_TAB_RETURN_PATH}`) return raw;
+    // Anything else must be named explicitly by the operator.
     return allowedOrigins.includes(raw) ? raw : null;
   }
   if (!raw) return '/';
@@ -178,6 +213,7 @@ export async function GET(request: Request) {
         params.get('return'),
         'extension',
         readReturnOrigins(),
+        origin,
       );
       if (target) {
         const url = new URL(target);
@@ -189,7 +225,7 @@ export async function GET(request: Request) {
       return fail(status, code, message, hint);
     }
 
-    const back = validateReturn(params.get('return'), 'web', []) ?? '/';
+    const back = validateReturn(params.get('return'), 'web', [], origin) ?? '/';
     const url = new URL(`${origin}${back}`);
     url.searchParams.set('oauth_error', message);
     const res = NextResponse.redirect(url.toString(), 302);
@@ -258,7 +294,12 @@ export async function GET(request: Request) {
       clientParam === 'extension' ? new Set<ScopeId>() : new Set(validIds),
     );
 
-    const returnTo = validateReturn(params.get('return'), clientParam, cfg.extensionReturnOrigins);
+    const returnTo = validateReturn(
+      params.get('return'),
+      clientParam,
+      cfg.extensionReturnOrigins,
+      origin,
+    );
     if (returnTo === null) {
       return bail(400, 'INVALID_PARAMETER', 'Invalid return target.');
     }
