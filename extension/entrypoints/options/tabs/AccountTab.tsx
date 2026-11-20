@@ -15,6 +15,7 @@ import {
   ATURI_ORIGINS,
   beginTabSignIn,
   cancelTabSignIn,
+  expireTabSignIn,
   getPendingTabSignIn,
   onTabSignInChanged,
   requestTabSignInCheck,
@@ -133,12 +134,27 @@ type Status =
   | { kind: 'busy'; what: 'signin' | 'import' }
   | { kind: 'error'; message: string }
   | { kind: 'imported'; groups: number; custom: number; skipped: number }
-  | { kind: 'empty' };
+  | { kind: 'empty' }
+  // Safari: Cancel could not see the sign-in tab on one of the flow's own
+  // pages, so it left that tab open rather than risk closing the user's page.
+  | { kind: 'cancelled-left-open' };
 
 const SAFARI_ACCESS_REFUSED =
   'Aturi needs access to aturi.to to finish signing in. Choose Allow when Safari asks, ' +
   "then try again. If Safari doesn't ask, allow Aturi on aturi.to in Safari's extension settings.";
 const SAFARI_TIMED_OUT = 'That sign-in took too long. Try again.';
+
+/**
+ * A handle is typed as it is: no capital first letter, no autocorrect (both
+ * iOS habits) and no spellcheck. spellCheck is the string "false" on purpose:
+ * Preact drops a `false` value for it, which would leave spellcheck on (see
+ * VERBATIM_INPUT in CustomTab).
+ */
+const VERBATIM_INPUT = {
+  autoCapitalize: 'none',
+  autoCorrect: 'off',
+  spellCheck: 'false',
+} as const;
 
 export default function AccountTab({
   prefs,
@@ -183,14 +199,17 @@ export default function AccountTab({
   }, []);
 
   // A flow the user walked away from ends on its own, at the same ten minutes
-  // the server forgets it.
+  // the server forgets it. Its tab stays open: by then the user may be using
+  // that tab for something else, so this expires the flow rather than
+  // cancelling it.
   useEffect(() => {
     if (!pending) return;
+    const { startedAt, expiresAt } = pending;
     const timer = setTimeout(() => {
-      void cancelTabSignIn().then((was) => {
+      void expireTabSignIn(startedAt).then((was) => {
         if (was) setStatus({ kind: 'error', message: SAFARI_TIMED_OUT });
       });
-    }, Math.max(0, pending.expiresAt - Date.now()));
+    }, Math.max(0, expiresAt - Date.now()));
     return () => clearTimeout(timer);
   }, [pending]);
 
@@ -251,9 +270,9 @@ export default function AccountTab({
   };
 
   const doCancel = useCallback(async () => {
-    await cancelTabSignIn();
+    const result = await cancelTabSignIn();
     setPending(null);
-    setStatus({ kind: 'idle' });
+    setStatus(result === 'left-open' ? { kind: 'cancelled-left-open' } : { kind: 'idle' });
   }, []);
 
   const doImport = useCallback(async () => {
@@ -377,7 +396,7 @@ export default function AccountTab({
             onChange={(e) => setHandle(e.currentTarget.value)}
             placeholder="your.handle"
             autoComplete="username"
-            spellCheck={false}
+            {...VERBATIM_INPUT}
             disabled={busy}
             aria-label="Your handle"
           />
@@ -396,6 +415,11 @@ export default function AccountTab({
         {status.kind === 'error' && (
           <p className="aturi-muted" role="alert">
             {status.message}
+          </p>
+        )}
+        {status.kind === 'cancelled-left-open' && (
+          <p className="aturi-muted">
+            Sign-in cancelled. If its tab is still open, you can close it.
           </p>
         )}
         {status.kind === 'imported' && (

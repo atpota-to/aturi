@@ -185,10 +185,13 @@ and signs in through an ordinary tab instead of `launchWebAuthFlow`:
    that runs no script.
 3. When the tab lands there with `#code=…`, the background (told by
    `tabs.onUpdated`, or by the Safari-only `signin-return` content script on
-   that page) redeems the code with the verifier it kept in `storage.local`
-   for at most ten minutes. If the handle that was typed resolves to a
-   different account from the one that signed in, it signs that session
-   straight back out. Then it closes the tab and switches back to Settings.
+   that page) redeems the code with the verifier it kept in `storage.local`.
+   The verifier stays there until the flow ends and is never used after ten
+   minutes; a flow nobody finishes is removed the next time Settings >
+   Account opens or the background starts. If the handle that was typed
+   resolves to a different account from the one that signed in, it signs that
+   session straight back out. Then it closes the tab and switches back to
+   Settings.
 
 `lib/tabSignIn.ts` has the extension side, and
 [docs/backend-oauth.md](../docs/backend-oauth.md) ("Safari: sign-in in a tab")

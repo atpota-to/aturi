@@ -1400,9 +1400,15 @@ Safari build runs the same flow in an ordinary tab. Chrome and Firefox keep
    prompt only during a user gesture, and the grant is needed because Safari
    blanks a tab's URL for every site the user has not allowed.
 2. Verifier and challenge as above. The pending flow
-   `{verifier, challenge, handle, tabId, optionsTabId, startedAt}` is kept in
-   `storage.local` under `aturi.signin.pending.v1` (never sync, never the
-   prefs key) for at most ten minutes, the server's own state TTL.
+   `{verifier, challenge, handle, tabId, optionsTabId, launch, startedAt}` is
+   kept in `storage.local` under `aturi.signin.pending.v1` (never sync, never
+   the prefs key) until the flow ends. It is never used after ten minutes, the
+   server's own state TTL, and a flow nobody finishes is removed the next time
+   Settings → Account opens or the background starts. `launch` is a random
+   token also kept in `storage.session`, which Safari clears when it quits or
+   the extension reloads, the same moments tab ids start over. A flow whose
+   token no longer matches is dropped as a restart and its tab ids are never
+   used.
 3. `tabs.create` the login URL with
    `return=https://aturi.to/api/oauth/extension/return`. The tab opens in the
    background and comes forward once the record is written, so a code can

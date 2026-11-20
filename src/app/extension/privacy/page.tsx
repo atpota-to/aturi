@@ -106,7 +106,7 @@ export default function ExtensionPrivacyPage() {
               involved. It deletes them when the sign-in finishes, fails or
               is cancelled, and never uses them after ten minutes. If you
               walk away from a sign-in, they are deleted the next time Safari
-              starts the extension or you open its settings. A short note
+              starts the extension or you open its Account settings. A short note
               saying how the attempt ended stays there until the Account
               settings have shown it.
             </p>

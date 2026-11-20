@@ -60,8 +60,8 @@ the same local storage, a one-time secret for that sign-in, the handle you
 typed, and the ids of the tabs involved. It deletes them when the sign-in
 finishes, fails or is cancelled, and never uses them after ten minutes. If
 you walk away from a sign-in, they are deleted the next time Safari starts
-the extension or you open its settings. A short note saying how the
-attempt ended stays there until the Account settings have shown it.
+the extension or you open its Account settings. A short note saying how
+the attempt ended stays there until the Account settings have shown it.
 
 Apart from what Section 5 describes for signing in, no part of this data
 is sent to Aturi, the developer, or any third party.

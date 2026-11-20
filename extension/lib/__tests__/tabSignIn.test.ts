@@ -7,16 +7,18 @@ import { resolve } from 'node:path';
  * Safari's tab-based sign-in (lib/tabSignIn.ts), and the promise that Chrome
  * and Firefox are untouched by it.
  *
- * `#imports` is replaced here with a small in-memory browser: storage.local is
- * a Map, storage.sync throws if anything so much as looks at it, and the tab,
- * runtime and permission calls are spies. `fetch` is stubbed per test, so
- * "no network" is something a test can assert rather than assume.
+ * `#imports` is replaced here with a small in-memory browser: storage.local and
+ * storage.session are Maps, storage.sync throws if anything so much as looks
+ * at it, and the tab, runtime and permission calls are spies. `fetch` is
+ * stubbed per test, so "no network" is something a test can assert rather
+ * than assume.
  */
 
 type Listener = (...args: any[]) => unknown;
 
 const h = vi.hoisted(() => {
   const local = new Map<string, unknown>();
+  const session = new Map<string, unknown>();
   const changeListeners = new Set<Listener>();
   const listeners = {
     onUpdated: [] as Listener[],
@@ -47,6 +49,21 @@ const h = vi.hoisted(() => {
           notify(list);
         }),
       },
+      session: {
+        get: vi.fn(async (keys: string | string[]) => {
+          const out: Record<string, unknown> = {};
+          for (const k of Array.isArray(keys) ? keys : [keys]) {
+            if (session.has(k)) out[k] = structuredClone(session.get(k));
+          }
+          return out;
+        }),
+        set: vi.fn(async (items: Record<string, unknown>) => {
+          for (const [k, v] of Object.entries(items)) session.set(k, structuredClone(v));
+        }),
+        remove: vi.fn(async (keys: string | string[]) => {
+          for (const k of Array.isArray(keys) ? keys : [keys]) session.delete(k);
+        }),
+      } as Record<string, any> | undefined,
       get sync(): never {
         throw new Error('storage.sync must never be touched by sign-in');
       },
@@ -60,6 +77,10 @@ const h = vi.hoisted(() => {
       update: vi.fn(async (id: number) => ({ id, windowId: 3 })),
       remove: vi.fn(async () => {}),
       get: vi.fn(async (id: number) => ({ id, url: '' })),
+      // Safari matches a URL-filtered query only against tabs on sites the
+      // extension has been granted, so by default the sign-in tab, which sits
+      // on the authorization server, is in no result.
+      query: vi.fn(async (_info: { url?: string | string[] }) => [] as { id: number; url: string }[]),
       getCurrent: vi.fn(async () => ({ id: 7, windowId: 3 })),
       onUpdated: { addListener: vi.fn((fn: Listener) => listeners.onUpdated.push(fn)) },
       onRemoved: { addListener: vi.fn((fn: Listener) => listeners.onRemoved.push(fn)) },
@@ -72,7 +93,7 @@ const h = vi.hoisted(() => {
     permissions: { request: vi.fn(async () => true) },
     identity: undefined,
   };
-  return { local, browser, listeners, changeListeners };
+  return { local, session, browser, listeners, changeListeners };
 });
 
 vi.mock('#imports', () => ({ browser: h.browser }));
@@ -81,6 +102,9 @@ const RETURN = 'https://aturi.to/api/oauth/extension/return';
 const PENDING_KEY = 'aturi.signin.pending.v1';
 const OUTCOME_KEY = 'aturi.signin.outcome.v1';
 const SESSION_KEY = 'aturi.session.v1';
+const LAUNCH_KEY = 'aturi.signin.launch.v1';
+const TIMED_OUT = 'That sign-in took too long. Try again.';
+const RESTARTED = 'Safari or Aturi restarted while you were signing in. Try again.';
 
 function challengeOf(verifier: string): string {
   return createHash('sha256').update(verifier).digest('base64url');
@@ -136,13 +160,31 @@ function seedPending(overrides: Record<string, unknown> = {}) {
   return verifier;
 }
 
+/** Every call that can close, focus or read a tab. */
+function expectNoTabTouched() {
+  expect(h.browser.tabs.remove).not.toHaveBeenCalled();
+  expect(h.browser.tabs.update).not.toHaveBeenCalled();
+  expect(h.browser.tabs.get).not.toHaveBeenCalled();
+  expect(h.browser.windows.update).not.toHaveBeenCalled();
+}
+
+/** Lets every queued storage call and serialized task run to the end. */
+function settle() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+const sessionArea = h.browser.storage.session;
+
 beforeEach(() => {
   h.local.clear();
+  h.session.clear();
+  h.browser.storage.session = sessionArea;
   h.changeListeners.clear();
   h.listeners.onUpdated.length = 0;
   h.listeners.onRemoved.length = 0;
   h.listeners.onMessage.length = 0;
   vi.clearAllMocks();
+  h.browser.tabs.query.mockImplementation(async () => []);
   vi.resetModules();
 });
 
@@ -150,6 +192,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
+
+/**
+ * Load the module as the Safari build and install its listeners, then let the
+ * start-up sweep finish, so each test sees only the calls it caused.
+ */
+async function installOnSafari() {
+  vi.stubEnv('BROWSER', 'safari');
+  vi.resetModules();
+  const mod = await import('../tabSignIn');
+  mod.installTabSignIn();
+  await settle();
+  h.browser.storage.local.get.mockClear();
+  return mod;
+}
 
 describe('where the pending flow lives', () => {
   it('has its own key, not the prefs key or the session key', async () => {
@@ -201,6 +257,32 @@ describe('beginTabSignIn', () => {
 
     // Asked the background to look once, and nothing went over the network.
     expect(h.browser.runtime.sendMessage).toHaveBeenCalledWith({ type: 'aturi:signin-check' });
+  });
+
+  it('ties the flow to this launch with a token kept in storage.session', async () => {
+    const { beginTabSignIn } = await import('../tabSignIn');
+    await beginTabSignIn('alice.test');
+    const token = h.session.get(LAUNCH_KEY);
+    expect(typeof token).toBe('string');
+    expect((token as string).length).toBeGreaterThanOrEqual(16);
+    expect(h.local.get(PENDING_KEY)).toMatchObject({ launch: token });
+
+    // The next flow in the same launch reuses it rather than making another.
+    await beginTabSignIn('bob.test');
+    expect(h.session.get(LAUNCH_KEY)).toBe(token);
+    expect(h.local.get(PENDING_KEY)).toMatchObject({ handle: 'bob.test', launch: token });
+  });
+
+  it('still starts, unbound, where storage.session is missing', async () => {
+    stubNetwork();
+    h.browser.storage.session = undefined;
+    const { beginTabSignIn, completeTabSignIn } = await import('../tabSignIn');
+    await beginTabSignIn('alice.test');
+    const pending = h.local.get(PENDING_KEY) as Record<string, unknown>;
+    expect(pending).not.toHaveProperty('launch');
+    // With no token to compare, the flow finishes as it always did.
+    const code = `${RETURN}#code=the-code`;
+    await expect(completeTabSignIn(code, 41)).resolves.toBe('signed-in');
   });
 
   it('closes the tab again if the record cannot be written', async () => {
@@ -375,38 +457,238 @@ describe('completeTabSignIn', () => {
 });
 
 describe('cancelling', () => {
-  it('drops the flow and closes its tab', async () => {
+  it("drops the flow and closes its tab while that tab is on the flow's own pages", async () => {
     seedPending();
+    h.browser.tabs.query.mockImplementation(async () => [
+      { id: 41, url: 'https://aturi.to/api/oauth/login?handle=alice.test' },
+    ]);
     const { cancelTabSignIn } = await import('../tabSignIn');
-    await expect(cancelTabSignIn()).resolves.toBe(true);
+    await expect(cancelTabSignIn()).resolves.toBe('closed');
     expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.browser.tabs.query).toHaveBeenCalledWith({ url: ['https://aturi.to/api/oauth/*'] });
     expect(h.browser.tabs.remove).toHaveBeenCalledWith(41);
-    await expect(cancelTabSignIn()).resolves.toBe(false);
+    expect(h.browser.tabs.get).not.toHaveBeenCalled();
+    await expect(cancelTabSignIn()).resolves.toBe('none');
+  });
+
+  it('leaves the tab open, and says so, once it has left the flow', async () => {
+    // The user typed bsky.app into the sign-in tab and is writing a post
+    // there. A query filtered to the flow's pages does not find it.
+    seedPending();
+    h.browser.tabs.query.mockImplementation(async () => [
+      { id: 9, url: 'https://aturi.to/explore' },
+    ]);
+    const { cancelTabSignIn } = await import('../tabSignIn');
+    await expect(cancelTabSignIn()).resolves.toBe('left-open');
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    for (const [info] of h.browser.tabs.query.mock.calls) expect(info.url).toBeTruthy();
+    // Neither the sign-in tab nor the unrelated aturi.to tab is closed.
+    expectNoTabTouched();
+  });
+});
+
+describe('cancelling, elsewhere on aturi.to', () => {
+  it('leaves the sign-in tab open on an aturi.to page the flow never visits', async () => {
+    // The user typed aturi.to/explore into the sign-in tab. That is their page
+    // now, even though it is on aturi.to.
+    seedPending();
+    h.browser.tabs.query.mockImplementation(async (info: { url?: string[] }) =>
+      (info.url ?? []).some((u) => u === 'https://aturi.to/*')
+        ? [{ id: 41, url: 'https://aturi.to/explore/lexicons' }]
+        : [],
+    );
+    const { cancelTabSignIn } = await import('../tabSignIn');
+    await expect(cancelTabSignIn()).resolves.toBe('left-open');
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expectNoTabTouched();
+  });
+});
+
+describe('running out of time', () => {
+  it('drops the flow and reports the timeout, but leaves its tab open', async () => {
+    seedPending({ startedAt: 1_000 });
+    const { expireTabSignIn, takeTabSignInOutcome } = await import('../tabSignIn');
+    await expect(expireTabSignIn(1_000)).resolves.toBe(true);
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expectNoTabTouched();
+    expect(h.browser.tabs.query).not.toHaveBeenCalled();
+    await expect(takeTabSignInOutcome()).resolves.toMatchObject({ ok: false, message: TIMED_OUT });
+    await expect(expireTabSignIn(1_000)).resolves.toBe(false);
+  });
+
+  it('leaves a newer flow alone', async () => {
+    const startedAt = Date.now();
+    seedPending({ startedAt });
+    const { expireTabSignIn } = await import('../tabSignIn');
+    await expect(expireTabSignIn(startedAt - 60_000)).resolves.toBe(false);
+    expect(h.local.get(PENDING_KEY)).toMatchObject({ startedAt });
+    expect(h.local.has(OUTCOME_KEY)).toBe(false);
+  });
+
+  it("is what the Account tab's timer calls, never cancel", () => {
+    const src = readFileSync('entrypoints/options/tabs/AccountTab.tsx', 'utf8');
+    const timer = /const timer = setTimeout\(\(\) => \{([\s\S]*?)\}, Math\.max/.exec(src)?.[1] ?? '';
+    expect(timer).toMatch(/expireTabSignIn\(startedAt\)/);
+    expect(timer).not.toMatch(/cancelTabSignIn/);
+  });
+});
+
+describe('a flow from an earlier launch', () => {
+  /**
+   * Safari relaunched (or the extension reloaded): storage.session is empty
+   * or holds a newer token, and tab 41 is now some other tab, if it exists.
+   */
+  function seedStale(current: string | null = 'this-launch') {
+    seedPending({ launch: 'old-launch' });
+    if (current !== null) h.session.set(LAUNCH_KEY, current);
+  }
+
+  async function expectDroppedAsRestart() {
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: RESTARTED });
+    expectNoTabTouched();
+    expect(h.browser.tabs.query).not.toHaveBeenCalled();
+  }
+
+  it('is dropped, not redeemed, when the return page reports it', async () => {
+    const fetchMock = stubNetwork();
+    seedStale();
+    const { completeTabSignIn } = await import('../tabSignIn');
+    await expect(completeTabSignIn(`${RETURN}#code=the-code`, 41)).resolves.toBe('failed');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(h.local.has(SESSION_KEY)).toBe(false);
+    await expectDroppedAsRestart();
+  });
+
+  it('is dropped whichever tab reports, since its tab id means nothing now', async () => {
+    seedStale(null);
+    const { completeTabSignIn } = await import('../tabSignIn');
+    await expect(completeTabSignIn(`${RETURN}#code=the-code`, 3)).resolves.toBe('failed');
+    await expectDroppedAsRestart();
+  });
+
+  it('is dropped when the options page asks for a check', async () => {
+    // Seeded after start-up, so the start-up sweep does not get there first.
+    await installOnSafari();
+    seedStale();
+    const response = await new Promise((resolve) =>
+      h.listeners.onMessage[0]({ type: 'aturi:signin-check' }, { tab: { id: 7 } }, resolve),
+    );
+    expect(response).toEqual({ result: 'failed' });
+    await expectDroppedAsRestart();
+  });
+
+  it('is dropped when any tab closes', async () => {
+    await installOnSafari();
+    seedStale();
+    h.listeners.onRemoved[0](5);
+    await vi.waitFor(() => expect(h.local.has(PENDING_KEY)).toBe(false));
+    await settle();
+    await expectDroppedAsRestart();
+  });
+
+  it('is dropped on Cancel without closing tab 41, whatever it is now', async () => {
+    seedStale();
+    h.browser.tabs.query.mockImplementation(async () => [{ id: 41, url: `${RETURN}#x` }]);
+    const { cancelTabSignIn } = await import('../tabSignIn');
+    await expect(cancelTabSignIn()).resolves.toBe('left-open');
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expectNoTabTouched();
+    expect(h.browser.tabs.query).not.toHaveBeenCalled();
+    // The user asked to stop; there is nothing to tell them.
+    expect(h.local.has(OUTCOME_KEY)).toBe(false);
+  });
+
+  it('counts as stale when its token cannot be read back', async () => {
+    seedPending({ launch: 'this-launch' });
+    h.session.set(LAUNCH_KEY, 'this-launch');
+    h.browser.storage.session.get.mockRejectedValueOnce(new Error('gone'));
+    const { completeTabSignIn } = await import('../tabSignIn');
+    await expect(completeTabSignIn(`${RETURN}#code=the-code`, 41)).resolves.toBe('failed');
+    await expectDroppedAsRestart();
+
+    seedPending({ launch: 'this-launch' });
+    h.local.delete(OUTCOME_KEY);
+    h.browser.storage.session = undefined;
+    await expect(completeTabSignIn(`${RETURN}#code=the-code`, 41)).resolves.toBe('failed');
+    await expectDroppedAsRestart();
+  });
+
+  it('a flow of this launch finishes as normal', async () => {
+    stubNetwork();
+    seedPending({ launch: 'this-launch' });
+    h.session.set(LAUNCH_KEY, 'this-launch');
+    const { completeTabSignIn } = await import('../tabSignIn');
+    await expect(completeTabSignIn(`${RETURN}#code=the-code`, 41)).resolves.toBe('signed-in');
+    expect(h.browser.tabs.remove).toHaveBeenCalledWith(41);
   });
 });
 
 describe('installTabSignIn', () => {
-  async function installOnSafari() {
-    vi.stubEnv('BROWSER', 'safari');
-    vi.resetModules();
-    const mod = await import('../tabSignIn');
-    mod.installTabSignIn();
-    return mod;
-  }
-
   it('registers nothing outside the Safari build', async () => {
     const { installTabSignIn } = await import('../tabSignIn');
     installTabSignIn();
+    await settle();
     expect(h.browser.tabs.onUpdated.addListener).not.toHaveBeenCalled();
     expect(h.browser.tabs.onRemoved.addListener).not.toHaveBeenCalled();
     expect(h.browser.runtime.onMessage.addListener).not.toHaveBeenCalled();
+    // ...and sweeps nothing either.
+    expect(h.browser.storage.local.get).not.toHaveBeenCalled();
   });
 
   it('registers its listeners synchronously on Safari', async () => {
-    await installOnSafari();
+    vi.stubEnv('BROWSER', 'safari');
+    vi.resetModules();
+    const { installTabSignIn } = await import('../tabSignIn');
+    installTabSignIn();
     expect(h.listeners.onUpdated).toHaveLength(1);
     expect(h.listeners.onRemoved).toHaveLength(1);
     expect(h.listeners.onMessage).toHaveLength(1);
+  });
+
+  it('drops an expired flow when the background starts, touching no tab', async () => {
+    seedPending({ startedAt: Date.now() - 11 * 60_000 });
+    await installOnSafari();
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: TIMED_OUT });
+    expectNoTabTouched();
+    // It only looks among tabs on the return page, which never prompts.
+    for (const [info] of h.browser.tabs.query.mock.calls) {
+      expect(info).toEqual({ url: `${RETURN}*` });
+    }
+  });
+
+  it('closes an expired flow\'s tab at start-up when that tab is on the return page', async () => {
+    // The return page's report is what woke the background, but the sweep is
+    // queued first; it must not swallow the report and strand the tab.
+    const fetchMock = stubNetwork();
+    seedPending({ startedAt: Date.now() - 11 * 60_000 });
+    h.browser.tabs.query.mockImplementation(async () => [{ id: 41, url: `${RETURN}#code=the-code` }]);
+    await installOnSafari();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: TIMED_OUT });
+    expect(h.browser.tabs.remove).toHaveBeenCalledWith(41);
+    expect(h.browser.tabs.get).not.toHaveBeenCalled();
+  });
+
+  it('drops a flow from an earlier launch when the background starts', async () => {
+    seedPending({ launch: 'old-launch' });
+    h.session.set(LAUNCH_KEY, 'this-launch');
+    await installOnSafari();
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: RESTARTED });
+    expectNoTabTouched();
+    expect(h.browser.tabs.query).not.toHaveBeenCalled();
+  });
+
+  it('keeps a flow that still has time when the background starts', async () => {
+    seedPending({ startedAt: Date.now() - 9 * 60_000 });
+    await installOnSafari();
+    expect(h.local.get(PENDING_KEY)).toMatchObject({ tabId: 41 });
+    expect(h.local.has(OUTCOME_KEY)).toBe(false);
+    expectNoTabTouched();
+    expect(h.browser.tabs.query).not.toHaveBeenCalled();
   });
 
   it("leaves other messages to the background's own listener", async () => {
@@ -484,16 +766,74 @@ describe('installTabSignIn', () => {
     expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: 'Sign-in was cancelled.' });
   });
 
+  function check() {
+    return new Promise((resolve) =>
+      h.listeners.onMessage[0]({ type: 'aturi:signin-check' }, { tab: { id: 7 } }, resolve),
+    );
+  }
+
+  /**
+   * Every query the check made was filtered to the return page. Safari only
+   * matches such a query against tabs on sites Aturi already has, so it never
+   * asks the user about the authorization server the sign-in tab is on.
+   */
+  function expectOnlyReturnPageQueries() {
+    expect(h.browser.tabs.get).not.toHaveBeenCalled();
+    expect(h.browser.tabs.query).toHaveBeenCalled();
+    for (const [info] of h.browser.tabs.query.mock.calls) {
+      expect(info).toEqual({ url: `${RETURN}*` });
+    }
+  }
+
   it('finishes a flow the background slept through when the options page asks', async () => {
     stubNetwork();
     seedPending();
-    h.browser.tabs.get.mockResolvedValueOnce({ id: 41, url: `${RETURN}#code=the-code` });
+    h.browser.tabs.query.mockImplementation(async () => [
+      { id: 12, url: `${RETURN}#code=someone-elses` },
+      { id: 41, url: `${RETURN}#code=the-code` },
+    ]);
     await installOnSafari();
-    const response = await new Promise((resolve) =>
-      h.listeners.onMessage[0]({ type: 'aturi:signin-check' }, { tab: { id: 7 } }, resolve),
-    );
-    expect(response).toEqual({ result: 'signed-in' });
-    expect(h.browser.tabs.get).toHaveBeenCalledWith(41);
+    await expect(check()).resolves.toEqual({ result: 'signed-in' });
+    expectOnlyReturnPageQueries();
+    expect(h.browser.tabs.remove).toHaveBeenCalledWith(41);
+    expect(h.browser.tabs.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('never calls tabs.get on the sign-in tab, and waits while it is elsewhere', async () => {
+    const fetchMock = stubNetwork();
+    seedPending();
+    await installOnSafari();
+    // Tab 41 is on the authorization server, so the filtered query misses it.
+    await expect(check()).resolves.toEqual({ result: 'ignored' });
+    expectOnlyReturnPageQueries();
+    // A miss is not taken to mean the tab is gone.
+    expect(h.local.get(PENDING_KEY)).toMatchObject({ tabId: 41 });
+    expect(h.local.has(OUTCOME_KEY)).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expectNoTabTouched();
+  });
+
+  it('times out a flow on the check, and leaves its tab open', async () => {
+    seedPending({ startedAt: Date.now() - 9 * 60_000 });
+    await installOnSafari();
+    seedPending({ startedAt: Date.now() - 11 * 60_000 });
+    await expect(check()).resolves.toEqual({ result: 'failed' });
+    expectOnlyReturnPageQueries();
+    expect(h.local.has(PENDING_KEY)).toBe(false);
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: TIMED_OUT });
+    expectNoTabTouched();
+  });
+
+  it('still closes a timed-out tab it can see on the return page', async () => {
+    const fetchMock = stubNetwork();
+    seedPending({ startedAt: Date.now() - 9 * 60_000 });
+    await installOnSafari();
+    seedPending({ startedAt: Date.now() - 11 * 60_000 });
+    h.browser.tabs.query.mockImplementation(async () => [{ id: 41, url: `${RETURN}#code=the-code` }]);
+    await expect(check()).resolves.toEqual({ result: 'failed' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(h.local.get(OUTCOME_KEY)).toMatchObject({ ok: false, message: TIMED_OUT });
+    expect(h.browser.tabs.remove).toHaveBeenCalledWith(41);
   });
 });
 
@@ -574,6 +914,15 @@ describe('Chrome and Firefox are unchanged', () => {
     expect(src).toMatch(/setSession\(await signIn\(value\)\)/);
     // IS_SAFARI is the build-time flag, so this branch folds away elsewhere.
     expect(src).toMatch(/import \{ IS_SAFARI \} from '..\/..\/..\/lib\/platform';/);
+  });
+
+  it('types the handle verbatim: no spellcheck, autocorrect or capital', () => {
+    // spellCheck={false} renders nothing under Preact, so spellcheck stays on.
+    const src = readFileSync('entrypoints/options/tabs/AccountTab.tsx', 'utf8');
+    expect(src).not.toMatch(/spellCheck=\{false\}/);
+    expect(src).toMatch(/autoCapitalize: 'none',\s*autoCorrect: 'off',\s*spellCheck: 'false',/);
+    const input = /<input\s+className="aturi-input"([\s\S]*?)\/>/.exec(src)?.[1] ?? '';
+    expect(input).toContain('{...VERBATIM_INPUT}');
   });
 
   it("Safari's submit asks for aturi.to before anything else happens", () => {
