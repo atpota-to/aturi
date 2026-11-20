@@ -18,7 +18,7 @@ export default function ExtensionPrivacyPage() {
       <div className="fn-c-wrap" data-width="article">
         <header className="fn-c-head">
           <h1 className="fn-c-title">Browser Extension Privacy Policy</h1>
-          <p className="fn-c-meta">Last updated: October 27, 2026</p>
+          <p className="fn-c-meta">Last updated: November 20, 2026</p>
         </header>
 
         <article className="fn-c-sheet fn-prose">
@@ -50,6 +50,14 @@ export default function ExtensionPrivacyPage() {
               waypoint picker or the Inspect tab. The details of every
               network request and every part of the page that is read are
               described below.
+            </p>
+            <p>
+              There is also a Safari version for Mac, iPhone and iPad, which
+              comes inside the Aturi app. It works the same way, with the
+              differences noted where they apply: Safari asks you site by
+              site before the extension can read a page or redirect links to
+              it, Safari keeps the extension&rsquo;s storage on your device,
+              and signing in happens in an ordinary Safari tab.
             </p>
           </section>
 
@@ -92,12 +100,23 @@ export default function ExtensionPrivacyPage() {
               to your browser vendor&rsquo;s sync servers.
             </p>
             <p>
+              In Safari, while a sign-in is in progress, the extension also
+              keeps, in the same local storage, a one-time secret for that
+              sign-in, the handle you typed, and the ids of the tabs
+              involved. It deletes them as soon as the sign-in finishes, fails or is
+              cancelled, and will not use them after ten minutes. A short
+              note saying how the attempt ended stays there until the Account
+              settings have shown it.
+            </p>
+            <p>
               No part of this data is sent to Aturi, the developer, or any
               third party. If you are signed into your browser and have
               extension sync enabled, your browser vendor (Google, Mozilla,
-              Apple, etc.) may sync this data across your devices through
-              their own infrastructure under their own privacy policy. Aturi
-              has no access to that synced data.
+              etc.) may sync this data across your devices through their own
+              infrastructure under their own privacy policy. Aturi has no
+              access to that synced data. Safari does not sync extension
+              storage: in Safari, all of the above stays on the device where
+              you set it, and Apple does not sync it to your other devices.
             </p>
             <p>
               Identity records, record previews, and backlink counts fetched
@@ -175,6 +194,27 @@ export default function ExtensionPrivacyPage() {
               browsers, by revoking host permissions for specific sites in
               the extension settings page.
             </p>
+            <p>
+              In Safari, neither script runs on a site until you allow Aturi
+              there (Section&nbsp;4). On a site you have not allowed, they
+              run only in a tab where you open Aturi&rsquo;s popup, which
+              gives the extension access to that tab. So in Safari the
+              passive scan, and the toolbar badge it drives, happen only on
+              sites you have allowed and in tabs where you have opened the
+              popup. You can withdraw a site&rsquo;s access at any time in
+              Safari&rsquo;s extension settings.
+            </p>
+            <p>
+              The Safari version has one more content script, used only while
+              you sign in (<code>signin-return.content.ts</code>). It runs on
+              a single aturi.to page,{' '}
+              <code>https://aturi.to/api/oauth/extension/return</code>, and
+              only if you have allowed Aturi on aturi.to. It reads that
+              page&rsquo;s address, which carries the one-time sign-in code,
+              and passes it to the extension&rsquo;s own background script
+              (Section&nbsp;5). It reads nothing else and runs on no other
+              page.
+            </p>
           </section>
 
           <section>
@@ -196,7 +236,8 @@ export default function ExtensionPrivacyPage() {
                   public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle
                 </code>
                 . The handle is sent as a query parameter; nothing else is
-                sent.
+                sent. In Safari, signing in (Section&nbsp;5) also makes this
+                lookup once, for the handle you typed.
               </li>
               <li>
                 <strong>Inspect: identity resolution.</strong> When you open
@@ -230,6 +271,9 @@ export default function ExtensionPrivacyPage() {
               browser rewrite URLs locally based on static rules the
               extension generates from your preferences. The extension does
               not see, read, or log the URLs you visit while redirects run.
+              In Safari, the browser applies a redirect only to a link that
+              points to a site you have allowed Aturi to access; links to
+              other sites load as they are.
             </p>
             <p>
               Apart from the optional sign-in described in
@@ -252,12 +296,33 @@ export default function ExtensionPrivacyPage() {
                 Inspect, the tab id) of the current tab when you open the
                 popup, so the extension can offer waypoints that match the
                 page you&rsquo;re on and route the Inspect scan request to
-                the right tab.
+                the right tab. In Safari, this shows the extension a
+                tab&rsquo;s address only on sites you have allowed, or in the
+                tab where you opened the popup. The Safari version also uses
+                it to open the sign-in tab, notice when that tab reaches
+                aturi.to&rsquo;s return page, and close it again
+                (Section&nbsp;5); it looks at tab updates only to spot that
+                one address.
               </li>
               <li>
                 <strong>declarativeNetRequest</strong>: to perform
                 local URL redirects without exposing your browsing history
                 to the extension.
+              </li>
+              <li>
+                <strong>declarativeNetRequestWithHostAccess</strong> (Safari
+                only): Safari applies a redirect rule only when the extension
+                has this permission and you have allowed the site the link
+                points to. It gives the extension no access to any site
+                beyond what you allow.
+              </li>
+              <li>
+                <strong>activeTab</strong> (Safari only): when you open
+                Aturi&rsquo;s popup, Safari gives the extension temporary
+                access to the tab you are on, so the popup can read its
+                address and the two content scripts in Section&nbsp;2 can run
+                there, even on a site you have not allowed. It covers that
+                tab only.
               </li>
               <li>
                 <strong>clipboardWrite</strong>: to copy universal
@@ -266,11 +331,13 @@ export default function ExtensionPrivacyPage() {
               </li>
               <li>
                 <strong>identity</strong>: used by one optional feature and
-                nothing else &mdash; signing in to aturi.to from the
-                Settings page. It opens a browser-managed authorization
-                window; the extension never sees your password, and this
-                permission grants it no access to your browser profile or
-                your identity in any other browser.
+                nothing else: signing in to aturi.to from the Settings page.
+                It opens a browser-managed authorization window; the
+                extension never sees your password, and this permission
+                grants it no access to your browser profile or your identity
+                in any other browser. The Safari version does not request
+                it: Safari has no identity permission, and signing in there
+                uses an ordinary tab instead (Section&nbsp;5).
               </li>
               <li>
                 <strong>host_permissions: &lt;all_urls&gt;</strong>:
@@ -281,7 +348,25 @@ export default function ExtensionPrivacyPage() {
                 scripts described above can run on the active tab when
                 needed. The scripts only read the limited page surfaces
                 listed in Section&nbsp;2 and never transmit page contents
-                off-device.
+                off-device. Safari does not grant this at install. It asks
+                you site by site, and you can allow a site once, for one day,
+                always, or allow every website. Until you allow a site, the
+                extension cannot see that page&rsquo;s address, the content
+                scripts do not run there (except in a tab where you open the
+                popup), and links to that site are not redirected. A one-day
+                grant runs out, and redirects of links to that site stop with
+                it. You can change or withdraw any of these in Safari&rsquo;s
+                extension settings.
+              </li>
+              <li>
+                <strong>Access to aturi.to</strong> (Safari only, when you
+                sign in): when you press Sign in, Safari asks whether to
+                allow Aturi on aturi.to. The extension asks for this at no
+                other time. It needs it to see the sign-in tab&rsquo;s
+                address when the tab comes back to aturi.to, to run the
+                return-page script described in Section&nbsp;2, and to talk
+                to aturi.to while you are signed in. If you refuse, signing
+                in stops and nothing else changes.
               </li>
             </ul>
           </section>
@@ -336,6 +421,32 @@ export default function ExtensionPrivacyPage() {
               </li>
             </ul>
             <p>
+              <strong>In Safari.</strong> Safari has no browser-managed
+              sign-in window, so the Safari version first asks for access to
+              aturi.to (Section&nbsp;4), then opens the same sign-in in an
+              ordinary Safari tab. Your PDS&rsquo;s consent screen loads in
+              that tab, and your password is still entered only there. When
+              you approve, the tab goes to a page on aturi.to (
+              <code>aturi.to/api/oauth/extension/return</code>) with a
+              one-time code in the part of the address after
+              &ldquo;#&rdquo;, which browsers do not send to servers. The
+              extension reads the code from the tab, exchanges it with
+              aturi.to as described above, closes the tab and takes you back
+              to Settings. The return page runs no script, loads nothing
+              else, has no analytics and shows nothing from its address. To
+              make sure you end up signed in to the account you asked for,
+              the extension then looks up the handle you typed at{' '}
+              <code>public.api.bsky.app</code> (Section&nbsp;3); if it
+              belongs to a different account, the extension signs that
+              session straight back out. Because sign-in runs in a normal
+              tab, its pages, including the return address with its spent
+              code, appear in Safari&rsquo;s history like any other page.
+              The code works once, expires after a minute, and is useless
+              without the one-time secret that only the extension holds,
+              which it sends to aturi.to and nowhere else when it exchanges
+              the code.
+            </p>
+            <p>
               <strong>What aturi.to stores while you are signed in:</strong>{' '}
               your DID, the atproto tokens (encrypted at rest), the
               permissions you granted, your PDS address, and one row
@@ -373,7 +484,8 @@ export default function ExtensionPrivacyPage() {
               <li>
                 It does not load or execute remotely hosted code. All
                 executable code is bundled in the released extension
-                package and reviewed by the browser store.
+                package and reviewed by the store that distributes it (for
+                Safari, the App Store).
               </li>
               <li>
                 It does not modify the contents of pages you visit, inject
@@ -438,7 +550,8 @@ export default function ExtensionPrivacyPage() {
                 browser may also remove any synced copy via its own sync
                 settings. Uninstalling removes the local token; to also end
                 the session on aturi.to, sign out first or revoke it from
-                your account settings there.
+                your account settings there. In Safari, the extension comes
+                with the Aturi app; to uninstall it, delete the app.
               </li>
             </ul>
           </section>
