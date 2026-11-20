@@ -921,49 +921,9 @@ svg.fx-wb-view-end {
 
 /* ---------- Main: backlinks ----------
    What links to the account or to the open record (AccountView,
-   RecordLinksView), on the account views' sheet. The tiles fit themselves
-   to the pane, as the glance tiles do: with a linking record open beside
-   the list the pane is a phone's width on a desktop. */
-
-.fx-wb .fx-bl-tiles {
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-}
-
-/* In a narrow pane the tiles fold to a line of chips: a kind, its count.
-   Eight tiles three across would hold the first screen, and the list under
-   them is what the pane is narrow for. */
-@container fx-wb-main (max-width: 700px) {
-  .fx-wb .fx-bl-tiles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .fx-wb .fx-bl-tile {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    padding: 0 12px 0 10px;
-    border-radius: var(--radius-pill);
-  }
-
-  .fx-wb .fx-bl-tile-label svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .fx-wb .fx-bl-tile-value {
-    font-size: 12.5px;
-    font-weight: 500;
-    letter-spacing: 0;
-    color: var(--text-secondary);
-  }
-
-  .fx-wb .fx-bl-tile-sub {
-    display: none;
-  }
-}
+   RecordLinksView), on the account views' sheet. The panel lays itself out
+   by its own width (explorer.css, the fx-bl container): with a linking
+   record open beside the list the pane is a phone's width on a desktop. */
 
 .fx-wb-links-head {
   display: flex;

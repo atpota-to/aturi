@@ -506,27 +506,28 @@ export function BacklinkRowsSkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 /**
- * The Backlinks tab on a repo page: a row of relationship tiles, the open
- * relationship's heading, its first rows. Four tiles, the most accounts
- * show; more wrap to a second row once the counts arrive.
+ * The Backlinks tab on a repo page: the kinds of link (a list beside the
+ * rows where the panel is wide, a line of pills over them where it is
+ * narrow), the open relationship's heading, its first rows. Four kinds,
+ * the most accounts show; more join them once the counts arrive.
  */
 export function BacklinkRelationsSkeleton() {
   return (
     <div className="fx-bl" aria-hidden>
-      <div className="fx-bl-tiles">
-        {['4.5rem', '4rem', '3rem', '3.5rem'].map((width, i) => (
-          <div key={i} className="fx-bl-tile" style={{ cursor: 'default' }}>
-            <SkeletonBar width={width} height="0.55rem" />
-            <div style={{ display: 'flex', alignItems: 'center', height: '1.45rem' }}>
-              <SkeletonBar width={['5rem', '3.5rem', '3rem', '2.5rem'][i]} height="0.9rem" />
-            </div>
-            <SkeletonBar width="6rem" height="0.5rem" />
-          </div>
-        ))}
-      </div>
-      <div className="fx-bl-detail">
-        <SkeletonHeading width="10rem" />
-        <BacklinkRowsSkeleton />
+      <div className="fx-bl-body">
+        <ul className="fx-bl-kinds">
+          {['4.5rem', '4rem', '3rem', '3.5rem'].map((width, i) => (
+            <li key={i}>
+              <span className="fx-bl-kind" style={{ cursor: 'default' }}>
+                <SkeletonBar width={width} height="0.6rem" />
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="fx-bl-detail">
+          <SkeletonHeading width="10rem" />
+          <BacklinkRowsSkeleton />
+        </div>
       </div>
     </div>
   );

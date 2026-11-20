@@ -1993,96 +1993,178 @@ a.fx-bl-nav-row:hover > .fx-bl-nav-go {
   color: inherit;
 }
 
-/* Backlinks tab on a repo page: a tile per relationship (followers,
-   mentions, lists…) over one merged list of the records behind it. The
-   tiles are the "Repo at a glance" tiles (AccountStats) made pressable, at
-   the same sizes, so the tab reads as part of the page above it. */
+/* Backlinks on an account or a record: the kinds of link (followers,
+   mentions, lists…) and one merged list of the records behind the open
+   one. The panel is a named container because it is hosted on full pages,
+   in a pane beside an inspector and in a narrow card, where the viewport
+   width says little. Narrow, the kinds are a line of pills over the list
+   that scrolls sideways; wide, they are a list beside it, in the rows the
+   record card's launcher uses (.fx-bl-nav). */
 .fx-bl {
+  container: fx-bl / inline-size;
+}
+.fx-bl-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-.fx-bl-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-/* Two across on a phone, and between 960 and 1100 where the sidebar leaves
-   the column narrow: the glance grid's breakpoints. */
-@media (max-width: 640px), (min-width: 960px) and (max-width: 1099px) {
-  .fx-bl-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.fx-bl-tile {
+/* One line that scrolls sideways. */
+.fx-bl-kinds {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0;
-  padding: 0.75rem 0.875rem;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.fx-bl-kinds::-webkit-scrollbar {
+  display: none;
+}
+/* A sideways-scrolling row (the kinds, the app chips) fades out at each
+   end that has more past it; useScrollEnds says which. */
+.fx-bl-kinds[data-more='end'],
+.fx-bl-apps-scroll[data-more='end'] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+.fx-bl-kinds[data-more='start'],
+.fx-bl-apps-scroll[data-more='start'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 24px);
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+.fx-bl-kinds[data-more='both'],
+.fx-bl-apps-scroll[data-more='both'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+.fx-bl-kinds > li {
+  flex: none;
+  display: flex;
+}
+/* "All links" is the sum of the rest, so it stands a little apart. */
+.fx-bl-kinds > li[data-all] {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-subtle);
+}
+.fx-bl-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px 0 10px;
   border: 1px solid var(--border-medium);
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font: inherit;
-  text-align: left;
+  font-size: 13px;
+  white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
-.fx-bl-tile:hover {
+.fx-bl-kind:hover {
   border-color: var(--border-strong);
-  background: var(--surface-subtle);
 }
-.fx-bl-tile:focus-visible {
+.fx-bl-kind:focus-visible {
   outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
-/* A tile is a link where its host keeps the open relationship in the
-   address, and marks the open one as current rather than pressed. */
-a.fx-bl-tile {
-  text-decoration: none;
-}
-.fx-bl-tile[aria-pressed='true'],
-.fx-bl-tile[aria-current='true'] {
-  border-color: var(--accent-moss);
-  background: var(--accent-soft);
-}
-.fx-bl-tile-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.fx-bl-tile-label svg {
+.fx-bl-kind > svg {
   flex: none;
   color: var(--text-accent);
 }
-.fx-bl-tile-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+.fx-bl-kind-label {
+  font-weight: 600;
+}
+.fx-bl-kind-count {
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.fx-bl-tile-sub {
-  margin-top: -0.15rem;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
   color: var(--text-tertiary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-label,
-.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-value,
-.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-sub,
-.fx-bl-tile[aria-current='true'] .fx-bl-tile-label,
-.fx-bl-tile[aria-current='true'] .fx-bl-tile-value,
-.fx-bl-tile[aria-current='true'] .fx-bl-tile-sub {
+.fx-bl-kind[aria-pressed='true'],
+.fx-bl-kind[aria-current='true'] {
+  border-color: var(--accent-moss);
+  background: var(--accent-soft);
   color: var(--accent-soft-fg);
+}
+.fx-bl-kind[aria-pressed='true'] > svg,
+.fx-bl-kind[aria-current='true'] > svg,
+.fx-bl-kind[aria-pressed='true'] .fx-bl-kind-count,
+.fx-bl-kind[aria-current='true'] .fx-bl-kind-count {
+  color: inherit;
+}
+/* With room for both, the kinds are a list beside the records that stays
+   in view as the records scroll. */
+@container fx-bl (min-width: 680px) {
+  .fx-bl-body:not([data-single]) {
+    display: grid;
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    grid-template-areas:
+      'kinds detail'
+      'kinds credit';
+    align-items: start;
+    gap: 16px 28px;
+  }
+  .fx-bl-body > .fx-bl-detail {
+    grid-area: detail;
+  }
+  .fx-bl-body > .fx-bl-credit {
+    grid-area: credit;
+  }
+  .fx-bl-kinds {
+    grid-area: kinds;
+    position: sticky;
+    top: 12px;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
+  }
+  .fx-bl-kinds > li[data-all] {
+    margin: 6px 0 0;
+    padding: 6px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .fx-bl-kind {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 36px;
+    gap: 10px;
+    padding: 0 10px;
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 13.5px;
+  }
+  .fx-bl-kind:hover {
+    border-color: transparent;
+    background: var(--surface-subtle);
+  }
+  .fx-bl-kind[aria-pressed='true'],
+  .fx-bl-kind[aria-current='true'] {
+    border-color: transparent;
+    background: var(--accent-soft);
+  }
+  .fx-bl-kind-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fx-bl-kind-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+@media (pointer: coarse) {
+  .fx-bl-kind {
+    min-height: 40px;
+  }
 }
 
 .fx-bl-detail {
@@ -2102,7 +2184,13 @@ a.fx-bl-tile {
   font-weight: 650;
   color: var(--text-primary);
 }
+.fx-bl-detail-stat {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
 .fx-bl-detail-head p {
+  flex-basis: 100%;
   margin: 0;
   font-size: 13px;
   color: var(--text-tertiary);
@@ -2141,30 +2229,20 @@ a.fx-bl-tile {
 .fx-bl-apps-scroll {
   display: contents;
 }
-/* The panel's own width decides when its chip rows stop wrapping and
-   scroll sideways instead: it is hosted on a full page, in a pane beside
-   an inspector and in a narrow card, so the viewport says little. */
-.fx-bl {
-  container: fx-bl / inline-size;
-}
+/* Where the panel (the fx-bl container) is narrow, the chips stop wrapping
+   and scroll sideways in one line, as the kinds above them do. */
 @container fx-bl (max-width: 560px) {
   .fx-bl-filter .fx-bl-apps {
     flex-wrap: nowrap;
   }
-  /* One line that scrolls, fading out at its end to say there is more.
-     The padding the fade covers lets the last chip scroll fully clear. */
   .fx-bl-apps-scroll {
     display: flex;
     flex: 0 1 auto;
     gap: 6px;
     min-width: 0;
-    padding-right: 20px;
-    margin-right: -6px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
   }
   .fx-bl-apps-scroll::-webkit-scrollbar {
     display: none;
@@ -2555,7 +2633,8 @@ a.fx-bl-tile {
   color: var(--text-accent);
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-bl-tile,
+  .fx-bl-kind,
+  .fx-bl-more-apps-chev,
   .fx-bl-sources > summary svg {
     transition: none;
   }

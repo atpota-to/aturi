@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   AtSign,
@@ -44,6 +44,7 @@ import { formatCount } from '@/utils/ufos/format';
 import { BacklinkRelationsSkeleton, BacklinksTabSkeleton } from '../skeletons/pages';
 import BacklinkAppFilter from './BacklinkAppFilter';
 import { AppMark, BacklinkRowList, useMergedBacklinks, type RowKind } from './BacklinkRows';
+import { useScrollEnds } from './useScrollEnds';
 
 /**
  * Where a relationship's records are listed when this panel only names the
@@ -64,7 +65,7 @@ type Props = {
   launcher?: BacklinksLauncher | null;
   /**
    * A host that keeps the open relationship in its address gives both: the
-   * one that is open, and where each tile goes. Without them the panel
+   * one that is open, and where each one links. Without them the panel
    * keeps its own.
    */
   relation?: string | null;
@@ -81,10 +82,11 @@ type Props = {
  *   null      → constellation unavailable / failed
  *   []        → no inbound links found
  *
- * Either target gets the relationships view: a tile (or, in the record
- * page's card, a chip) per kind of link over one merged list of the records
- * behind it. An account's kinds are who follows, mentions and lists it; a
- * record's are what answers, quotes and likes it (backlinkRelations.ts).
+ * Either target gets the relationships view: a list of the kinds of link
+ * (beside the records, or above them where the panel is narrow) and one
+ * merged list of the records behind the open one. An account's kinds are
+ * who follows, mentions and lists it; a record's are what answers, quotes
+ * and likes it (backlinkRelations.ts).
  */
 export default function BacklinksTab({
   target,
@@ -102,13 +104,12 @@ export default function BacklinksTab({
     if (sources.length === 0) {
       return <p className="explore-placeholder">No backlinks found.</p>;
     }
-    // Keyed on the target so a new repo starts on its own first tile.
+    // Keyed on the target so a new repo starts on its own first relationship.
     return (
       <BacklinkRelations
         key={target}
         target={target}
         sources={sources}
-        picker="tiles"
         relation={relation}
         relationHref={relationHref}
         display={display}
@@ -124,7 +125,7 @@ export default function BacklinksTab({
         (launcher ? (
           <RelationLauncher target={target} sources={sources} launcher={launcher} />
         ) : (
-          <BacklinkRelations key={target} target={target} sources={sources} picker="chips" />
+          <BacklinkRelations key={target} target={target} sources={sources} />
         ))}
     </BacklinksSummaryPanel>
   );
@@ -192,7 +193,7 @@ function BacklinksUnavailable() {
 }
 
 /**
- * What each tile is called, its glyph, and the line under the list's
+ * What each relationship is called, its glyph, and the line under the list's
  * heading. `one` names a single link of the kind, for a row in the
  * all-links list, where kinds are mixed.
  */
@@ -332,7 +333,6 @@ type Narrow = { relation: string; app: string | null; source: string | null };
 function BacklinkRelations({
   target,
   sources,
-  picker,
   relation,
   relationHref,
   display,
@@ -340,8 +340,6 @@ function BacklinkRelations({
 }: {
   target: string;
   sources: BacklinkSource[];
-  /** Tiles where the panel has the page's width, chips in the record card. */
-  picker: 'tiles' | 'chips';
   relation?: string | null;
   relationHref?: (relation: string) => string;
   display?: 'rows' | 'icons';
@@ -355,7 +353,7 @@ function BacklinkRelations({
   const [own, setOwn] = useState(buckets[0].relation);
   const bucket = buckets.find((b) => b.relation === (relationHref ? relation : own)) ?? buckets[0];
   // A narrowing belongs to the relationship it was made in: moving to
-  // another starts whole, whoever moved it (a tile here, the host's address).
+  // another starts whole, whoever moved it (the list here, the host's address).
   const [narrowing, setNarrowing] = useState<Narrow>({ relation: bucket.relation, app: null, source: null });
   const whole: Narrow = { relation: bucket.relation, app: null, source: null };
   const narrow = narrowing.relation === bucket.relation ? narrowing : whole;
@@ -381,174 +379,199 @@ function BacklinkRelations({
   const narrowedTo = narrow.source ? active[0] : null;
   const showApps = bucket.apps.length > 1;
 
+  const stat = relationStat(bucket, allLinks ? kinds : null);
+  // With one relationship there is nothing to choose between: its name is
+  // the heading, and the list has the panel's whole width.
+  const single = buckets.length === 1;
+
   return (
-    <div className="fx-bl" data-picker={picker}>
-      {picker === 'tiles' ? (
-        <div className="fx-bl-tiles" role="group" aria-label="Kinds of backlink">
-          {buckets.map((b) => (
-            <RelationTile
-              key={b.relation}
-              bucket={b}
-              meta={meta[b.relation]}
-              kinds={b.relation === ALL_LINKS ? kinds : undefined}
-              pressed={b.relation === bucket.relation}
-              href={relationHref?.(b.relation)}
-              onPress={() => setOwn(b.relation)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="fx-bl-apps" role="group" aria-label="Kinds of backlink">
-          {buckets.map((b) => {
-            const { label, icon: Icon } = meta[b.relation];
-            return (
-              <button
-                key={b.relation}
-                type="button"
-                className="fx-chip"
-                aria-pressed={b.relation === bucket.relation}
-                onClick={() => setOwn(b.relation)}
-              >
-                <Icon size={13} aria-hidden />
-                {label} <span className="fx-bl-chip-count">{formatCount(b.count)}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <section className="fx-bl-detail" aria-labelledby={headingId}>
-        <div className="fx-bl-detail-head">
-          <h3 id={headingId}>{about.label}</h3>
-          <p>{about.about}</p>
-        </div>
-
-        {showApps && (
-          <BacklinkAppFilter
-            key={bucket.relation}
-            apps={bucket.apps}
-            total={bucket.count}
-            selected={narrow.source ? null : narrow.app}
-            whole={!narrow.app && !narrow.source}
-            onSelect={(app) => setNarrowing(app ? { ...whole, app } : whole)}
+    <div className="fx-bl">
+      <div className="fx-bl-body" data-single={single || undefined}>
+        {!single && (
+          <RelationKinds
+            buckets={buckets}
+            meta={meta}
+            current={bucket.relation}
+            relationHref={relationHref}
+            onPress={setOwn}
           />
         )}
 
-        {narrowedTo && (
-          <div className="fx-bl-narrow">
-            <span>Only</span>
-            <code>{withDotBreaks(`${narrowedTo.collection}${narrowedTo.path === '.' ? '' : narrowedTo.path}`)}</code>
-            <button type="button" className="fx-btn fx-btn-sm" onClick={() => setNarrowing(whole)}>
-              Show all {noun}
-            </button>
+        <section className="fx-bl-detail" aria-labelledby={headingId}>
+          <div className="fx-bl-detail-head">
+            <h3 id={headingId}>{about.label}</h3>
+            <span className="fx-bl-detail-stat" title={stat.hint}>
+              {stat.text}
+            </span>
+            <p>{about.about}</p>
           </div>
+
+          {showApps && (
+            <BacklinkAppFilter
+              key={bucket.relation}
+              apps={bucket.apps}
+              total={bucket.count}
+              selected={narrow.source ? null : narrow.app}
+              whole={!narrow.app && !narrow.source}
+              onSelect={(app) => setNarrowing(app ? { ...whole, app } : whole)}
+            />
+          )}
+
+          {narrowedTo && (
+            <div className="fx-bl-narrow">
+              <span>Only</span>
+              <code>{withDotBreaks(`${narrowedTo.collection}${narrowedTo.path === '.' ? '' : narrowedTo.path}`)}</code>
+              <button type="button" className="fx-btn fx-btn-sm" onClick={() => setNarrowing(whole)}>
+                Show all {noun}
+              </button>
+            </div>
+          )}
+
+          <BacklinkRowList
+            merged={merged}
+            target={target}
+            total={total}
+            selfDid={selfDid}
+            selfLabel={selfLabel}
+            showApp={showApps && !narrow.app && !narrow.source}
+            display={display}
+            kindOf={allLinks && !narrow.source ? kindOf : undefined}
+          />
+
+          <RelationSources
+            bucket={bucket}
+            label={about.label}
+            narrowed={narrow.source}
+            onNarrow={(source) => setNarrowing(source === narrow.source ? whole : { ...whole, source })}
+          />
+        </section>
+
+        {credit && (
+          <p className="fx-bl-credit">
+            Links indexed by{' '}
+            <a href="https://constellation.microcosm.blue" target="_blank" rel="noreferrer noopener">
+              Constellation
+            </a>
+            , via{' '}
+            <a href="https://www.microcosm.blue" target="_blank" rel="noreferrer noopener">
+              Microcosm
+            </a>
+            .
+          </p>
         )}
-
-        <BacklinkRowList
-          merged={merged}
-          target={target}
-          total={total}
-          selfDid={selfDid}
-          selfLabel={selfLabel}
-          showApp={showApps && !narrow.app && !narrow.source}
-          display={display}
-          kindOf={allLinks && !narrow.source ? kindOf : undefined}
-        />
-
-        <RelationSources
-          bucket={bucket}
-          label={about.label}
-          narrowed={narrow.source}
-          onNarrow={(source) => setNarrowing(source === narrow.source ? whole : { ...whole, source })}
-        />
-      </section>
-
-      {credit && (
-        <p className="fx-bl-credit">
-          Links indexed by{' '}
-          <a href="https://constellation.microcosm.blue" target="_blank" rel="noreferrer noopener">
-            Constellation
-          </a>
-          , via{' '}
-          <a href="https://www.microcosm.blue" target="_blank" rel="noreferrer noopener">
-            Microcosm
-          </a>
-          .
-        </p>
-      )}
+      </div>
     </div>
   );
 }
 
 /**
- * One relationship's tile. A button where the panel keeps the open one
- * itself; a link where the host keeps it in the address (`href`), so it can
- * be opened in a new tab and Back returns to the last one.
+ * The relationships, each with its count: a list beside the records where
+ * the panel is wide, one line above them that scrolls sideways where it is
+ * narrow (the CSS decides, by the panel's own width). "All links" comes
+ * last and set apart, as the sum of the rest. Each is a button where the
+ * panel keeps the open one itself, and a link where the host keeps it in
+ * the address, so it opens in a new tab and Back returns to the last one.
+ *
+ * These replaced a grid of stat tiles, one per relationship, which held a
+ * phone's first screen before any record showed.
  */
-function RelationTile({
-  bucket,
+function RelationKinds({
+  buckets,
   meta,
-  kinds,
-  pressed,
-  href,
+  current,
+  relationHref,
   onPress,
 }: {
-  bucket: RelationBucket<string>;
-  meta: RelationMeta;
-  /** On the all-links tile: how many relationships it sums. */
-  kinds?: number;
-  pressed: boolean;
-  href?: string;
-  onPress: () => void;
+  buckets: RelationBucket<string>[];
+  meta: Record<string, RelationMeta>;
+  current: string;
+  relationHref?: (relation: string) => string;
+  onPress: (relation: string) => void;
 }) {
-  const { label, icon: Icon } = meta;
-  const sourceCount = bucket.sources.length;
-  const apps = bucket.apps.length;
-  // Accounts are distinct per source, summed: say so wherever two sources
-  // could share an account.
-  const hint =
-    `${bucket.count.toLocaleString()} ${bucket.count === 1 ? 'link' : 'links'} through ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` +
-    (sourceCount > 1 ? '. Accounts are counted per source, so one account linking through two counts twice.' : '.');
-  // Accounts summed across relationships count anyone who links in two
-  // ways (follows and mentions) twice, so the all-links tile says how many
-  // relationships it sums instead.
-  const sub = kinds
-    ? `${kinds} kinds`
-    : bucket.accounts
-      ? `${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`
-      : `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}`;
-  const body = (
-    <>
-      <span className="fx-bl-tile-label">
-        <Icon size={16} aria-hidden />
-        {label}
-      </span>
-      <span className="fx-bl-tile-value">{bucket.count.toLocaleString()}</span>
-      <span className="fx-bl-tile-sub">
-        {sub}
-        {apps > 1 ? ` · ${apps} apps` : ''}
-      </span>
-    </>
-  );
-  if (href) {
-    return (
-      <Link
-        href={href}
-        prefetch={false}
-        rel="nofollow"
-        className="fx-bl-tile"
-        aria-current={pressed ? 'true' : undefined}
-        title={hint}
-      >
-        {body}
-      </Link>
-    );
-  }
+  const listRef = useRef<HTMLUListElement>(null);
+  useScrollEnds(listRef, buckets);
+  // As a scrolling line, keep the open relationship in sight: "All links"
+  // is last, and opening on it would otherwise leave it off the end. It is
+  // centred rather than brought to an edge, so a pill cut off on either
+  // side still shows the line goes on.
+  useEffect(() => {
+    const list = listRef.current;
+    const on = list?.querySelector<HTMLElement>('[aria-pressed="true"], [aria-current="true"]');
+    if (!list || !on || list.scrollWidth <= list.clientWidth) return;
+    const box = list.getBoundingClientRect();
+    const item = on.getBoundingClientRect();
+    if (item.left < box.left || item.right > box.right - 20) {
+      list.scrollLeft += item.left + item.width / 2 - (box.left + box.width / 2);
+    }
+  }, [current]);
+
   return (
-    <button type="button" className="fx-bl-tile" aria-pressed={pressed} onClick={onPress} title={hint}>
-      {body}
-    </button>
+    <ul ref={listRef} className="fx-bl-kinds" aria-label="Kinds of backlink">
+      {buckets.map((b) => {
+        const { label, icon: Icon, about } = meta[b.relation];
+        const on = b.relation === current;
+        const href = relationHref?.(b.relation);
+        const body = (
+          <>
+            <Icon size={15} aria-hidden />
+            <span className="fx-bl-kind-label">{label}</span>
+            <span className="fx-bl-kind-count">{b.count.toLocaleString()}</span>
+          </>
+        );
+        return (
+          <li key={b.relation} data-all={b.relation === ALL_LINKS || undefined}>
+            {href ? (
+              <Link
+                href={href}
+                prefetch={false}
+                rel="nofollow"
+                className="fx-bl-kind"
+                aria-current={on ? 'true' : undefined}
+                title={about}
+              >
+                {body}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="fx-bl-kind"
+                aria-pressed={on}
+                onClick={() => onPress(b.relation)}
+                title={about}
+              >
+                {body}
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
+}
+
+/**
+ * What the open relationship's heading says beside its name: how many
+ * links, and from how many accounts. Constellation counts accounts per
+ * source, so the sum counts an account that links through two sources
+ * twice, and the hint says so. Summed across relationships it would count
+ * anyone who links in two ways (follows and mentions) twice as well, so
+ * the all-links heading says how many relationships it sums instead.
+ */
+function relationStat(bucket: RelationBucket<string>, kinds: number | null): { text: string; hint: string } {
+  const links = `${bucket.count.toLocaleString()} ${bucket.count === 1 ? 'link' : 'links'}`;
+  const n = bucket.sources.length;
+  const sources = `${n} ${n === 1 ? 'source' : 'sources'}`;
+  const hint =
+    `${links} through ${sources}` +
+    (n > 1 ? '. Accounts are counted per source, so one account linking through two counts twice.' : '.');
+  if (kinds) return { text: `${links} · ${kinds} kinds`, hint };
+  if (bucket.accounts) {
+    return {
+      text: `${links} · ${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`,
+      hint,
+    };
+  }
+  return { text: `${links} · ${sources}`, hint };
 }
 
 /**

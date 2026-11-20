@@ -5,6 +5,7 @@ import { Check, ChevronDown, Search } from 'lucide-react';
 import { appsMatching, foldApps, type RelationApp } from '@/utils/atproto/backlinkRelations';
 import { formatCount } from '@/utils/ufos/format';
 import { AppMark } from './BacklinkRows';
+import { useScrollEnds } from './useScrollEnds';
 
 /**
  * Narrowing a relationship's list to one app. "All" and the apps holding
@@ -43,6 +44,8 @@ export default function BacklinkAppFilter({
   const wrapRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollEnds(scrollRef, shown);
   const panelId = useId();
   const listId = useId();
 
@@ -103,7 +106,7 @@ export default function BacklinkAppFilter({
         {/* Where the panel is narrow, the chips scroll sideways in one line
             and "N more" stays put at its end, so the way to the rest of
             the apps never scrolls out of sight. */}
-        <div className="fx-bl-apps-scroll">
+        <div ref={scrollRef} className="fx-bl-apps-scroll">
           <button type="button" className="fx-chip" aria-pressed={whole} onClick={() => choose(null)}>
             All <span className="fx-bl-chip-count">{formatCount(total)}</span>
           </button>
