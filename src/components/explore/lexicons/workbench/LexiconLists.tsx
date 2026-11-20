@@ -402,19 +402,6 @@ function RankedPane({ host, mode }: { host: ListHost; mode: 'trending' | 'top' }
     <Pane
       icon={<Icon size={16} />}
       title={mode === 'trending' ? 'Trending lexicons' : 'Top lexicons'}
-      sub={
-        mode === 'trending' ? (
-          <>
-            Ranked by the change in {METRIC_WORD[loc.metric].toLowerCase()} over {windowWords(host)} against the window
-            before. One per namespace, with Bluesky’s own left out.
-          </>
-        ) : (
-          <>
-            Ranked by {METRIC_WORD[loc.metric].toLowerCase()} over {windowWords(host)}, one per namespace, with the change
-            against the window before.
-          </>
-        )
-      }
       actions={<MetricSwitch host={host} />}
       filter={filter}
       setFilter={setFilter}
