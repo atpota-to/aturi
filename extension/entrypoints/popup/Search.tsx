@@ -12,6 +12,18 @@ import { isIOSPopup } from './host';
 export const GO_TO_LABEL = 'Go to a handle, DID or at:// URI';
 
 /**
+ * Handles, DIDs and AT URIs are typed as they are: no capital first letter,
+ * no autocorrect (both iOS habits) and no spellcheck. spellCheck is the
+ * string "false" on purpose: Preact drops a `false` value for it, which
+ * would leave spellcheck on (see VERBATIM_INPUT in the options' CustomTab).
+ */
+const VERBATIM_INPUT = {
+  autoCapitalize: 'none',
+  autoCorrect: 'off',
+  spellCheck: 'false',
+} as const;
+
+/**
  * The drawer lists five repos at most, so it never grows past the popup's
  * first 600px; the sheet on the no-data page has the room for more.
  */
@@ -105,9 +117,7 @@ export function SearchDrawer({
             placeholder={GO_TO_LABEL}
             aria-label={GO_TO_LABEL}
             autoComplete="off"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
+            {...VERBATIM_INPUT}
             enterKeyHint="go"
             role="combobox"
             aria-autocomplete="list"
@@ -253,9 +263,7 @@ export function LookupField({
           aria-label={GO_TO_LABEL}
           aria-describedby="popup-lookup-hint"
           autoComplete="off"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
+          {...VERBATIM_INPUT}
           enterKeyHint="go"
         />
         <kbd className="popup-kbd" aria-hidden="true">

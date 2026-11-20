@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { activeTabOnSafari, MESSAGE_RETRY_MS, retryOnceIfUnanswered } from '../activeTab';
+import type { DetectedAtUri } from '../inspectScanner';
 
 /**
  * The popup's Safari paths (lib/activeTab.ts): which tab it settles on, and
@@ -52,22 +53,36 @@ describe('activeTabOnSafari', () => {
   });
 });
 
+/**
+ * The replies the content scripts really send: detect-head answers
+ * `aturi:query-head` even when the page's head has no AT URI, and
+ * inspect-scan answers `aturi:inspect-scan` even when it found nothing.
+ */
+const HIT: DetectedAtUri = { uri: 'at://did:plc:abc/app.bsky.feed.post/1', where: 'link' };
+const CONTENT_SCRIPT_REPLIES: Array<[string, object]> = [
+  ['a head with an AT URI', { atUri: HIT.uri }],
+  ['a head with none', { atUri: null }],
+  ['a scan with hits', { atUris: [HIT] }],
+  ['a scan with none', { atUris: [] }],
+  ['a scan that failed', { atUris: [], error: 'boom' }],
+];
+
 describe('retryOnceIfUnanswered', () => {
-  it('returns the first answer without waiting', async () => {
-    const send = vi.fn(async () => ({ atUri: null }));
+  it.each(CONTENT_SCRIPT_REPLIES)('returns %s at once, without waiting', async (_, reply) => {
+    const send = vi.fn(async () => reply);
     const wait = vi.fn(async () => {});
-    expect(await retryOnceIfUnanswered(send, 200, wait)).toEqual({ atUri: null });
+    expect(await retryOnceIfUnanswered(send, 200, wait)).toBe(reply);
     expect(send).toHaveBeenCalledTimes(1);
     expect(wait).not.toHaveBeenCalled();
   });
 
   it('asks once more, after the delay, when nobody answered', async () => {
     const send = vi
-      .fn<() => Promise<{ atUris: string[] } | undefined>>()
+      .fn<() => Promise<{ atUris: DetectedAtUri[] } | undefined>>()
       .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce({ atUris: ['at://x'] });
+      .mockResolvedValueOnce({ atUris: [HIT] });
     const wait = vi.fn(async () => {});
-    expect(await retryOnceIfUnanswered(send, 200, wait)).toEqual({ atUris: ['at://x'] });
+    expect(await retryOnceIfUnanswered(send, 200, wait)).toEqual({ atUris: [HIT] });
     expect(send).toHaveBeenCalledTimes(2);
     expect(wait).toHaveBeenCalledWith(200);
     expect(wait.mock.invocationCallOrder[0]).toBeLessThan(send.mock.invocationCallOrder[1]);

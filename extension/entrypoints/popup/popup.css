@@ -29,9 +29,15 @@ body {
 /* The one host that doesn't: Safari on an iPhone, or on an iPad in a narrow
    window, shows the popup as a sheet as wide as the screen or window, so
    there the page fills it. host.ts sets the attribute, and only there; a
-   fluid body anywhere else would shrink the popup to its narrowest. */
+   fluid body anywhere else would shrink the popup to its narrowest. That
+   still happens to an iPhone Plus or Max in landscape, which host.ts marks
+   as a sheet but Safari shows as a popover, so the body gets a floor: 320px
+   is no wider than any sheet (an iPhone in portrait is at least 375px wide,
+   iPad Slide Over 320px). Not min(320px, 100vw): 100vw is 0 when Safari
+   first lays out a popover. */
 html[data-popup-host='sheet'] body {
   width: auto;
+  min-width: 320px;
 }
 
 /* The body scrolls under the sticky top bar. */

@@ -5,10 +5,11 @@
  * and a `regexFilter` has to pass the content blocker's pattern parser
  * (`WebCore::ContentExtensions::URLFilterParser`). That parser accepts a small
  * subset of JavaScript regex syntax, and one rule it rejects fails the whole
- * `updateDynamicRules` / `updateSessionRules` call. Safari exposes the same
- * check at runtime as `declarativeNetRequest.isRegexSupported`, which the
+ * `updateDynamicRules` / `updateSessionRules` call. Safari exposes the check
+ * at runtime as `declarativeNetRequest.isRegexSupported`, which the
  * background uses; this port exists so tests can hold the rule builders to the
- * subset without a Safari to run them in.
+ * subset without a Safari to run them in. It is stricter than Safari in the
+ * two ways described at the end.
  *
  * What the subset allows:
  * - literal characters, escaped metacharacters, `.`, `[...]` and `[^...]`
@@ -18,18 +19,26 @@
  *   inside a group
  *
  * What it rejects: `|` anywhere, other `{n,m}` counts, `\d \w \s \D \W \S`
- * (inside a class too), `\b` and `\B`, lookarounds and modifier groups,
- * non-ASCII characters (raw or escaped), and a pattern that can match the
- * empty string.
+ * (inside a class too), `\b` and `\B`, lookarounds and modifier groups, and
+ * non-ASCII characters (raw or escaped).
  *
  * Ported from WebKit main (2026-11): URLFilterParser.cpp for the state
  * machine and Term.h for `matchesAtLeastOneCharacter`, with the tokenizing
  * that JavaScriptCore's Yarr parser does in its legacy (non-unicode) mode.
  * WebKit's own expectations in Tools/TestWebKitAPI/Tests/WebCore/
- * ContentExtensions.cpp are reproduced in the tests, with one deliberate
- * difference: WebKit reads `\1`..`\9` and `\k` in a pattern as an octal
- * escape or a literal, which accepts them but silently changes what they
- * mean, so this checker reports them as `BackReference`.
+ * ContentExtensions.cpp are reproduced in the tests.
+ *
+ * Two deliberate differences from Safari:
+ * - WebKit reads `\1`..`\9` and `\k` in a pattern as an octal escape or a
+ *   literal, which accepts them but silently changes what they mean, so this
+ *   checker reports them as `BackReference` instead.
+ * - A pattern that can match the empty string (`.*`, `a?`) parses as
+ *   `MatchesEverything`, as in WebKit, and Safari accepts it: WebKit's
+ *   `supportsRegularExpression`, behind both rule validation and
+ *   `isRegexSupported`, returns true for that status, and the compiler then
+ *   applies the rule to every URL. This checker still counts it as a
+ *   failure, because a redirect or bypass filter that matches every URL
+ *   would be a bug here.
  */
 
 export type SafariRegexStatus =
@@ -461,7 +470,11 @@ class Tokenizer {
 
 /**
  * The status WebKit's content-blocker parser would give `pattern` as a DNR
- * `regexFilter`. Anything other than `'Ok'` means Safari rejects the rule.
+ * `regexFilter`, with one change: where WebKit reads a back-reference as an
+ * octal escape or a literal and parses on, this stops at `'BackReference'`
+ * (see the top of this file). Safari accepts the rule for `'Ok'` and for
+ * `'MatchesEverything'`, which this module counts as a failure on purpose.
+ * Every other status but `'BackReference'` means Safari rejects the rule.
  */
 export function safariRegexStatus(pattern: string): SafariRegexStatus {
   if (/[^\x00-\x7f]/.test(pattern)) return 'NonASCII';
@@ -477,6 +490,12 @@ export function safariRegexStatus(pattern: string): SafariRegexStatus {
   return parser.status;
 }
 
+/**
+ * Whether `pattern` is a `regexFilter` Aturi can give Safari: true only for
+ * `'Ok'`. Stricter than Safari's own `isRegexSupported` in two ways: it
+ * refuses a pattern that matches everything, which Safari accepts, and a
+ * back-reference, which Safari accepts but reads as something else.
+ */
 export function isSafariRegexSupported(pattern: string): boolean {
   return safariRegexStatus(pattern) === 'Ok';
 }

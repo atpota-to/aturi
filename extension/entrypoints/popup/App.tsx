@@ -71,6 +71,12 @@ type PopupState =
       /** The page's own record, or null when the page has none. */
       match: ReverseMatch | null;
       isKnownHost: boolean;
+      /**
+       * Safari only: the tab was found but Safari kept its URL from Aturi, as
+       * it does on a site Aturi isn't allowed on and on Start Page and other
+       * pages that aren't on the web. Nothing tells those cases apart.
+       */
+      urlHidden: boolean;
     };
 
 // Open the extension's options page. We prefer browser.runtime.openOptionsPage()
@@ -303,7 +309,8 @@ export default function App() {
     const tab = await getActiveTab();
     const tabId = (tab?.id as number | undefined) ?? null;
     const tabUrl = tab?.url ?? null;
-    const base = { phase: 'ready' as const, prefs, tabId, tabUrl };
+    const urlHidden = IS_SAFARI && tab !== null && !tab.url;
+    const base = { phase: 'ready' as const, prefs, tabId, tabUrl, urlHidden };
     if (!tab?.url) {
       setState({ ...base, match: null, isKnownHost: false });
       return;
@@ -695,9 +702,11 @@ export default function App() {
   const notice =
     refEntries.length > 0
       ? 'This page has no record of its own.'
-      : ready.isKnownHost
-        ? 'No record on this page.'
-        : 'No Atmosphere data on this page.';
+      : ready.urlHidden
+        ? "Aturi can't read this page. If it's a web page, allow Aturi on this site in Safari's extension settings."
+        : ready.isKnownHost
+          ? 'No record on this page.'
+          : 'No Atmosphere data on this page.';
 
   return (
     <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>

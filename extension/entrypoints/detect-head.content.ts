@@ -48,13 +48,14 @@ export default defineContentScript({
 
     const atUri = findAtUriInHead();
 
-    if (atUri) {
-      chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-        if (message?.type === 'aturi:query-head') {
-          sendResponse({ atUri });
-          return true;
-        }
-      });
-    }
+    // Answer even when the head has nothing (`atUri: null`). Safari resolves
+    // an unanswered message with undefined, which the popup reads as "the
+    // content script isn't there yet" and asks again after a pause.
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message?.type === 'aturi:query-head') {
+        sendResponse({ atUri });
+        return true;
+      }
+    });
   },
 });

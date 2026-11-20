@@ -49,10 +49,11 @@ export function detectPopupHost(): void {
   if (!IS_SAFARI) return;
   const root = document.documentElement;
 
-  // An iPhone shows a sheet (an iPhone Plus or Max in landscape shows a
-  // popover, which this then renders fluid, a little narrower). Setting the
-  // attributes now gets the first paint right; an iPad has to wait for the
-  // API below.
+  // An iPhone shows a sheet. Setting the attributes now gets the first paint
+  // right; an iPad has to wait for the API below. The exception is an iPhone
+  // Plus or Max in landscape, which shows a popover: Safari sizes that to the
+  // page, so the fluid body would shrink it to its narrowest, and popup.css's
+  // 320px floor is the width it gets instead of --popup-w.
   if (isIPhoneUserAgent(navigator.userAgent)) {
     root.dataset.platform = 'ios';
     root.dataset.popupHost = 'sheet';

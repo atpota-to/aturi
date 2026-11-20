@@ -52,12 +52,14 @@ const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, m
 /**
  * Send a message and, if nothing answered, send it once more after `delayMs`.
  *
- * Safari resolves `tabs.sendMessage` with undefined when no listener is
- * there yet instead of rejecting as Chrome does. Aturi's content scripts
- * always answer with an object, so undefined only ever means "nobody heard
- * it". A first attempt that rejects gets the same second try, since which of
- * the two Safari does for a tab still being injected hasn't been checked on
- * every version. The second attempt's answer or error is passed on as is.
+ * Safari resolves `tabs.sendMessage` with undefined when no listener answers,
+ * including when none is there yet, instead of rejecting as Chrome does.
+ * Aturi's content scripts answer both popup messages with an object, even
+ * when the page has nothing (`{ atUri: null }`, `{ atUris: [] }`), so
+ * undefined only ever means "nobody heard it". A first attempt that rejects
+ * gets the same second try, since which of the two Safari does for a tab
+ * still being injected hasn't been checked on every version. The second
+ * attempt's answer or error is passed on as is.
  */
 export async function retryOnceIfUnanswered<T>(
   send: () => Promise<T | undefined>,
