@@ -1,17 +1,37 @@
 'use client';
 
+import { Columns3, Folder, ScrollText, type LucideIcon } from 'lucide-react';
 import {
   EXPLORER_VIEWS,
   EXPLORER_VIEW_LABELS,
   FILES_LAYOUTS,
   setExplorerView,
   setFilesLayout,
+  type ExplorerView,
   type FilesLayout,
 } from '@/lib/explorerView';
 import { Segmented } from '../lexicons/primitives';
 import { useExplorerView, useFilesLayout } from './useExplorerView';
 
-const VIEW_OPTIONS = EXPLORER_VIEWS.map((value) => ({ value, label: EXPLORER_VIEW_LABELS[value] }));
+/**
+ * Marks rather than words: on a phone the switch shares its line with the
+ * view's own controls (the lexicons' window, the Files view's Icons and
+ * List), and with all three spelled out it took a line to itself. The
+ * names stay as each mark's tooltip and accessible name. The workbench is
+ * its three panes side by side, Files its folders, and Classic the pages
+ * that scroll.
+ */
+const VIEW_ICONS: Record<ExplorerView, LucideIcon> = {
+  workbench: Columns3,
+  files: Folder,
+  classic: ScrollText,
+};
+
+const VIEW_OPTIONS = EXPLORER_VIEWS.map((value) => ({
+  value,
+  label: EXPLORER_VIEW_LABELS[value],
+  icon: VIEW_ICONS[value],
+}));
 
 const LAYOUT_LABELS: Record<FilesLayout, string> = { icons: 'Icons', list: 'List' };
 const LAYOUT_OPTIONS = FILES_LAYOUTS.map((value) => ({ value, label: LAYOUT_LABELS[value] }));
