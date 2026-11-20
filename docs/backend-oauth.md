@@ -246,13 +246,12 @@ gap in the first place.
 > **Update, 20 November 2026.** The browser extension no longer signs in on
 > Chrome, Firefox or Safari. Its sign-in and the Account tab in its settings
 > were removed (the Safari build never had the `identity` permission; Chrome
-> and Firefox no longer ask for it), and on install or update it deletes the session token an earlier version stored, without
-> contacting aturi.to. The server's extension endpoints (`client=extension` in
-> `/api/oauth/login`, `/api/oauth/exchange` and the `exchange_codes` table)
-> stay for now, because copies already installed from the stores may still
-> use them until they update. They can be removed later, as a separate server
-> change. The rest of this section, and §8, describe the design as it was
-> built.
+> and Firefox no longer ask for it). No store release ever shipped the
+> sign-in, so no installed copy uses the server's extension endpoints
+> (`client=extension` in `/api/oauth/login`, `/api/oauth/exchange` and the
+> `exchange_codes` table). They are unused and can be removed as a separate
+> server change. The rest of this section, and §8, describe the design as it
+> was built.
 
 Read-only, and off unless a user goes looking for it: Settings → Account, a
 handle, and a browser-managed consent window. `?scopes=` is sent empty, which

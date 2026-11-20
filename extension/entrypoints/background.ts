@@ -725,23 +725,6 @@ async function primeBadgeDefaults(): Promise<void> {
   }
 }
 
-/**
- * Earlier Chrome and Firefox versions could sign in to aturi.to from Settings
- * and kept the session token in storage.local under this key. Sign-in has
- * been removed and nothing reads the token any more, so it is deleted on
- * install and update rather than left sitting in storage. Nothing is sent to
- * aturi.to: the server-side session expires on its own.
- */
-const RETIRED_SIGN_IN_KEYS = ['aturi.session.v1'];
-
-async function forgetRetiredSignIn(): Promise<void> {
-  try {
-    await browser.storage.local.remove(RETIRED_SIGN_IN_KEYS);
-  } catch {
-    /* nothing stored, or no storage: either way nothing to forget */
-  }
-}
-
 export default defineBackground(() => {
   const primeAndSync = async () => {
     const prefs = await loadPrefs();
@@ -752,7 +735,6 @@ export default defineBackground(() => {
   };
 
   browser.runtime.onInstalled.addListener(() => {
-    void forgetRetiredSignIn();
     void clearBypassRules();
     readyPromise = primeAndSync();
     void readyPromise;

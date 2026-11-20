@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Header from '@/components/Header';
 
 export const metadata: Metadata = {
@@ -32,9 +31,7 @@ export default function ExtensionPrivacyPage() {
             <p>
               The extension has no sign-in and no account. It never contacts
               aturi.to or any other Aturi-operated server, and stores nothing
-              about you anywhere but your own browser. Earlier versions could
-              sign in to aturi.to; Section&nbsp;1 says what happens to the
-              token they stored.
+              about you anywhere but your own browser.
             </p>
             <p>
               The extension does, however, read limited information from
@@ -124,19 +121,6 @@ export default function ExtensionPrivacyPage() {
               and is stored only in this browser&rsquo;s local extension
               storage. The history controls do not clear it; it goes away
               when you remove the extension.
-            </p>
-            <p>
-              Earlier versions of the extension could sign in to aturi.to,
-              and while you were signed in they kept a session token and
-              your DID in <code>browser.storage.local</code>. This version
-              has no sign-in. When it is installed or updated, it deletes
-              that token and DID from your device if they are there, without
-              contacting aturi.to. aturi.to keeps and deletes the session
-              they belonged to as its{' '}
-              <Link href="/terms">privacy terms</Link> describe for backend
-              sign-in. You can end that session sooner from your account
-              settings on aturi.to, or revoke Aturi&rsquo;s access from your
-              own PDS.
             </p>
           </section>
 

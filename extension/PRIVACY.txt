@@ -11,8 +11,7 @@ advertising, and no remote code. It does not sell data to anyone, ever.
 
 The extension has no sign-in and no account. It never contacts aturi.to or
 any other Aturi-operated server, and stores nothing about you anywhere but
-your own browser. Earlier versions could sign in to aturi.to; Section 1
-says what happens to the token they stored.
+your own browser.
 
 The extension does, however, read limited information from pages you visit
 so it can offer waypoints and show the AT URIs a page carries. Page reading
@@ -74,15 +73,6 @@ DID, its collection names and when they were fetched. The cache keeps at
 most 50 accounts, refetches an entry after an hour, and is stored only in
 this browser's local extension storage. The history controls do not clear
 it; it goes away when you remove the extension.
-
-Earlier versions of the extension could sign in to aturi.to, and while you
-were signed in they kept a session token and your DID in
-browser.storage.local. This version has no sign-in. When it is installed
-or updated, it deletes that token and DID from your device if they are
-there, without contacting aturi.to. aturi.to keeps and deletes the
-session they belonged to as its privacy terms (https://aturi.to/terms)
-describe for backend sign-in. You can end that session sooner from your
-account settings on aturi.to, or revoke Aturi's access from your own PDS.
 
 
 2. WHAT THE EXTENSION READS FROM PAGES
