@@ -2,11 +2,12 @@
 
 import SearchBox from './explore/SearchBox';
 import { ExtensionBrowserLinks } from './home/DownloadButton';
+import SearchExamples from './home/SearchExamples';
 
 /**
  * Homepage hero: kicker pill, headline, one-line pitch, the Explore search
- * bar (the same one that leads the /explore page), and the extension's
- * per-browser download buttons.
+ * bar (the same one that leads the /explore page) with examples to try
+ * under it, and the extension's per-browser download buttons.
  *
  * The search bar puts the explorer's core action right under the tagline
  * so visitors can jump straight to any repo. The developer entry point
@@ -31,6 +32,7 @@ export default function HomeHero() {
           shared SearchBox to the hero's larger field. */}
       <div className="fn-home-search">
         <SearchBox />
+        <SearchExamples />
       </div>
 
       <ExtensionBrowserLinks />
