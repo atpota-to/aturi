@@ -93,7 +93,7 @@ enum ActivityFixture {
 
     static func transport(
         collections: [String] = ["app.bsky.feed.post", "app.bsky.actor.profile", "app.bsky.feed.like"],
-        likes: ActivityFakeTransport.Responder = ActivityFakeTransport.reply(200, #"{"records":[]}"#),
+        likes: @escaping ActivityFakeTransport.Responder = ActivityFakeTransport.reply(200, #"{"records":[]}"#),
         overrides: [(String, ActivityFakeTransport.Responder)] = []
     ) -> ActivityFakeTransport {
         ActivityFakeTransport(overrides + [
@@ -111,9 +111,12 @@ final class ActivityCalendarScanTests: XCTestCase {
     private func scan(
         _ transport: ActivityFakeTransport,
         store: ActivityCalendarStore,
-        stopper: ActivityCalendarStopper = ActivityCalendarStopper(),
+        stopper: ActivityCalendarStopper? = nil,
         published: ((ActivityCalendarScan.Snapshot) -> Void)? = nil
     ) async throws -> ActivityCalendarScan.Snapshot {
+        // The stopper is made here, on the main actor, not as a default
+        // argument, which is evaluated outside the class's isolation.
+        let stopper = stopper ?? ActivityCalendarStopper()
         let http = HTTPClient(transport: transport)
         return try await ActivityCalendarScan.scan(
             actor: ActivityFixture.did,

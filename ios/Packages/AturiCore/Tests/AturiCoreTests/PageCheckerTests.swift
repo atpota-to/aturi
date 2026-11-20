@@ -9,7 +9,7 @@ import FoundationNetworking
 // bounded fetch against a scripted transport.
 
 private let did = "did:plc:z72i7hdynmk6r22z27h6tvur"
-private let record = "at://\(did)/site.standard.document/3kabc"
+private let pageRecord = "at://\(did)/site.standard.document/3kabc"
 private let page = "https://blog.example.com/posts/hello"
 
 private let full = """
@@ -24,7 +24,7 @@ private let full = """
   <meta property="og:site_name" content="Example Blog">
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="at:canonical" content="\(record)">
+  <meta name="at:canonical" content="\(pageRecord)">
   <meta name="at:author" content="at://\(did)">
   <meta name="at:standard.site:comments" content="at://\(did)/app.bsky.feed.post/3kxyz">
 </head><body><svg><title>icon</title></svg></body></html>
@@ -69,10 +69,10 @@ final class PageCheckerTests: XCTestCase {
 
     func testTheDeclaredRecordsComeBackGroupedInOrderWithThePrimaryOneNamed() {
         let reading = PageChecker.readPage(full)
-        XCTAssertEqual(reading.tags.canonical, [record])
+        XCTAssertEqual(reading.tags.canonical, [pageRecord])
         XCTAssertEqual(reading.tags.author, ["at://\(did)"])
         XCTAssertEqual(reading.tags.namespaceMap, ["standard.site": ["comments": ["at://\(did)/app.bsky.feed.post/3kxyz"]]])
-        XCTAssertEqual(reading.primary, record)
+        XCTAssertEqual(reading.primary, pageRecord)
         XCTAssertEqual(reading.ignored, [])
         XCTAssertEqual(PageChecker.declaredRecords(reading).map(\.name), ["at:canonical", "at:author", "at:standard.site:comments"])
     }
@@ -80,10 +80,10 @@ final class PageCheckerTests: XCTestCase {
     func testAtTagsTheParserDropsAreReportedWithTheReason() {
         let reading = PageChecker.readPage("""
             <meta name="at:canonical" content="https://example.com/not-an-at-uri">
-            <meta name="at:related" content="\(record)">
-            <meta name="at:alternate" content="\(record)">
+            <meta name="at:related" content="\(pageRecord)">
+            <meta name="at:alternate" content="\(pageRecord)">
             """)
-        XCTAssertEqual(reading.tags.alternate, [record])
+        XCTAssertEqual(reading.tags.alternate, [pageRecord])
         XCTAssertEqual(reading.ignored.count, 2)
         XCTAssertTrue(reading.ignored.first?.reason.contains("not a valid at:// URI") ?? false)
         XCTAssertNotNil(reading.ignored.last?.reason.range(of: "not namespaced", options: .caseInsensitive))
@@ -91,10 +91,10 @@ final class PageCheckerTests: XCTestCase {
     }
 
     func testTheOlderLinkElementIsFoundAndNotListedTwice() {
-        let reading = PageChecker.readPage(#"<link rel="alternate" href="\#(record)"><link rel="alternate" href="\#(record)"><link rel="stylesheet" href="/a.css">"#)
-        XCTAssertEqual(reading.headLinks, [PageChecker.HeadLink(rel: "alternate", href: record)])
+        let reading = PageChecker.readPage(#"<link rel="alternate" href="\#(pageRecord)"><link rel="alternate" href="\#(pageRecord)"><link rel="stylesheet" href="/a.css">"#)
+        XCTAssertEqual(reading.headLinks, [PageChecker.HeadLink(rel: "alternate", href: pageRecord)])
         XCTAssertEqual(PageChecker.declaredRecords(reading).count, 1)
-        let withBoth = PageChecker.readPage(#"<meta name="at:canonical" content="\#(record)"><link rel="alternate" href="\#(record)">"#)
+        let withBoth = PageChecker.readPage(#"<meta name="at:canonical" content="\#(pageRecord)"><link rel="alternate" href="\#(pageRecord)">"#)
         XCTAssertEqual(PageChecker.declaredRecords(withBoth).count, 1)
     }
 
@@ -260,7 +260,7 @@ final class PageCheckerClientTests: XCTestCase {
         let client = PageCheckerClient(fetcher: ServiceFetcher(transport: transport))
         let read = await client.read("https://blog.example.com/p")
         XCTAssertEqual(read.url, "https://blog.example.com/p")
-        XCTAssertEqual(read.reading?.primary, record)
+        XCTAssertEqual(read.reading?.primary, pageRecord)
         XCTAssertTrue(transport.userAgents.allSatisfy { $0.contains("aturi.to") })
     }
 
@@ -293,10 +293,10 @@ final class PageCheckerClientTests: XCTestCase {
 @MainActor
 final class PageCheckerModelTests: XCTestCase {
     func testARunReadsThePageAndThenItsRecord() async {
-        let recordJSON = #"{"uri":"\#(record)","cid":"bafy","value":{"$type":"site.standard.document","title":"Hello"}}"#
+        let recordJSON = #"{"uri":"\#(pageRecord)","cid":"bafy","value":{"$type":"site.standard.document","title":"Hello"}}"#
         let transport = PageFakeTransport([
             page: .init(status: 200, body: full, headers: ["Content-Type": "text/html"]),
-            "https://slingshot.microcosm.blue/xrpc/blue.microcosm.repo.getRecordByUri?at_uri=\(URIEncoding.encodeComponent(record))":
+            "https://slingshot.microcosm.blue/xrpc/blue.microcosm.repo.getRecordByUri?at_uri=\(URIEncoding.encodeComponent(pageRecord))":
                 .init(status: 200, body: recordJSON, headers: ["Content-Type": "application/json"]),
         ])
         let client = PageCheckerClient(fetcher: ServiceFetcher(transport: transport), http: HTTPClient(transport: transport))
