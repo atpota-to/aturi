@@ -342,7 +342,6 @@ schemes:
       targets:
         Aturi: all
         AturiShare: [build]
-        AturiSafari-iOS: [build]
     run:
       config: Debug
     test:
@@ -363,7 +362,6 @@ schemes:
     build:
       targets:
         AturiMac: all
-        AturiSafari-macOS: [build]
     run:
       config: Debug
     profile:

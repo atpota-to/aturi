@@ -22,20 +22,6 @@
                ReferencedContainer = "container:Aturi.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BC75366DF5B3BDBB77546D31"
-               BuildableName = "AturiSafari.appex"
-               BlueprintName = "AturiSafari-macOS"
-               ReferencedContainer = "container:Aturi.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

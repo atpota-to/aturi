@@ -57,7 +57,8 @@ struct SafariExtensionSettingsView: View {
     /// The manifest asks for Safari 18.4 or later
     /// (`browser_specific_settings.safari.strict_min_version` in
     /// extension/wxt.config.ts), and Safari on iOS carries the iOS version
-    /// number. An older system lists the extension but cannot run it.
+    /// number. Safari should refuse to run the extension on an older system;
+    /// what it shows there has not been checked on a device.
     private var safariIsTooOld: Bool {
         if #available(iOS 18.4, *) {
             return false

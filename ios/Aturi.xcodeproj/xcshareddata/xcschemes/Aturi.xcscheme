@@ -30,20 +30,6 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DA606E93F41F16F08519A67E"
-               BuildableName = "AturiSafari.appex"
-               BlueprintName = "AturiSafari-iOS"
-               ReferencedContainer = "container:Aturi.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "C7ECE42DCDCF701BDE1CBCCA"
                BuildableName = "AturiShare.appex"
                BlueprintName = "AturiShare"
