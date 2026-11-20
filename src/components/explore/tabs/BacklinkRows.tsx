@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import Link from 'next/link';
+import type { LucideIcon } from 'lucide-react';
 import {
   constellationPageFetcher,
   createBacklinkMerge,
@@ -190,6 +191,12 @@ function useRowLink(item: MergedBacklink) {
 }
 
 /**
+ * What kind of link a row is (a follow, a mention, a like), for a list that
+ * mixes them: the all-links view. A list of one relationship has no need.
+ */
+export type RowKind = { label: string; icon: LucideIcon };
+
+/**
  * A handle that wraps after its dots rather than mid-label: a tile is a few
  * characters narrower than most handles are long.
  */
@@ -232,12 +239,14 @@ export function BacklinkRow({
   selfDid,
   selfLabel,
   showApp,
+  kind,
 }: {
   item: MergedBacklink;
   target: string;
   selfDid: string;
   selfLabel: string;
   showApp?: boolean;
+  kind?: RowKind | null;
 }) {
   const context = cachedContext(item.uri);
   const member = memberOf(context, target);
@@ -265,6 +274,12 @@ export function BacklinkRow({
                 </span>
                 {profile === null && <span className="fx-bl-row-handle">no profile</span>}
               </>
+            )}
+            {kind && (
+              <span className="fx-bl-pill" data-kind>
+                <kind.icon size={11} aria-hidden />
+                {kind.label}
+              </span>
             )}
             {!member && item.did === selfDid && (
               <span className="fx-bl-pill" data-tone="accent">
@@ -308,11 +323,13 @@ export function BacklinkFile({
   target,
   selfDid,
   selfLabel,
+  kind,
 }: {
   item: MergedBacklink;
   target: string;
   selfDid: string;
   selfLabel: string;
+  kind?: RowKind | null;
 }) {
   const context = cachedContext(item.uri);
   const member = memberOf(context, target);
@@ -322,8 +339,10 @@ export function BacklinkFile({
   const name = profile?.handle
     ? `@${profile.handle}`
     : profile?.displayName?.trim() || shortDid(member ?? item.did);
-  const caption = member ? '' : context?.text;
   const own = !member && item.did === selfDid;
+  const caption = [kind?.label, own ? selfLabel : null, member ? null : context?.text]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <li className="fx-fd-item">
       <Link
@@ -340,10 +359,7 @@ export function BacklinkFile({
         <span className="fx-fd-name" data-pending={profile === undefined || undefined}>
           {dotBreaks(name)}
         </span>
-        <span className="fx-fd-cap">
-          {own ? `${selfLabel}${caption ? ' · ' : ''}` : ''}
-          {caption}
-        </span>
+        <span className="fx-fd-cap">{caption}</span>
         {date && (
           <time className="fx-fd-meta" dateTime={date.toISOString()} title={date.toISOString()}>
             {formatTidRelative(date)}
@@ -368,6 +384,7 @@ export function BacklinkRowList({
   selfLabel,
   showApp,
   display = 'rows',
+  kindOf,
 }: {
   merged: MergedBacklinks;
   /** What the records link to: a DID or an AT URI. */
@@ -378,6 +395,8 @@ export function BacklinkRowList({
   selfLabel: string;
   showApp?: boolean;
   display?: 'rows' | 'icons';
+  /** Labels each row with its kind of link, where the list mixes kinds. */
+  kindOf?: (item: MergedBacklink) => RowKind | null;
 }) {
   useBacklinkDetails(merged.items);
   const { items, loading, done, failed, loadMore } = merged;
@@ -401,7 +420,14 @@ export function BacklinkRowList({
       {display === 'icons' ? (
         <ul className="fx-fd-grid fx-bl-files">
           {items.map((item) => (
-            <BacklinkFile key={item.uri} item={item} target={target} selfDid={selfDid} selfLabel={selfLabel} />
+            <BacklinkFile
+              key={item.uri}
+              item={item}
+              target={target}
+              selfDid={selfDid}
+              selfLabel={selfLabel}
+              kind={kindOf?.(item)}
+            />
           ))}
         </ul>
       ) : (
@@ -414,6 +440,7 @@ export function BacklinkRowList({
               selfDid={selfDid}
               selfLabel={selfLabel}
               showApp={showApp}
+              kind={kindOf?.(item)}
             />
           ))}
         </ul>

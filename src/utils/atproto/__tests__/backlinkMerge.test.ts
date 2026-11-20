@@ -87,6 +87,20 @@ test('folds repeat links to one record into a count', async () => {
   ]);
 });
 
+test('a record found through two sources is filed under the earlier one', async () => {
+  // A post's direct reply links it as both parent and root; a reply further
+  // down the thread links it as root alone, and is newer.
+  const direct = rec('did:plc:d', 'app.bsky.feed.post', tid(50));
+  const deeper = rec('did:plc:e', 'app.bsky.feed.post', tid(60));
+  const { fetchPage } = fakeIndex({ parent: [direct], root: [deeper, direct] });
+  const merge = createBacklinkMerge(['parent', 'root'], fetchPage);
+  const batch = await merge.next(10);
+  assert.deepEqual(batch.items.map((i) => [i.did, i.source, i.links]), [
+    ['did:plc:e', 'root', 1],
+    ['did:plc:d', 'parent', 2],
+  ]);
+});
+
 test('a failing source is reported and the rest still merge', async () => {
   const { fetchPage } = fakeIndex({ a: [rec('did:plc:a', 'x.follow', tid(5))] }, ['b']);
   const merge = createBacklinkMerge(['a', 'b'], fetchPage);

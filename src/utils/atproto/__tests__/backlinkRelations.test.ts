@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ALL_LINKS,
+  allLinksBucket,
   appForCollection,
   backlinkPathLabels,
   bucketRecordSources,
@@ -199,4 +201,43 @@ test('a record’s buckets put what was written first and keep direct replies ap
       ['like', 116],
     ],
   );
+});
+
+test('the all-links bucket sums every relationship and keeps their order', () => {
+  const buckets = bucketRecordSources(
+    [
+      source('app.bsky.feed.like', '.subject.uri', 116, 116),
+      source('app.bsky.feed.post', '.reply.root.uri', 9, 7),
+      source('app.bsky.feed.post', '.reply.parent.uri', 6, 6),
+      source('pub.leaflet.comment', '.subject', 2, 2),
+    ],
+    'app.bsky.feed.post',
+  );
+  const all = allLinksBucket(buckets);
+  assert.ok(all);
+  assert.equal(all.relation, ALL_LINKS);
+  assert.equal(all.count, 133);
+  assert.equal(all.accounts, 131);
+  // Direct replies ahead of the thread, though the thread has more links:
+  // the merge files a record found through both under the first.
+  assert.deepEqual(
+    all.sources.map((s) => s.source),
+    [
+      'app.bsky.feed.post:reply.parent.uri',
+      'pub.leaflet.comment:subject',
+      'app.bsky.feed.post:reply.root.uri',
+      'app.bsky.feed.like:subject.uri',
+    ],
+  );
+  assert.deepEqual(
+    all.apps.map((a) => [a.app.name, a.count]),
+    [
+      ['Bluesky', 131],
+      ['Leaflet', 2],
+    ],
+  );
+});
+
+test('no buckets, no all-links bucket', () => {
+  assert.equal(allLinksBucket([]), null);
 });

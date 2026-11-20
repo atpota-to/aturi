@@ -2310,6 +2310,15 @@ a.fx-bl-tile {
   box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg);
 }
+/* A row's kind of link in the all-links list, with its relationship's
+   glyph from the tiles above. */
+.fx-bl-pill[data-kind] {
+  gap: 4px;
+}
+.fx-bl-pill[data-kind] svg {
+  flex: none;
+  color: var(--text-accent);
+}
 .fx-bl-more {
   display: flex;
   flex-wrap: wrap;

@@ -308,3 +308,24 @@ export function bucketRecordSources(
     RECORD_RELATION_ORDER,
   );
 }
+
+/** The key of the bucket that holds every relationship's sources at once. */
+export const ALL_LINKS = 'all';
+
+/**
+ * Every bucket's sources as one, for a list of every kind of link together,
+ * latest first. Null when there are none.
+ *
+ * Sources keep the buckets' order rather than being re-ranked by count. The
+ * merge breaks a tie between two heads in favour of the earlier source, and
+ * a record that links through two sources is a tie: a direct reply to a
+ * thread's root holds both `.reply.parent` and `.reply.root`. So the row it
+ * folds into is filed under the relationship that comes first, "reply"
+ * rather than "thread".
+ */
+export function allLinksBucket(
+  buckets: readonly RelationBucket<string>[],
+): RelationBucket<typeof ALL_LINKS> | null {
+  const sources = buckets.flatMap((b) => b.sources);
+  return bucketBy(sources, () => ALL_LINKS, [ALL_LINKS])[0] ?? null;
+}

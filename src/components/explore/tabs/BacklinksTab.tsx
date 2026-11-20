@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Handshake,
   Heart,
+  History,
   Layers,
   Link2,
   List,
@@ -28,6 +29,8 @@ import {
   type BacklinkSource,
 } from '@/utils/atproto/constellation';
 import {
+  ALL_LINKS,
+  allLinksBucket,
   appForCollection,
   backlinkPathLabels,
   bucketRecordSources,
@@ -39,7 +42,7 @@ import {
 import { parseAtUri } from '@/utils/atproto/urls';
 import { formatCount } from '@/utils/ufos/format';
 import { BacklinkRelationsSkeleton, BacklinksTabSkeleton } from '../skeletons/pages';
-import { AppMark, BacklinkRowList, useMergedBacklinks } from './BacklinkRows';
+import { AppMark, BacklinkRowList, useMergedBacklinks, type RowKind } from './BacklinkRows';
 
 /**
  * Where a relationship's records are listed when this panel only names the
@@ -187,51 +190,93 @@ function BacklinksUnavailable() {
   );
 }
 
-/** What each tile is called, its glyph, and the line under the list's heading. */
-type RelationMeta = { label: string; icon: LucideIcon; about: string };
+/**
+ * What each tile is called, its glyph, and the line under the list's
+ * heading. `one` names a single link of the kind, for a row in the
+ * all-links list, where kinds are mixed.
+ */
+type RelationMeta = { label: string; icon: LucideIcon; about: string; one: string };
 
 const ACCOUNT_RELATIONS: Record<BacklinkRelation, RelationMeta> = {
-  follow: { label: 'Followers', icon: UserPlus, about: 'Accounts that follow this one, in any app.' },
-  mention: { label: 'Mentions', icon: AtSign, about: 'Posts, documents and lists that mention this account.' },
-  list: { label: 'Lists', icon: List, about: 'Lists, starter packs and groups this account is in.' },
-  block: { label: 'Blocks', icon: ShieldBan, about: 'Accounts that block this one.' },
+  follow: { label: 'Followers', icon: UserPlus, about: 'Accounts that follow this one, in any app.', one: 'Follow' },
+  mention: {
+    label: 'Mentions',
+    icon: AtSign,
+    about: 'Posts, documents and lists that mention this account.',
+    one: 'Mention',
+  },
+  list: { label: 'Lists', icon: List, about: 'Lists, starter packs and groups this account is in.', one: 'Listed' },
+  block: { label: 'Blocks', icon: ShieldBan, about: 'Accounts that block this one.', one: 'Block' },
   verify: {
     label: 'Verifications',
     icon: BadgeCheck,
     about: 'Verification records that name this account, by others or by itself.',
+    one: 'Verification',
   },
   endorse: {
     label: 'Vouches',
     icon: Handshake,
     about: 'Endorsements, vouches, top-friends slots and contact cards.',
+    one: 'Vouch',
   },
   embed: {
     label: 'Embedded copies',
     icon: Layers,
     about: 'Records that keep a copy of this account’s details, like a starter pack showing a feed it made.',
+    one: 'Copy',
   },
-  other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.' },
+  other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.', one: 'Link' },
 };
 
 const RECORD_RELATIONS: Record<RecordBacklinkRelation, RelationMeta> = {
-  reply: { label: 'Replies', icon: MessageCircle, about: 'Replies and comments that answer this record directly.' },
+  reply: {
+    label: 'Replies',
+    icon: MessageCircle,
+    about: 'Replies and comments that answer this record directly.',
+    one: 'Reply',
+  },
   thread: {
     label: 'In thread',
     icon: MessagesSquare,
     about: 'Every reply in the thread this record started, at any depth.',
+    one: 'In thread',
   },
-  quote: { label: 'Quotes', icon: Quote, about: 'Posts that quote or embed this record.' },
-  repost: { label: 'Reposts', icon: Repeat2, about: 'Accounts that reposted this record.' },
-  like: { label: 'Likes', icon: Heart, about: 'Likes, stars, votes and recommendations.' },
-  mention: { label: 'Mentions', icon: AtSign, about: 'Records that link to this one in their text.' },
+  quote: { label: 'Quotes', icon: Quote, about: 'Posts that quote or embed this record.', one: 'Quote' },
+  repost: { label: 'Reposts', icon: Repeat2, about: 'Accounts that reposted this record.', one: 'Repost' },
+  like: { label: 'Likes', icon: Heart, about: 'Likes, stars, votes and recommendations.', one: 'Like' },
+  mention: { label: 'Mentions', icon: AtSign, about: 'Records that link to this one in their text.', one: 'Mention' },
   item: {
     label: 'Items',
     icon: FolderOpen,
     about: 'Records filed under this one, like a list’s members or a publication’s documents.',
+    one: 'Item',
   },
-  subscribe: { label: 'Subscribers', icon: Rss, about: 'Subscriptions to this record.' },
-  via: { label: 'Came via', icon: Signpost, about: 'Follows and sign-ups made through this record.' },
-  other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.' },
+  subscribe: { label: 'Subscribers', icon: Rss, about: 'Subscriptions to this record.', one: 'Subscription' },
+  via: { label: 'Came via', icon: Signpost, about: 'Follows and sign-ups made through this record.', one: 'Came via' },
+  other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.', one: 'Link' },
+};
+
+/**
+ * Every relationship in one list. It comes last, after the parts it sums,
+ * and is never the one a panel opens on: it asks Constellation for the
+ * first page of every source at once, where a relationship asks for its
+ * own few. An established account has dozens of sources (@bsky.app had
+ * 105), a record usually under ten.
+ */
+const ALL_LABEL = 'All links';
+const ALL_META: Record<'account' | 'record', RelationMeta> = {
+  account: {
+    label: ALL_LABEL,
+    icon: History,
+    about: 'Every kind of link to this account in one list, most recent first.',
+    one: 'Link',
+  },
+  record: {
+    label: ALL_LABEL,
+    icon: History,
+    about: 'Every kind of link to this record in one list, most recent first.',
+    one: 'Link',
+  },
 };
 
 /**
@@ -240,29 +285,43 @@ const RECORD_RELATIONS: Record<RecordBacklinkRelation, RelationMeta> = {
  */
 export function backlinkRelationLabel(kind: 'account' | 'record', relation: string | null): string | null {
   if (!relation) return null;
+  if (relation === ALL_LINKS) return ALL_LABEL;
   const meta: Record<string, RelationMeta> = kind === 'record' ? RECORD_RELATIONS : ACCOUNT_RELATIONS;
   return Object.hasOwn(meta, relation) ? meta[relation].label : null;
 }
 
 /**
  * A target's sources as relationships, with what its own account is called
- * in the rows: an account's set for a DID, a record's for an AT URI.
+ * in the rows: an account's set for a DID, a record's for an AT URI. With
+ * two or more relationships, the all-links bucket follows them; with one,
+ * it would only repeat it.
+ *
+ * `kindOf` names the relationship a linking record came through, for the
+ * rows of the all-links list.
  */
 function relationshipsFor(target: string, sources: BacklinkSource[]) {
   const record = target.startsWith('at://') ? parseAtUri(target) : null;
-  if (record?.collection) {
-    return {
-      buckets: bucketRecordSources(sources, record.collection) as RelationBucket<string>[],
-      meta: RECORD_RELATIONS as Record<string, RelationMeta>,
-      selfDid: record.repo,
-      selfLabel: 'author',
-    };
+  const kind = record?.collection ? 'record' : 'account';
+  const own: RelationBucket<string>[] = record?.collection
+    ? bucketRecordSources(sources, record.collection)
+    : bucketSources(sources);
+  const meta: Record<string, RelationMeta> = {
+    ...(kind === 'record' ? RECORD_RELATIONS : ACCOUNT_RELATIONS),
+    [ALL_LINKS]: ALL_META[kind],
+  };
+  const all = own.length > 1 ? allLinksBucket(own) : null;
+  const kinds = new Map<string, RowKind>();
+  for (const b of own) {
+    const { one, icon } = meta[b.relation];
+    for (const s of b.sources) kinds.set(s.source, { label: one, icon });
   }
   return {
-    buckets: bucketSources(sources) as RelationBucket<string>[],
-    meta: ACCOUNT_RELATIONS as Record<string, RelationMeta>,
-    selfDid: target,
-    selfLabel: 'this account',
+    buckets: all ? [...own, all] : own,
+    meta,
+    kindOf: (item: { source: string }) => kinds.get(item.source) ?? null,
+    kinds: own.length,
+    selfDid: record?.collection ? record.repo : target,
+    selfLabel: record?.collection ? 'author' : 'this account',
   };
 }
 
@@ -288,7 +347,7 @@ function BacklinkRelations({
   /** Credit Constellation under the list; the record card does it in its head. */
   credit?: boolean;
 }) {
-  const { buckets, meta, selfDid, selfLabel } = useMemo(
+  const { buckets, meta, kindOf, kinds, selfDid, selfLabel } = useMemo(
     () => relationshipsFor(target, sources),
     [target, sources],
   );
@@ -316,6 +375,8 @@ function BacklinkRelations({
   const merged = useMergedBacklinks(target, activeKeys);
   const total = active.reduce((sum, s) => sum + s.count, 0);
   const about = meta[bucket.relation];
+  const allLinks = bucket.relation === ALL_LINKS;
+  const noun = allLinks ? 'links' : about.label.toLowerCase();
   const narrowedTo = narrow.source ? active[0] : null;
   const showApps = bucket.apps.length > 1;
 
@@ -328,6 +389,7 @@ function BacklinkRelations({
               key={b.relation}
               bucket={b}
               meta={meta[b.relation]}
+              kinds={b.relation === ALL_LINKS ? kinds : undefined}
               pressed={b.relation === bucket.relation}
               href={relationHref?.(b.relation)}
               onPress={() => setOwn(b.relation)}
@@ -390,7 +452,7 @@ function BacklinkRelations({
             <span>Only</span>
             <code>{withDotBreaks(`${narrowedTo.collection}${narrowedTo.path === '.' ? '' : narrowedTo.path}`)}</code>
             <button type="button" className="fx-btn fx-btn-sm" onClick={() => setNarrowing(whole)}>
-              Show all {about.label.toLowerCase()}
+              Show all {noun}
             </button>
           </div>
         )}
@@ -403,6 +465,7 @@ function BacklinkRelations({
           selfLabel={selfLabel}
           showApp={showApps && !narrow.app && !narrow.source}
           display={display}
+          kindOf={allLinks && !narrow.source ? kindOf : undefined}
         />
 
         <RelationSources
@@ -438,12 +501,15 @@ function BacklinkRelations({
 function RelationTile({
   bucket,
   meta,
+  kinds,
   pressed,
   href,
   onPress,
 }: {
   bucket: RelationBucket<string>;
   meta: RelationMeta;
+  /** On the all-links tile: how many relationships it sums. */
+  kinds?: number;
   pressed: boolean;
   href?: string;
   onPress: () => void;
@@ -456,9 +522,14 @@ function RelationTile({
   const hint =
     `${bucket.count.toLocaleString()} ${bucket.count === 1 ? 'link' : 'links'} through ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` +
     (sourceCount > 1 ? '. Accounts are counted per source, so one account linking through two counts twice.' : '.');
-  const sub = bucket.accounts
-    ? `${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`
-    : `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}`;
+  // Accounts summed across relationships count anyone who links in two
+  // ways (follows and mentions) twice, so the all-links tile says how many
+  // relationships it sums instead.
+  const sub = kinds
+    ? `${kinds} kinds`
+    : bucket.accounts
+      ? `${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`
+      : `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}`;
   const body = (
     <>
       <span className="fx-bl-tile-label">
