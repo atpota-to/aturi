@@ -38,13 +38,6 @@ export const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers':
     'Content-Type, Authorization, atproto-proxy, atproto-accept-labelers, accept-language',
-  // The extension reads ERROR_CODE_HEADER (below) to tell a dead session from
-  // a 401 the PDS relayed. A cross-origin caller can only read a non-safelisted
-  // response header when it is exposed, and Safari treats an extension's fetch
-  // as cross-origin unless the user has granted it aturi.to, a grant they can
-  // withdraw (or let lapse, with "Allow for one day") at any time. Without
-  // this a revoked session would never be noticed there.
-  'Access-Control-Expose-Headers': 'x-aturi-oauth-error',
   // Without this, a burst of proxied XRPC calls re-preflights constantly and
   // each preflight is a billed invocation.
   'Access-Control-Max-Age': '86400',

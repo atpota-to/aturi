@@ -24,7 +24,7 @@ const SAFARI_EXTRA_ICON_SIZES = [64, 256, 512] as const;
 // - 18 fixed per-tab badges, and 18.0 is the first release that ships the
 //   open-source WebKit DNR code the Safari behaviour here was checked against.
 // - Before 18.4 `storage.onChanged` passed `areaName` as undefined, and prefs,
-//   session, debugLog and the inspect-scan content script all filter on it.
+//   debugLog and the inspect-scan content script all filter on it.
 const SAFARI_MIN_VERSION = '18.4';
 
 export default defineConfig({
@@ -51,12 +51,7 @@ export default defineConfig({
       name: 'Aturi',
       description:
         'Move around the Atmosphere: switch between clients, auto-redirect to your client of choice, and copy universal links.',
-      // `identity` is used by ONE optional feature: signing in to aturi.to from
-      // the Settings page, via identity.launchWebAuthFlow. Nothing else in the
-      // extension touches it, and every other feature works signed out.
-      //
-      // Safari has no identity API (sign-in there goes through a tab instead),
-      // so it doesn't get `identity`. It gets two others:
+      // Safari gets two permissions the other browsers don't need:
       // - `declarativeNetRequestWithHostAccess`: WebKit applies a DNR
       //   `redirect` only when the extension holds this permission AND the user
       //   has granted it the site being redirected from. With plain
@@ -73,7 +68,7 @@ export default defineConfig({
             'clipboardWrite',
             'activeTab',
           ]
-        : ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite', 'identity'],
+        : ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite'],
       // Safari grants this site by site (or "every website") at the user's
       // choice, not at install. It still has to ship from the first Safari
       // release: an update that adds host permissions turns the extension off.
@@ -99,18 +94,16 @@ export default defineConfig({
               strict_min_version: '140.0',
               // Required for new Firefox submissions on AMO (Nov 2025+).
               //
-              // This was `['none']` until sign-in existed. Signing in sends a handle
-              // to aturi.to and stores a session token, which is exactly what
-              // Mozilla defines `authenticationInfo` to cover — so declaring `none`
-              // alongside a sign-in feature would be a false declaration, whether or
-              // not any given user ever uses it.
+              // Back to `none`, as it was before sign-in to aturi.to existed.
+              // While it did, this was `authenticationInfo`, because signing in
+              // sent a handle to aturi.to and stored a session token. Sign-in
+              // has since been removed.
               //
-              // Deliberately NOT declared: `websiteContent`. Page scanning still
-              // happens entirely on-device and nothing it reads is ever transmitted,
-              // and that distinction is worth keeping accurate rather than
-              // over-declaring it away.
+              // Deliberately NOT declared: `websiteContent`. Page scanning
+              // happens entirely on-device and nothing it reads is ever
+              // transmitted.
               data_collection_permissions: {
-                required: ['authenticationInfo'],
+                required: ['none'],
               },
             },
             gecko_android: {

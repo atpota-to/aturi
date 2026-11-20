@@ -69,14 +69,8 @@ describe('manifest for Safari', () => {
 describe.each(['chrome', 'firefox'])('manifest for %s', browser => {
   const m = manifestFor(browser);
 
-  it('keeps identity for sign-in and no Safari-only permissions', () => {
-    expect(m.permissions).toEqual([
-      'storage',
-      'tabs',
-      'declarativeNetRequest',
-      'clipboardWrite',
-      'identity',
-    ]);
+  it('asks for no identity permission (there is no sign-in) and no Safari-only ones', () => {
+    expect(m.permissions).toEqual(['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite']);
   });
 
   it('keeps the gecko settings and the toolbar icon set', () => {
@@ -84,6 +78,8 @@ describe.each(['chrome', 'firefox'])('manifest for %s', browser => {
     expect(settings.gecko.id).toBe('aturi@dame.is');
     expect(settings.gecko.strict_min_version).toBe('140.0');
     expect(settings.gecko_android.strict_min_version).toBe('142.0');
+    // No sign-in, so nothing to declare under authenticationInfo.
+    expect(settings.gecko.data_collection_permissions).toEqual({ required: ['none'] });
     expect(settings.safari).toBeUndefined();
     expect(Object.keys(m.icons!)).toEqual(['16', '32', '48', '96', '128']);
   });
