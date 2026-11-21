@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Header from '@/components/Header';
 
 export const metadata: Metadata = {
@@ -18,7 +17,7 @@ export default function ExtensionPrivacyPage() {
       <div className="fn-c-wrap" data-width="article">
         <header className="fn-c-head">
           <h1 className="fn-c-title">Browser Extension Privacy Policy</h1>
-          <p className="fn-c-meta">Last updated: October 27, 2026</p>
+          <p className="fn-c-meta">Last updated: November 20, 2026</p>
         </header>
 
         <article className="fn-c-sheet fn-prose">
@@ -30,26 +29,29 @@ export default function ExtensionPrivacyPage() {
               data to anyone, ever.
             </p>
             <p>
-              There is exactly one optional feature that involves an
-              Aturi-operated server: signing in to aturi.to, which lives in
-              Settings under Account. If you never use it, the extension
-              contacts no Aturi server at all and stores nothing about you
-              anywhere but your own browser. Section&nbsp;5 describes what
-              signing in does; everything outside that section applies
-              whether you sign in or not.
+              The extension has no sign-in and no account. It never contacts
+              aturi.to or any other Aturi-operated server, and stores nothing
+              about you anywhere but your own browser.
             </p>
             <p>
               The extension does, however, read limited information from
-              pages you visit so it can offer waypoints and inspect AT URIs.
-              Page reading happens entirely inside your browser; the
-              extension never sends page contents to Aturi-operated servers,
-              signed in or not.
-              The extension also makes anonymous lookups to public atproto
-              services (Bluesky AppView, PLC directory, Constellation, and
-              your chosen Personal Data Server) when you actively use the
-              waypoint picker or the Inspect tab. The details of every
-              network request and every part of the page that is read are
-              described below.
+              pages you visit so it can offer waypoints and show the AT URIs
+              a page carries. Page reading happens entirely inside your
+              browser; the extension never sends page contents to
+              Aturi-operated servers. The extension also makes anonymous
+              lookups to public atproto services (Bluesky AppView, PLC
+              directory, and the Personal Data Servers that hold the
+              records) when you open the popup on a page with records, or
+              use the waypoint picker. The details of every network request
+              and every part of the page that is read are described below.
+            </p>
+            <p>
+              There is also a Safari version for Mac, iPhone and iPad, which
+              comes inside the Aturi app. It works the same way, with the
+              differences noted where they apply: Safari asks you site by
+              site before the extension can read a page or redirect links to
+              it, and Safari keeps the extension&rsquo;s storage on your
+              device.
             </p>
           </section>
 
@@ -78,38 +80,47 @@ export default function ExtensionPrivacyPage() {
               <li>
                 A capped local list of recently used waypoints (up to 20
                 entries) used to surface frequently used destinations in the
-                popup. You can disable this in the History tab and clear it
-                at any time.
+                popup. You can disable this, and clear it at any time, in the
+                popup section of the settings page.
               </li>
               <li>UI preferences such as compact mode and open-in-new-tab.</li>
             </ul>
             <p>
-              If you sign in (Section&nbsp;5), the extension additionally
-              stores a session token and your DID. Those are kept in{' '}
-              <code>browser.storage.local</code>, which is deliberately a
-              different storage area from the preferences above: local
-              storage never leaves your device, so the token is not uploaded
-              to your browser vendor&rsquo;s sync servers.
-            </p>
-            <p>
               No part of this data is sent to Aturi, the developer, or any
               third party. If you are signed into your browser and have
               extension sync enabled, your browser vendor (Google, Mozilla,
-              Apple, etc.) may sync this data across your devices through
-              their own infrastructure under their own privacy policy. Aturi
-              has no access to that synced data.
+              etc.) may sync this data across your devices through their own
+              infrastructure under their own privacy policy. Aturi has no
+              access to that synced data. Safari does not sync extension
+              storage: in Safari, all of the above stays on the device where
+              you set it, and Apple does not sync it to your other devices.
             </p>
             <p>
-              Identity records, record previews, and backlink counts fetched
-              by the Inspect tab live only in popup memory while the popup is
-              open and are discarded when you close it. One exception: when
-              history is enabled (the default), the extension remembers the
-              repo identifiers (the DID or handle) of records it saw, so the
-              &ldquo;no AT URIs on this page&rdquo; empty state can suggest
-              repos you recently looked at. These identifiers are stored
-              locally alongside your other preferences, are gated on the same
-              History toggle as the recents list, and are removed when you
-              clear or disable history.
+              Identity records and record previews fetched for the
+              popup&rsquo;s record card live only in popup memory while the
+              popup is open and are discarded when you close it. One
+              exception: when history is enabled (the default), the
+              extension keeps a &ldquo;Seen lately&rdquo; list of the
+              accounts whose records it saw on pages where you opened the
+              popup, so the popup can suggest them when you look something
+              up. Each entry holds the account&rsquo;s DID, handle and PDS
+              host, how many pages it turned up on, and a one-way hash of the
+              last page counted (never the page&rsquo;s address). The list is
+              capped at 50 accounts, stored only in this browser&rsquo;s
+              local extension storage (it is not synced), gated on the same
+              toggle as the recents list, and removed when you clear or
+              disable history.
+            </p>
+            <p>
+              A second exception: when &ldquo;Detect active apps&rdquo; is on
+              (the default), the extension caches which collections an
+              account&rsquo;s repository has, so the popup can mark the apps
+              that account uses. Each entry holds the account&rsquo;s DID,
+              its collection names and when they were fetched. The cache
+              keeps at most 50 accounts, refetches an entry after an hour,
+              and is stored only in this browser&rsquo;s local extension
+              storage. The history controls do not clear it; it goes away
+              when you remove the extension.
             </p>
           </section>
 
@@ -119,8 +130,8 @@ export default function ExtensionPrivacyPage() {
               The extension includes two content scripts that run on
               ordinary web pages. Both run entirely inside your browser. No
               data they read is ever sent to Aturi-operated servers; the
-              extension only uses what they read to render the popup and
-              Inspect tab locally.
+              extension only uses what they read to render the popup
+              locally.
             </p>
             <ul>
               <li>
@@ -138,7 +149,7 @@ export default function ExtensionPrivacyPage() {
                 the URL.
               </li>
               <li>
-                <strong>Inspect scan</strong> (
+                <strong>Page scan</strong> (
                 <code>inspect-scan.content.ts</code>). This script scans the
                 page for AT URIs (<code>at://&hellip;</code>) in the document
                 head, OpenGraph and Twitter meta tags, anchor hrefs, JSON-LD
@@ -157,10 +168,11 @@ export default function ExtensionPrivacyPage() {
                     after which the script stays idle until you ask for a scan.
                   </li>
                   <li>
-                    <strong>On demand</strong>, when you open the
-                    popup&rsquo;s <strong>Inspect</strong> tab: it runs the
-                    same scan and returns the URIs it found, deduplicated,
-                    along with a short surrounding text snippet for context.
+                    <strong>On demand</strong>, when you open the popup: it
+                    runs the same scan and returns the URIs it found,
+                    deduplicated, along with a short surrounding text
+                    snippet for context, so the popup can show each record
+                    the page carries as a tab on its record card.
                   </li>
                 </ul>
                 In both modes the scan stays inside your browser and never
@@ -175,6 +187,16 @@ export default function ExtensionPrivacyPage() {
               browsers, by revoking host permissions for specific sites in
               the extension settings page.
             </p>
+            <p>
+              In Safari, neither script runs on a site until you allow Aturi
+              there (Section&nbsp;4). On a site you have not allowed, they
+              run only in a tab where you open Aturi&rsquo;s popup, which
+              gives the extension access to that tab. So in Safari the
+              passive scan, and the toolbar badge it drives, happen only on
+              sites you have allowed and in tabs where you have opened the
+              popup. You can withdraw a site&rsquo;s access at any time in
+              Safari&rsquo;s extension settings.
+            </p>
           </section>
 
           <section>
@@ -182,11 +204,21 @@ export default function ExtensionPrivacyPage() {
             <p>
               The extension makes a small number of well-defined network
               requests, each tied to a specific user action. None of these
-              requests go to Aturi-operated servers; they go directly from
-              your browser to the relevant public atproto service, whose
-              own privacy policy applies.
+              requests go to Aturi-operated servers. The atproto lookups
+              below go directly from your browser to the relevant public
+              atproto service, and the font request to Google; each
+              service&rsquo;s own privacy policy applies.
             </p>
             <ul>
+              <li>
+                <strong>Fonts.</strong> The popup and the settings page load
+                the Figtree and IBM Plex Mono typefaces from Google Fonts
+                (<code>fonts.googleapis.com</code> and{' '}
+                <code>fonts.gstatic.com</code>) each time they open. Google
+                receives an ordinary font request from your browser, with
+                your IP address and user agent. No page content or account
+                data is sent.
+              </li>
               <li>
                 <strong>Handle resolution.</strong> When the popup needs to
                 turn a handle (e.g. <code>example.bsky.social</code>) into
@@ -199,28 +231,36 @@ export default function ExtensionPrivacyPage() {
                 sent.
               </li>
               <li>
-                <strong>Inspect: identity resolution.</strong> When you open
-                the Inspect tab and there is an AT URI to look up, the
-                extension resolves the repo identifier through the same
-                Bluesky AppView and, for <code>did:plc:&hellip;</code>{' '}
-                identifiers, may also fetch the DID document from the PLC
-                directory (<code>plc.directory</code>) to discover the
-                user&rsquo;s PDS host.
+                <strong>Record card: identity resolution.</strong> When you
+                open the popup on a page with AT URIs, the extension
+                resolves the repo identifier of the page&rsquo;s own record,
+                and of each other record on the page, through the same
+                Bluesky AppView. For <code>did:plc:&hellip;</code>{' '}
+                identifiers it may fetch the DID document from the PLC
+                directory (<code>plc.directory</code>), and for{' '}
+                <code>did:web:&hellip;</code> identifiers it fetches the DID
+                document from the <code>/.well-known/did.json</code>{' '}
+                endpoint of the host named in the DID, to discover the
+                account&rsquo;s handle (which labels the record&rsquo;s tab)
+                and its PDS host.
               </li>
               <li>
-                <strong>Inspect: record fetch.</strong> Once the PDS host is
-                known, the extension calls{' '}
+                <strong>Record card: repository description.</strong> For
+                the record whose tab is open, the extension calls{' '}
+                <code>com.atproto.repo.describeRepo</code> on the resolved
+                PDS host, which returns the account&rsquo;s handle and
+                collections. If that call fails, it asks the same PDS for
+                the repository&rsquo;s status (
+                <code>com.atproto.sync.getRepoStatus</code>) to tell whether
+                the account is inactive.
+              </li>
+              <li>
+                <strong>Record card: record fetch.</strong> Once the PDS
+                host is known, the extension calls{' '}
                 <code>com.atproto.repo.getRecord</code> on that PDS to fetch
-                the record itself (when the AT URI points at a specific
-                collection and rkey) so the Inspect card can show a
-                preview.
-              </li>
-              <li>
-                <strong>Inspect: backlink count.</strong> The Inspect tab
-                queries the third-party Constellation index (
-                <code>constellation.microcosm.blue</code>) with the AT URI
-                to fetch an aggregate count of public backlinks to that
-                record.
+                the open record itself, for its CID (one of the identifiers
+                the Copy list offers) and, for a record the page references,
+                a short preview.
               </li>
             </ul>
             <p>
@@ -230,13 +270,14 @@ export default function ExtensionPrivacyPage() {
               browser rewrite URLs locally based on static rules the
               extension generates from your preferences. The extension does
               not see, read, or log the URLs you visit while redirects run.
+              In Safari, the browser applies a redirect only to a link that
+              points to a site you have allowed Aturi to access; links to
+              other sites load as they are.
             </p>
             <p>
-              Apart from the optional sign-in described in
-              Section&nbsp;5, the extension does not contact{' '}
-              <code>aturi.to</code> or any other Aturi-operated server.
-              Browsing, redirecting, the waypoint picker and the Inspect tab
-              never do, whether or not you are signed in.
+              The extension does not contact <code>aturi.to</code> or any
+              other Aturi-operated server. Browsing, redirecting, the
+              waypoint picker and the popup&rsquo;s record card never do.
             </p>
           </section>
 
@@ -248,11 +289,12 @@ export default function ExtensionPrivacyPage() {
                 custom waypoints, and recents list.
               </li>
               <li>
-                <strong>tabs</strong>: to read the URL (and, for
-                Inspect, the tab id) of the current tab when you open the
-                popup, so the extension can offer waypoints that match the
-                page you&rsquo;re on and route the Inspect scan request to
-                the right tab.
+                <strong>tabs</strong>: to read the URL and the tab id of
+                the current tab when you open the popup, so the extension
+                can offer waypoints that match the page you&rsquo;re on and
+                route the page scan request to the right tab. In Safari,
+                this shows the extension a tab&rsquo;s address only on sites
+                you have allowed, or in the tab where you opened the popup.
               </li>
               <li>
                 <strong>declarativeNetRequest</strong>: to perform
@@ -260,17 +302,24 @@ export default function ExtensionPrivacyPage() {
                 to the extension.
               </li>
               <li>
+                <strong>declarativeNetRequestWithHostAccess</strong> (Safari
+                only): Safari applies a redirect rule only when the extension
+                has this permission and you have allowed the site the link
+                points to. It gives the extension no access to any site
+                beyond what you allow.
+              </li>
+              <li>
+                <strong>activeTab</strong> (Safari only): when you open
+                Aturi&rsquo;s popup, Safari gives the extension temporary
+                access to the tab you are on, so the popup can read its
+                address and the two content scripts in Section&nbsp;2 can run
+                there, even on a site you have not allowed. It covers that
+                tab only.
+              </li>
+              <li>
                 <strong>clipboardWrite</strong>: to copy universal
                 Aturi links to your clipboard when you use the &ldquo;copy
                 link&rdquo; action.
-              </li>
-              <li>
-                <strong>identity</strong>: used by one optional feature and
-                nothing else &mdash; signing in to aturi.to from the
-                Settings page. It opens a browser-managed authorization
-                window; the extension never sees your password, and this
-                permission grants it no access to your browser profile or
-                your identity in any other browser.
               </li>
               <li>
                 <strong>host_permissions: &lt;all_urls&gt;</strong>:
@@ -281,89 +330,25 @@ export default function ExtensionPrivacyPage() {
                 scripts described above can run on the active tab when
                 needed. The scripts only read the limited page surfaces
                 listed in Section&nbsp;2 and never transmit page contents
-                off-device.
+                off-device. Safari does not grant this at install. It asks
+                you site by site, and you can allow a site once, for one day,
+                always, or allow every website. Until you allow a site, the
+                extension cannot see that page&rsquo;s address, the content
+                scripts do not run there (except in a tab where you open the
+                popup), and links to that site are not redirected. A one-day
+                grant runs out, and redirects of links to that site stop with
+                it. You can change or withdraw any of these in Safari&rsquo;s
+                extension settings.
               </li>
             </ul>
           </section>
 
           <section>
-            <h2>5. Signing in (optional)</h2>
-            <p>
-              The extension can sign in to aturi.to. This is off by default,
-              requires you to enter your handle in Settings &rarr; Account,
-              and can be undone at any time with Sign out. Nothing else in
-              the extension changes based on whether you are signed in.
-            </p>
-            <p>
-              <strong>What it is for.</strong> The website lets you build
-              waypoint groups and custom waypoints and stores them as a
-              record in your own atproto repository. Signing in lets the
-              extension read that record so you do not have to recreate the
-              same setup twice.
-            </p>
-            <p>
-              <strong>What access it asks for.</strong> Read-only. The grant
-              the extension requests cannot create, update or delete
-              anything in your repository, and cannot upload files. This is
-              a narrower grant than the website asks for.
-            </p>
-            <p>
-              <strong>What is transmitted, and to whom:</strong>
-            </p>
-            <ul>
-              <li>
-                When you sign in, the handle you typed goes to aturi.to,
-                which starts a standard atproto OAuth flow. Your browser
-                then opens your own PDS&rsquo;s consent screen in a window
-                the browser manages. Your password is entered there, on your
-                PDS, and is never visible to the extension or to Aturi.
-              </li>
-              <li>
-                After you approve, aturi.to&rsquo;s server holds the
-                resulting atproto tokens &mdash; encrypted &mdash; and hands
-                the extension only an opaque session token, which is not an
-                atproto credential and cannot be used against your PDS by
-                anything but aturi.to. The extension stores that token on
-                your device, in local extension storage, which never syncs
-                to your browser vendor.
-              </li>
-              <li>
-                When you use &ldquo;Import waypoint settings&rdquo;, the
-                extension asks aturi.to to read one record from your
-                repository (<code>to.aturi.actor.preferences</code>) and
-                return it. aturi.to relays that request to your PDS and does
-                not retain the result.
-              </li>
-            </ul>
-            <p>
-              <strong>What aturi.to stores while you are signed in:</strong>{' '}
-              your DID, the atproto tokens (encrypted at rest), the
-              permissions you granted, your PDS address, and one row
-              recording that this extension has a session, when it was
-              created and when it was last used. The{' '}
-              <Link href="/terms">
-                aturi.to terms
-              </Link>{' '}
-              describe this and name the database provider.
-            </p>
-            <p>
-              <strong>How to undo it.</strong> &ldquo;Sign out&rdquo; in
-              Settings &rarr; Account ends the extension&rsquo;s session and
-              deletes the stored token. You can also see and end the
-              extension&rsquo;s session from your account settings on
-              aturi.to, and you can revoke Aturi&rsquo;s access entirely
-              from your own PDS at any time.
-            </p>
-          </section>
-
-          <section>
-            <h2>6. What the extension does not do</h2>
+            <h2>5. What the extension does not do</h2>
             <ul>
               <li>
                 It does not collect or transmit personal information to
-                Aturi, unless you sign in (Section&nbsp;5), in which case it
-                transmits exactly what that section describes and nothing
-                more.
+                Aturi.
               </li>
               <li>It does not use cookies or any tracking technology.</li>
               <li>
@@ -373,7 +358,8 @@ export default function ExtensionPrivacyPage() {
               <li>
                 It does not load or execute remotely hosted code. All
                 executable code is bundled in the released extension
-                package and reviewed by the browser store.
+                package and reviewed by the store that distributes it (for
+                Safari, the App Store).
               </li>
               <li>
                 It does not modify the contents of pages you visit, inject
@@ -390,61 +376,58 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section>
-            <h2>7. Third-party destinations and services</h2>
+            <h2>6. Third-party destinations and services</h2>
             <p>
               When you click a waypoint or follow an auto-redirected link,
               your browser navigates to a third-party Atmosphere client
               (Bluesky, Blacksky, Leaflet, Tangled, Margin, Grain, PDSls,
-              atp.tools, etc.) or a custom waypoint you defined. When you
-              use the Inspect tab, your browser makes the lookups described
-              in Section&nbsp;3 directly to the Bluesky AppView, the PLC
-              directory, Constellation, and the relevant Personal Data
-              Server. Each of these services has its own privacy policy
-              and terms of service, and Aturi has no control over them.
+              atp.tools, etc.) or a custom waypoint you defined. When the
+              popup shows a page&rsquo;s records, your browser makes the
+              lookups described in Section&nbsp;3 directly to the Bluesky
+              AppView, the PLC directory, and the relevant Personal Data
+              Server, and the popup and settings page load their fonts from
+              Google Fonts. Each of these services has its own privacy
+              policy and terms of service, and Aturi has no control over
+              them.
             </p>
           </section>
 
           <section>
-            <h2>8. Children&rsquo;s privacy</h2>
+            <h2>7. Children&rsquo;s privacy</h2>
             <p>
               The extension is a general-purpose link-routing and
               inspection utility and is not directed at children. It does not
-              knowingly collect data from children under 13. Unless you sign
-              in (Section&nbsp;5), it collects no personal information at all.
+              knowingly collect data from children under 13. It collects no
+              personal information at all.
             </p>
           </section>
 
           <section>
-            <h2>9. Data retention and deletion</h2>
+            <h2>8. Data retention and deletion</h2>
             <p>
               Settings persist in your browser&rsquo;s extension storage for
               as long as the extension is installed. You can:
             </p>
             <ul>
               <li>
-                Clear the recents list at any time from the History tab in
-                the options page.
+                Clear the Recents and Seen lately lists at any time from the
+                popup section of the settings page.
               </li>
               <li>
-                Disable history tracking entirely from the History tab.
-              </li>
-              <li>
-                Sign out from Settings &rarr; Account, which deletes the
-                stored session token from your device and ends the session on
-                aturi.to.
+                Disable history tracking entirely from the same section,
+                which also removes the Seen lately list.
               </li>
               <li>
                 Remove all extension data by uninstalling the extension. Your
                 browser may also remove any synced copy via its own sync
-                settings. Uninstalling removes the local token; to also end
-                the session on aturi.to, sign out first or revoke it from
-                your account settings there.
+                settings. In Safari, the extension comes with the Aturi app;
+                to uninstall it, delete the app.
               </li>
             </ul>
           </section>
 
           <section>
-            <h2>10. Open source</h2>
+            <h2>9. Open source</h2>
             <p>
               Aturi is open source under GPL v3. You can audit the
               extension&rsquo;s source code, including every network request
@@ -461,7 +444,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section>
-            <h2>11. Changes to this policy</h2>
+            <h2>10. Changes to this policy</h2>
             <p>
               This policy may be updated as the extension evolves. Changes
               will be reflected on this page with a new &ldquo;Last

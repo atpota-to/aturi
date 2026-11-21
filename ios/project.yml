@@ -1,5 +1,6 @@
-# XcodeGen spec for the iOS app. Regenerate the project after editing this
-# file or adding sources:
+# XcodeGen spec for the iOS app, the Mac app and the Safari web extension
+# both of them carry. Regenerate the project after editing this file or
+# adding sources:
 #
 #   cd ios && xcodegen generate
 #
@@ -11,6 +12,11 @@ options:
   bundleIdPrefix: to.aturi
   deploymentTarget:
     iOS: "17.0"
+    # The Mac app and its Safari extension. Matches AturiCore's
+    # `.macOS(.v14)`, and macOS 14 (like iOS 17) is where
+    # SFExtensionProfileKey appears, so the extension handler shared by both
+    # platforms needs no availability checks.
+    macOS: "14.0"
   xcodeVersion: "16.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
@@ -30,7 +36,11 @@ settings:
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_STRICT_CONCURRENCY: minimal
-    TARGETED_DEVICE_FAMILY: "1,2"
+    # Only iOS builds read these two, so the Mac targets can inherit them.
+    # TARGETED_DEVICE_FAMILY is deliberately not set here: XcodeGen's iOS
+    # preset already gives every iOS target "1,2", and at project level it
+    # would also reach the Mac targets, whose asset catalogs are compiled
+    # for the Mac idiom.
     SUPPORTS_MACCATALYST: NO
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
   configs:
@@ -41,6 +51,88 @@ settings:
 packages:
   AturiCore:
     path: Packages/AturiCore
+
+aggregateTargets:
+  # Builds the Safari version of the web extension (extension/, WXT) into
+  # extension/.output/safari-mv3, which both Safari extension targets copy
+  # into their bundles. A target of its own so the extension targets can
+  # depend on it: Xcode finishes it before either of them starts its build
+  # phases. It sets no SDKROOT because the script needs no SDK.
+  AturiSafariWeb:
+    targets: []
+    buildScripts:
+      - name: Build web extension (WXT, Safari)
+        # An inline call rather than `path:`, which would paste the script's
+        # text into the pbxproj at generate time; this way Xcode runs the
+        # file in the repo, through sh so it does not depend on the file's
+        # executable bit. `$SRCROOT` has no braces so that XcodeGen's own
+        # ${VAR} expansion leaves it for the shell.
+        script: '/bin/sh "$SRCROOT/scripts/build-safari-web-extension.sh"'
+        # npm and WXT decide what is stale; Xcode cannot see their inputs.
+        basedOnDependencyAnalysis: false
+        showEnvVars: false
+    settings:
+      base:
+        # WXT reads node_modules and ../src/utils and writes .output, none of
+        # which a sandboxed script phase can declare.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targetTemplates:
+  # The Safari web extension, once per platform: AturiSafari-iOS (embedded in
+  # Aturi) and AturiSafari-macOS (embedded in AturiMac). One handler source
+  # in AturiSafari/Shared, one Info.plist per platform in
+  # AturiSafari/${platformDir}, and the same WXT output copied into each.
+  SafariWebExtension:
+    type: app-extension
+    productName: AturiSafari
+    sources:
+      - path: AturiSafari/Shared
+        excludes:
+          - "**/.DS_Store"
+      - path: AturiSafari/${platformDir}
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: AturiSafariWeb
+    info:
+      path: AturiSafari/${platformDir}/Info.plist
+      properties:
+        # The name Safari lists under Extensions.
+        CFBundleDisplayName: Aturi
+        CFBundleName: AturiSafari
+        # The app's version, which App Store Connect expects an extension to
+        # match (ITMS-90473 otherwise).
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    postBuildScripts:
+      # Safari loads manifest.json from the root of the bundle's resources
+      # folder: AturiSafari.appex/ on iOS, AturiSafari.appex/Contents/Resources/
+      # on macOS. A script rather than Copy Bundle Resources because WXT's
+      # chunk file names change with their contents, so a file list in this
+      # spec would go stale. XcodeGen puts post-build scripts after every
+      # other build phase and Xcode signs after the last phase, so the files
+      # are in the bundle before it is signed; on macOS Safari checks every
+      # resource against the signature.
+      - name: Copy web extension into bundle
+        script: '/bin/sh "$SRCROOT/scripts/copy-safari-web-extension.sh"'
+        basedOnDependencyAnalysis: false
+        showEnvVars: false
+    settings:
+      base:
+        # The same ID on iOS and macOS, so Safari treats the two as one
+        # extension when it syncs extensions between devices, with no
+        # SFSafariCorresponding* keys.
+        PRODUCT_BUNDLE_IDENTIFIER: to.aturi.app.safari
+        PRODUCT_NAME: AturiSafari
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        # The copy phase reads ../extension/.output, which a sandboxed
+        # script phase cannot declare as an input.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:
   Aturi:
@@ -54,6 +146,9 @@ targets:
       - package: AturiCore
         product: AturiCore
       - target: AturiShare
+        embed: true
+        codeSign: true
+      - target: AturiSafari-iOS
         embed: true
         codeSign: true
     info:
@@ -162,6 +257,85 @@ targets:
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
 
+  # Safari web extension for iOS and iPadOS. No entitlements: the handler
+  # reads nothing of the app's. It would need the app group only if it
+  # started to.
+  AturiSafari-iOS:
+    templates:
+      - SafariWebExtension
+    templateAttributes:
+      platformDir: iOS
+    platform: iOS
+
+  # Safari web extension for macOS.
+  AturiSafari-macOS:
+    templates:
+      - SafariWebExtension
+    templateAttributes:
+      platformDir: macOS
+    platform: macOS
+    info:
+      properties:
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+    entitlements:
+      path: AturiSafari/macOS/AturiSafari.entitlements
+      properties:
+        # Every executable in a Mac App Store app must be sandboxed,
+        # extensions included (App Review guideline 2.4.5(i)).
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        # Required for notarization outside the store; Xcode's Safari
+        # extension template turns it on for both Mac targets.
+        ENABLE_HARDENED_RUNTIME: YES
+
+  # The Mac app. It exists to carry the Safari extension, as the app in
+  # Xcode's Safari extension template does: one window with the
+  # extension's state and a button to Safari's Extensions settings. It
+  # shares the iOS app's bundle ID, which is what makes the two one App
+  # Store product (universal purchase).
+  AturiMac:
+    type: application
+    platform: macOS
+    productName: Aturi
+    sources:
+      - path: AturiMac
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: AturiSafari-macOS
+        embed: true
+        codeSign: true
+    info:
+      path: AturiMac/Info.plist
+      properties:
+        CFBundleDisplayName: Aturi
+        CFBundleName: Aturi
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        # App Store Connect asks every Mac app for a category.
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: Copyright © 2025 dame. Free software under the GNU GPL, version 3 or later.
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: AturiMac/AturiMac.entitlements
+      properties:
+        # Required of every Mac App Store app (guideline 2.4.5(i)). The app
+        # makes no network requests and opens no files, so it asks for
+        # nothing more.
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        # Universal purchase with the iOS app: same bundle ID, separate
+        # target.
+        PRODUCT_BUNDLE_IDENTIFIER: to.aturi.app
+        PRODUCT_NAME: Aturi
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
 schemes:
   Aturi:
     build:
@@ -174,6 +348,22 @@ schemes:
       config: Debug
       targets:
         - package: AturiCore/AturiCoreTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  # Builds and runs the Mac app with its Safari extension. Running it
+  # registers the extension with Safari; turn it on in Safari Settings >
+  # Extensions.
+  AturiMac:
+    build:
+      targets:
+        AturiMac: all
+    run:
+      config: Debug
     profile:
       config: Release
     analyze:

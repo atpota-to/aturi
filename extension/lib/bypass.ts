@@ -21,7 +21,11 @@ export function isBypassRuleId(id: number): boolean {
   return id >= BYPASS_ID_MIN && id <= BYPASS_ID_MAX;
 }
 
-/** Escape a string for safe literal use inside a DNR `regexFilter` (RE2). */
+/**
+ * Escape a string for safe literal use inside a DNR `regexFilter`. Chrome
+ * compiles those with RE2; Safari with WebKit's content-blocker subset, which
+ * accepts an escaped metacharacter as a literal just the same.
+ */
 export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -37,13 +41,26 @@ export function escapeRegExp(value: string): string {
  * URL right before we open it keeps DNR from hijacking that one navigation,
  * while leaving ordinary link clicks fully redirected.
  *
- * The match is anchored to the exact URL (with an optional trailing fragment,
- * since DNR drops the fragment before matching) so the exemption is as narrow
- * as possible — it can never accidentally allow some other page through.
+ * The match is anchored to the exact URL (with an optional trailing fragment:
+ * Chrome drops the fragment before matching, Safari matches against the URL
+ * with it) so the exemption is as narrow as possible — it can never
+ * accidentally allow some other page through.
+ *
+ * The URL is canonicalised first (`new URL(url).href`: punycode host,
+ * percent-encoded path and query), because that is the string both browsers
+ * match against, and because Safari rejects a `regexFilter` containing any
+ * non-ASCII character, which would fail the whole `updateSessionRules` call.
+ * A string the URL parser rejects is used as given.
  */
 export function buildBypassRule(url: string, id: number): RedirectRule {
-  const hashIndex = url.indexOf('#');
-  const base = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  let canonical = url;
+  try {
+    canonical = new URL(url).href;
+  } catch {
+    /* not a parseable absolute URL; match it literally */
+  }
+  const hashIndex = canonical.indexOf('#');
+  const base = hashIndex === -1 ? canonical : canonical.slice(0, hashIndex);
   return {
     id,
     priority: BYPASS_RULE_PRIORITY,

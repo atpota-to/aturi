@@ -19,6 +19,7 @@ import {
   type TabScope,
 } from '../tabScope';
 import { DEFAULT_PREFS, type Prefs } from '../prefs';
+import { safariRegexStatus } from '../safariRegex';
 
 function prefs(partial: Partial<Prefs>): Prefs {
   return { ...DEFAULT_PREFS, ...partial };
@@ -302,5 +303,24 @@ describe('allSourceHosts', () => {
 
   it('is empty when auto-redirect is off', () => {
     expect(allSourceHosts(bskyToAnisota({ autoRedirect: false }))).toEqual([]);
+  });
+});
+
+describe('buildTabScopeRule on Safari', () => {
+  // This is why the background installs no tab-scope rules on Safari. These
+  // tests pin down the reason, so whoever changes the rule shape sees it.
+  it('uses alternation, which WebKit rejects for the whole batch', () => {
+    const one = buildTabScopeRule(['bsky.app'], 7, TAB_SCOPE_ID_MIN)!;
+    const two = buildTabScopeRule(['bsky.app', 'deer.social'], 7, TAB_SCOPE_ID_MIN)!;
+    // Even one host fails, because of the `(?:[:/?#]|$)` tail.
+    expect(safariRegexStatus(one.condition.regexFilter!)).toBe('Disjunction');
+    expect(safariRegexStatus(two.condition.regexFilter!)).toBe('Disjunction');
+  });
+
+  it('relies on `tabIds`, which Safari ignores rather than rejects', () => {
+    // A Safari-friendly regex alone would not help: without `tabIds` the
+    // exemption would apply to every tab.
+    const rule = buildTabScopeRule(['bsky.app'], 7, TAB_SCOPE_ID_MIN)!;
+    expect(rule.condition.tabIds).toEqual([7]);
   });
 });

@@ -11,6 +11,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     case redirects
     case custom
     case account
+    case safari
     case about
 
     var id: String { rawValue }
@@ -23,6 +24,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .redirects: return "Redirects"
         case .custom: return "Custom waypoints"
         case .account: return "Account"
+        case .safari: return "Safari extension"
         case .about: return "About"
         }
     }
@@ -35,6 +37,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .redirects: return "Open links straight in a preferred client"
         case .custom: return "Your own destinations, built from URL templates"
         case .account: return "Sign in to sync settings to your PDS"
+        case .safari: return "Turn on Aturi in Safari on this device"
         case .about: return "Version, links, licence and privacy"
         }
     }
@@ -47,6 +50,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .redirects: return "arrow.triangle.turn.up.right.diamond"
         case .custom: return "link.badge.plus"
         case .account: return "person.crop.circle"
+        case .safari: return "safari"
         case .about: return "info.circle"
         }
     }
@@ -100,6 +104,7 @@ struct SettingsView: View {
             }
 
             SettingsSection {
+                pageLink(.safari)
                 pageLink(.about)
             }
         }
@@ -135,6 +140,8 @@ struct SettingsPageDestination: View {
             CustomWaypointsView()
         case .account:
             AccountSettingsView()
+        case .safari:
+            SafariExtensionSettingsView()
         case .about:
             AboutView()
         }

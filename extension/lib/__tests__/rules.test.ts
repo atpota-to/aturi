@@ -1,13 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { buildRules } from '../rules';
+import {
+  COMPAT_FAMILIES,
+  WAYPOINT_DESTINATIONS_DATA,
+  type RedirectCompatFamily,
+  type WaypointType,
+} from '@aturi/waypoints.data';
+import { buildRules, type RedirectRule } from '../rules';
 import {
   DEFAULT_PREFS,
   REDIRECT_OFF,
   areRedirectCompatible,
   getRedirectCompatFor,
   resolveRedirectFor,
+  type CustomWaypoint,
   type Prefs,
 } from '../prefs';
+import { safariRegexStatus } from '../safariRegex';
 
 function prefs(partial: Partial<Prefs>): Prefs {
   return { ...DEFAULT_PREFS, ...partial };
@@ -327,5 +335,104 @@ describe('compat helpers', () => {
     expect(resolveRedirectFor(p, 'bluesky', 'post')).toBe('anisota');
     expect(resolveRedirectFor(p, 'leaflet', 'profile')).toBe('offprint');
     expect(resolveRedirectFor(p, 'semble', 'profile')).toBe(null);
+  });
+});
+
+describe('Safari regex subset', () => {
+  // Safari rejects a whole `updateDynamicRules` call if any one rule's
+  // `regexFilter` falls outside WebKit's content-blocker dialect, so every
+  // filter the builder can emit has to fit it. Walk every family favorite and
+  // every per-source default for every waypoint, plus custom destinations.
+  const waypointIds = Object.keys(WAYPOINT_DESTINATIONS_DATA);
+  const families = Object.keys(COMPAT_FAMILIES) as RedirectCompatFamily[];
+  const types: WaypointType[] = ['post', 'profile', 'list', 'record'];
+
+  const custom: CustomWaypoint[] = [
+    {
+      id: 'custom:social',
+      name: 'Social',
+      domain: 'social.example',
+      category: 'custom',
+      supportedTypes: ['post', 'profile', 'list'],
+      templates: {
+        post: '/u/{handle}/p/{rkey}?via=aturi',
+        profile: '/u/{handle}',
+        list: '/u/{handle}/lists/{rkey}#top',
+      },
+      redirectCompat: ['bluesky-social'],
+    },
+    {
+      id: 'custom:reader',
+      name: 'Reader',
+      domain: 'reader.example:8443',
+      category: 'custom',
+      supportedTypes: ['profile'],
+      templates: { profile: '/@{handle}/$feed (all)' },
+      redirectCompat: ['standard-site'],
+    },
+    {
+      id: 'custom:explorer',
+      name: 'Explorer',
+      domain: 'explorer.example',
+      category: 'custom',
+      supportedTypes: ['record', 'profile'],
+      templates: { record: '/r/{handle}/{collection}/{rkey}', profile: '/r/{handle}' },
+      redirectCompat: ['atproto-explorer'],
+    },
+  ];
+
+  // Everything visible, so hidden-by-default waypoints are walked too.
+  const destinations = [...waypointIds, ...custom.map(c => c.id)];
+  const base: Partial<Prefs> = {
+    autoRedirect: true,
+    customWaypoints: custom,
+    waypointGroups: [{ ...DEFAULT_PREFS.waypointGroups[0], waypointIds: destinations }],
+  };
+
+  function allRules(): RedirectRule[] {
+    const rules: RedirectRule[] = [];
+    for (const family of families) {
+      for (const destination of destinations) {
+        rules.push(...buildRules(prefs({ ...base, favoriteByFamily: { [family]: destination } })));
+      }
+    }
+    for (const source of waypointIds) {
+      for (const type of types) {
+        for (const destination of destinations) {
+          rules.push(...buildRules(prefs({
+            ...base,
+            defaults: { [source]: { [type]: destination } },
+          })));
+        }
+      }
+    }
+    return rules;
+  }
+
+  const rules = allRules();
+  const filters = [...new Set(rules.map(r => r.condition.regexFilter!))];
+
+  it('covers a real set of rules', () => {
+    // Guards against the walk silently producing nothing. There are 38
+    // distinct source patterns at the time of writing.
+    expect(filters.length).toBeGreaterThanOrEqual(30);
+    expect(rules.some(r => r.action.redirect?.regexSubstitution?.includes('social.example'))).toBe(true);
+    expect(rules.some(r => r.action.redirect?.regexSubstitution?.includes('explorer.example'))).toBe(true);
+  });
+
+  it('emits only filters WebKit accepts', () => {
+    const rejected = filters
+      .map(filter => ({ filter, status: safariRegexStatus(filter) }))
+      .filter(r => r.status !== 'Ok');
+    expect(rejected).toEqual([]);
+  });
+
+  it('uses at most nine capture groups, the most a substitution can name', () => {
+    // WebKit fills `\0`..`\9` in `regexSubstitution`; a group past that
+    // couldn't be referenced. Count unescaped `(` that don't start `(?`.
+    for (const filter of filters) {
+      const groups = filter.match(/(?<!\\)\((?!\?)/g) ?? [];
+      expect(groups.length).toBeLessThanOrEqual(9);
+    }
   });
 });

@@ -6,3 +6,7 @@ export const browser = undefined as unknown as Record<string, unknown>;
 export function defineBackground<T>(definition: T): T {
   return definition;
 }
+
+export function defineContentScript<T>(definition: T): T {
+  return definition;
+}
