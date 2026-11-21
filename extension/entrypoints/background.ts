@@ -9,7 +9,9 @@ import {
   tabHostFromUrl,
   type TabScope,
 } from '../lib/tabScope';
-import { debugLog, setLogContext } from '../lib/debugLog';
+import { debugLog, debugWarn, setLogContext } from '../lib/debugLog';
+import { IS_SAFARI } from '../lib/platform';
+import type { RedirectRule } from '../lib/rules';
 
 setLogContext('background');
 
@@ -100,7 +102,8 @@ async function doSyncRules(prefs: Prefs): Promise<void> {
     console.warn('[aturi] getDynamicRules unavailable', err);
   }
 
-  const addRules = buildRules(prefs, { baseId: RULE_ID_BASE });
+  let addRules = buildRules(prefs, { baseId: RULE_ID_BASE });
+  if (IS_SAFARI) addRules = await dropUnsupportedRegexRules(dnr, addRules);
 
   try {
     await dnr.updateDynamicRules({
@@ -109,7 +112,75 @@ async function doSyncRules(prefs: Prefs): Promise<void> {
     });
   } catch (err) {
     console.error('[aturi] failed to update DNR rules', err);
+    if (IS_SAFARI) await addRulesOneByOne(dnr, removeRuleIds, addRules);
   }
+}
+
+// Safari compiles DNR rules into a WebKit content blocker, whose regex dialect
+// is much smaller than RE2 (no `|`, no `{n,m}`, no `\d`, ASCII only). WebKit
+// checks every rule before it applies an update, and a single rule it can't
+// compile throws for the whole call, which also leaves the previous rules in
+// place. The redirect recipes are written to fit that dialect (the tests
+// check them), so these two guards should never fire. They exist so that one
+// rule that slips through costs that rule, not every redirect.
+
+/**
+ * Safari only: drop rules whose `regexFilter` WebKit says it can't compile.
+ * `isRegexSupported` runs the same check WebKit applies to the rule itself.
+ * A probe that throws tells us nothing about the rule, so the rule is kept.
+ */
+async function dropUnsupportedRegexRules(
+  dnr: typeof chrome.declarativeNetRequest,
+  rules: RedirectRule[]
+): Promise<RedirectRule[]> {
+  if (typeof dnr.isRegexSupported !== 'function') return rules;
+  const verdicts = await Promise.all(
+    rules.map(async rule => {
+      const regex = rule.condition.regexFilter;
+      if (!regex) return null;
+      try {
+        const result = await dnr.isRegexSupported({ regex });
+        return result?.isSupported === false ? (result.reason ?? 'unsupported') : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  const dropped = rules
+    .map((rule, i) => ({ id: rule.id, regex: rule.condition.regexFilter, reason: verdicts[i] }))
+    .filter(d => d.reason != null);
+  if (dropped.length === 0) return rules;
+  console.warn('[aturi] dropped redirect rules Safari cannot compile', dropped);
+  debugWarn('dnr: dropped rules Safari cannot compile', dropped);
+  return rules.filter((_, i) => verdicts[i] == null);
+}
+
+/**
+ * Safari only: the batch update failed for a reason the regex probe didn't
+ * catch. Remove the old rules, then add the new ones one at a time so a bad
+ * rule only takes itself out. Each call recompiles Safari's rule list, which
+ * is why this is the fallback and not the normal path.
+ */
+async function addRulesOneByOne(
+  dnr: typeof chrome.declarativeNetRequest,
+  removeRuleIds: number[],
+  addRules: RedirectRule[]
+): Promise<void> {
+  try {
+    await dnr.updateDynamicRules({ removeRuleIds });
+  } catch (err) {
+    console.error('[aturi] failed to remove old DNR rules', err);
+    return;
+  }
+  const failed: number[] = [];
+  for (const rule of addRules) {
+    try {
+      await dnr.updateDynamicRules({ addRules: [rule] });
+    } catch {
+      failed.push(rule.id);
+    }
+  }
+  if (failed.length > 0) debugWarn('dnr: rules rejected one by one', { failed });
 }
 
 // Every session-rule writer (bypass arming, bypass teardown, tab-scope sync)
@@ -175,6 +246,19 @@ async function doSyncTabScopeRules(): Promise<void> {
     removeRuleIds = existing.map(r => r.id).filter(isTabScopeRuleId);
   } catch (err) {
     console.warn('[aturi] getSessionRules unavailable', err);
+  }
+
+  // Safari has no tab-scoped rules (see `buildTabScopeRule`), so all this
+  // does there is clear anything left in the range. Every update recompiles
+  // Safari's whole rule list, so skip the call when there's nothing to clear.
+  if (IS_SAFARI) {
+    if (removeRuleIds.length === 0) return;
+    try {
+      await dnr.updateSessionRules({ removeRuleIds });
+    } catch (err) {
+      console.error('[aturi] failed to clear tab-scope rules', err);
+    }
+    return;
   }
 
   const addRules = latestPrefs ? buildTabScopeRules(latestPrefs, tabScopes) : [];
@@ -252,6 +336,14 @@ async function savePausedTabIds(): Promise<void> {
  * while the worker was suspended.
  */
 async function primeTabScopes(): Promise<void> {
+  // Safari doesn't track tab scopes. It also must not call `tabs.query({})`
+  // here: Safari asks the user for access to every open site the extension
+  // hasn't been granted yet and can hold the call for up to two minutes,
+  // which would hold `readyPromise` with it.
+  if (IS_SAFARI) {
+    await syncTabScopeRules();
+    return;
+  }
   const paused = new Set(await loadPausedTabIds());
   try {
     const tabs = (await browser.tabs.query({})) as Array<{ id?: number; url?: string }>;
@@ -280,6 +372,9 @@ type TabRedirectState = {
 };
 
 async function handleRedirectScopeQuery(message: { tabId?: unknown }): Promise<TabRedirectState> {
+  // Safari can't scope a rule to a tab, so there is no pause to offer. Answer
+  // straight away rather than waiting on startup work we don't need.
+  if (IS_SAFARI) return { supported: false, paused: false };
   await readyPromise;
   const supported = getDnr()?.updateSessionRules != null;
   const tabId = typeof message.tabId === 'number' ? message.tabId : null;
@@ -291,6 +386,7 @@ async function handleSetTabPause(message: {
   tabId?: unknown;
   paused?: unknown;
 }): Promise<TabRedirectState> {
+  if (IS_SAFARI) return { supported: false, paused: false };
   await readyPromise;
   const supported = getDnr()?.updateSessionRules != null;
   const tabId = typeof message.tabId === 'number' ? message.tabId : null;
@@ -498,6 +594,7 @@ async function applyTabBadge(tabId: number, count: number): Promise<void> {
     console.warn('[aturi] no action API available — toolbar icon will not update');
     return;
   }
+  if (IS_SAFARI) await noteBadgedTab(tabId, count > 0);
   const text = count > 0 ? String(count) : '';
   try {
     if (action.setBadgeText) await action.setBadgeText({ text, tabId });
@@ -536,6 +633,12 @@ async function applyTabBadge(tabId: number, count: number): Promise<void> {
  * immediately instead of lingering until each tab is reloaded.
  */
 async function clearAllTabBadges(): Promise<void> {
+  // Safari: clear only the tabs we badged. `tabs.query({})` would ask the
+  // user for access to every open site the extension hasn't been granted.
+  if (IS_SAFARI) {
+    await clearBadgedTabs();
+    return;
+  }
   const action = getActionApi();
   if (!action) return;
   try {
@@ -548,6 +651,52 @@ async function clearAllTabBadges(): Promise<void> {
     );
   } catch (err) {
     console.warn('[aturi] clearAllTabBadges failed', err);
+  }
+}
+
+// Safari only: the tabs currently showing a badge, so `clearAllTabBadges` can
+// reach them without `tabs.query({})`. Kept in `storage.session` because the
+// background page is unloaded when idle and an in-memory set would forget
+// them. Closed tabs are dropped by a `tabs.onRemoved` listener.
+const BADGED_TABS_KEY = 'aturi:badgedTabs';
+
+let badgedTabs: Promise<Set<number>> | null = null;
+
+function loadBadgedTabs(): Promise<Set<number>> {
+  badgedTabs ??= (async () => {
+    const area = getSessionArea();
+    if (!area) return new Set<number>();
+    try {
+      const raw = (await area.get(BADGED_TABS_KEY))?.[BADGED_TABS_KEY];
+      return new Set(
+        Array.isArray(raw) ? raw.filter((n): n is number => typeof n === 'number') : []
+      );
+    } catch (err) {
+      console.warn('[aturi] failed to read badged tabs', err);
+      return new Set<number>();
+    }
+  })();
+  return badgedTabs;
+}
+
+async function clearBadgedTabs(): Promise<void> {
+  const ids = [...(await loadBadgedTabs())];
+  await Promise.all(ids.map(id => applyTabBadge(id, 0)));
+}
+
+/**
+ * Record whether a tab shows a badge. Writes only when that changes, since
+ * every page load in every tab comes through here with `badged: false`.
+ */
+async function noteBadgedTab(tabId: number, badged: boolean): Promise<void> {
+  const ids = await loadBadgedTabs();
+  if (ids.has(tabId) === badged) return;
+  if (badged) ids.add(tabId);
+  else ids.delete(tabId);
+  try {
+    await getSessionArea()?.set({ [BADGED_TABS_KEY]: [...ids] });
+  } catch (err) {
+    console.warn('[aturi] failed to persist badged tabs', err);
   }
 }
 
@@ -668,35 +817,46 @@ export default defineBackground(() => {
     }
   });
 
-  browser.tabs.onCreated.addListener(tab => {
-    const tabId = tab.id;
-    if (typeof tabId !== 'number') return;
-    const startUrl = (tab as { pendingUrl?: string }).pendingUrl ?? tab.url;
-    // A tab you opened yourself has no opener and parks on the new-tab page.
-    // A link opened in a new tab carries `openerTabId`, and a link handed over
-    // by another application arrives with its target URL already set — so only
-    // the first of the three means "whatever lands here next, I typed".
-    const fresh = tab.openerTabId === undefined && isBlankTabUrl(startUrl);
-    recordScope(tabId, { host: tabHostFromUrl(startUrl), fresh, paused: false });
-  });
-
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    const url = changeInfo.url ?? tab?.url;
-    const prev = tabScopes.get(tabId);
-    recordScope(tabId, {
-      host: tabHostFromUrl(url),
-      // A fresh tab's pass covers one navigation. Once it has committed a real
-      // page, anything after that is an ordinary click on a loaded document.
-      fresh: prev?.fresh === true && isBlankTabUrl(url),
-      paused: prev?.paused ?? false,
+  if (IS_SAFARI) {
+    browser.tabs.onRemoved.addListener(tabId => {
+      void noteBadgedTab(tabId, false);
     });
-  });
+  }
 
-  browser.tabs.onRemoved.addListener(tabId => {
-    if (!tabScopes.delete(tabId)) return;
-    void savePausedTabIds();
-    void syncTabScopeRules();
-  });
+  // Tab-scope tracking. Not on Safari: it can't scope a rule to a tab, and
+  // the URLs it reports are '' for every site the user hasn't granted, so
+  // the scopes would be wrong anyway.
+  if (!IS_SAFARI) {
+    browser.tabs.onCreated.addListener(tab => {
+      const tabId = tab.id;
+      if (typeof tabId !== 'number') return;
+      const startUrl = (tab as { pendingUrl?: string }).pendingUrl ?? tab.url;
+      // A tab you opened yourself has no opener and parks on the new-tab page.
+      // A link opened in a new tab carries `openerTabId`, and a link handed over
+      // by another application arrives with its target URL already set — so only
+      // the first of the three means "whatever lands here next, I typed".
+      const fresh = tab.openerTabId === undefined && isBlankTabUrl(startUrl);
+      recordScope(tabId, { host: tabHostFromUrl(startUrl), fresh, paused: false });
+    });
+
+    browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      const url = changeInfo.url ?? tab?.url;
+      const prev = tabScopes.get(tabId);
+      recordScope(tabId, {
+        host: tabHostFromUrl(url),
+        // A fresh tab's pass covers one navigation. Once it has committed a real
+        // page, anything after that is an ordinary click on a loaded document.
+        fresh: prev?.fresh === true && isBlankTabUrl(url),
+        paused: prev?.paused ?? false,
+      });
+    });
+
+    browser.tabs.onRemoved.addListener(tabId => {
+      if (!tabScopes.delete(tabId)) return;
+      void savePausedTabIds();
+      void syncTabScopeRules();
+    });
+  }
 
   readyPromise = primeAndSync();
   void readyPromise;

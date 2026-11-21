@@ -3,14 +3,18 @@ import Observation
 import AturiCore
 
 /// The Lexicons tab's root (`/explore/lexicons`), port of
-/// `LexiconsExplorer.tsx`: three sections behind one segmented control.
-/// Trending is the ranked strip with its window and metric toggles, All is
-/// the full-catalog browser and Search is the typeahead over `/search`.
-/// One `LexiconsModel` backs all three, so switching sections never
-/// refetches what another section already loaded.
+/// `LexiconsExplorer.tsx`: four sections behind one segmented control.
+/// Trending is the ranked strip with its window and metric toggles, New is
+/// the new-lexicons list with its own window, All is the full-catalog
+/// browser and Search is the typeahead over `/search`. One `LexiconsModel`
+/// backs Trending, All and Search, so switching sections never refetches
+/// what another section already loaded; New reads aturi.to's
+/// `/api/lexicons/new` through its own `NewLexiconsModel`, fetched the
+/// first time the section shows.
 struct LexiconsView: View {
     private enum Segment: String, CaseIterable, Identifiable {
         case trending
+        case new
         case all
         case search
 
@@ -19,6 +23,7 @@ struct LexiconsView: View {
         var label: String {
             switch self {
             case .trending: return "Trending"
+            case .new: return "New"
             case .all: return "All"
             case .search: return "Search"
             }
@@ -26,10 +31,12 @@ struct LexiconsView: View {
     }
 
     @State private var model = LexiconsModel()
+    @State private var newModel = NewLexiconsModel()
     @State private var segment: Segment = .trending
     @FocusState private var searchFocused: Bool
 
     @Environment(AppRouter.self) private var router
+    @Environment(PreferencesStore.self) private var preferences
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
@@ -39,6 +46,7 @@ struct LexiconsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
+                pinnedSection
                 Picker("Section", selection: $segment) {
                     ForEach(Segment.allCases) { segment in
                         Text(segment.label).tag(segment)
@@ -48,6 +56,13 @@ struct LexiconsView: View {
                 switch segment {
                 case .trending:
                     trendingSection
+                case .new:
+                    newSection
+                        .task {
+                            if newModel.answer.isIdle {
+                                newModel.load()
+                            }
+                        }
                 case .all:
                     browseSection
                 case .search:
@@ -84,7 +99,16 @@ struct LexiconsView: View {
             }
         }
         .refreshable {
+            let newLoad: Task<Void, Never>? = newModel.answer.isIdle ? nil : newModel.load()
             await model.load().value
+            await newLoad?.value
+        }
+        /* The Explore landing's "All new lexicons" lands here. The tab may
+           be built already or appear for the first time with the request,
+           so both moments get to try. */
+        .onAppear(perform: showRequestedSection)
+        .onChange(of: router.newLexiconsRequested) { _, _ in
+            showRequestedSection()
         }
         .onChange(of: segment) { _, next in
             if next == .search {
@@ -117,6 +141,65 @@ struct LexiconsView: View {
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: Pinned (LexiconRail.tsx)
+
+    /* What the person pinned from a lexicon or a namespace page, in the
+       order pinned: the web rail's Pinned list, which travels with the
+       synced preferences. A namespace pin is spelled `prefix.*`. */
+    @ViewBuilder
+    private var pinnedSection: some View {
+        let pins = preferences.prefs.lexiconExplorerPins
+        if !pins.isEmpty {
+            LexiconSectionCard("Pinned", systemImage: "pin") {
+                VStack(spacing: 0) {
+                    ForEach(Array(pins.enumerated()), id: \.element) { index, entry in
+                        if index > 0 {
+                            Divider()
+                        }
+                        pinnedRow(entry)
+                    }
+                }
+            }
+        }
+    }
+
+    private func pinnedRow(_ entry: String) -> some View {
+        let isGroup = PinnedLexicons.isGroup(entry)
+        let name = isGroup ? PinnedLexicons.groupPrefix(entry) : entry
+        let route: Route = isGroup ? .lexiconGroup(prefix: name) : .lexicon(nsid: name)
+        return NavigationLink(value: route) {
+            HStack(spacing: 10) {
+                Image(systemName: isGroup ? "folder" : "square.stack.3d.up")
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .accessibilityHidden(true)
+                Text(isGroup ? "\(name).*" : name)
+                    .font(AturiFont.monoSmall)
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AturiFont.caption2)
+                    .foregroundStyle(theme.textFaint)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                preferences.update { $0.toggleLexiconExplorerPin(entry) }
+            } label: {
+                Label("Unpin", systemImage: "pin.slash")
+            }
+        }
+        .accessibilityLabel(isGroup ? "Namespace \(name)" : name)
+        .accessibilityHint("Pinned. Touch and hold to unpin")
     }
 
     // MARK: Trending (TrendingLexicons.tsx)
@@ -202,6 +285,122 @@ struct LexiconsView: View {
         } else {
             SkeletonRows(count: model.rankingLimit)
                 .padding(14)
+        }
+    }
+
+    // MARK: New (NewLexicons.tsx)
+
+    private var newSection: some View {
+        @Bindable var newModel = newModel
+        return VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Label(NewLexiconsModel.title, systemImage: "leaf")
+                        .font(AturiFont.subtitle)
+                        .foregroundStyle(theme.textPrimary)
+                    Text("via UFOs")
+                        .aturiLabel()
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer(minLength: 0)
+                    if newModel.isRefreshing {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                Text(NewLexiconsModel.subtitle)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Picker("Time window", selection: $newModel.window) {
+                    ForEach(UFOsWindow.allCases, id: \.self) { window in
+                        Text(window.label).tag(window)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding(14)
+            Divider()
+            newContent
+            if let note = newModel.note {
+                Divider()
+                Text(note)
+                    .font(AturiFont.caption)
+                    .foregroundStyle(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(14)
+            }
+        }
+        .cardBackground()
+    }
+
+    @ViewBuilder
+    private var newContent: some View {
+        if let message = newModel.errorMessage {
+            ErrorPanel(message: message) {
+                newModel.load()
+            }
+            .padding(12)
+        } else if let rows = newModel.visible {
+            if rows.isEmpty {
+                EmptyState(title: NewLexiconsModel.emptyMessage, systemImage: "leaf")
+                    .padding(12)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, lexicon in
+                        if index > 0 {
+                            Divider()
+                        }
+                        newLexiconRow(lexicon, rank: index + 1)
+                    }
+                    if newModel.showsToggle {
+                        Divider()
+                        Button(newModel.toggleLabel) {
+                            newModel.expanded.toggle()
+                        }
+                        .buttonStyle(.aturiSecondary)
+                        .padding(12)
+                    }
+                }
+            }
+        } else {
+            SkeletonRows(count: NewLexiconsModel.resultCount)
+                .padding(14)
+        }
+    }
+
+    /// Rank, the NSID, then records and accounts, each with its unit
+    /// beneath as the web's `Count` prints it.
+    private func newLexiconRow(_ lexicon: NewLexicon, rank: Int) -> some View {
+        NavigationLink(value: Route.lexicon(nsid: lexicon.nsid)) {
+            HStack(spacing: 10) {
+                Text("\(rank)")
+                    .font(AturiFont.monoSmall)
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(minWidth: 20, alignment: .leading)
+                NsidSplitText(lexicon.nsid)
+                Spacer(minLength: 8)
+                newLexiconCount(lexicon.creates, unit: "records")
+                newLexiconCount(lexicon.didsEstimate, unit: "accounts")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .contextMenu {
+            LexiconRowMenu(nsid: lexicon.nsid)
+        }
+    }
+
+    private func newLexiconCount(_ value: Int, unit: String) -> some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            LexiconCountText(value: value, unit: unit)
+            Text(unit)
+                .font(AturiFont.caption2)
+                .foregroundStyle(theme.textFaint)
+                .accessibilityHidden(true)
         }
     }
 
@@ -345,7 +544,7 @@ struct LexiconsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(theme.textTertiary)
-                TextField("app.bsky.feed.post, grain, smokesignal", text: $model.searchQuery)
+                TextField("NSID, namespace or app name", text: $model.searchQuery)
                     .font(AturiFont.monoSmall)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -446,6 +645,13 @@ struct LexiconsView: View {
             }
         }
         .cardBackground()
+    }
+
+    /* `router.showNewLexicons()` has already popped this stack to its root
+       and selected the tab; this turns to the section. */
+    private func showRequestedSection() {
+        guard router.consumeNewLexiconsRequest() else { return }
+        segment = .new
     }
 
     private func submitSearch() {

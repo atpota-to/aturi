@@ -51,14 +51,19 @@ public struct LexiconRankingRow: Hashable, Sendable, Identifiable {
     /// The metric per bucket over the window, for the sparkline.
     public let series: [Int]
     /// Percent change against the prior window; nil when the prior window
-    /// is zero or unknown. Top mode never computes one.
+    /// is zero or unknown. Top mode computes one only with `withPrior`.
     public let deltaPct: Double?
+    /// The metric in the prior window, when it was fetched: always for
+    /// Trending, for Top only with `withPrior`. The landing's Rising card
+    /// reads it as "prior → now".
+    public let prior: Int?
 
-    public init(nsid: String, value: Int, series: [Int], deltaPct: Double? = nil) {
+    public init(nsid: String, value: Int, series: [Int], deltaPct: Double? = nil, prior: Int? = nil) {
         self.nsid = nsid
         self.value = value
         self.series = series
         self.deltaPct = deltaPct
+        self.prior = prior
     }
 
     /// The top-2-segment namespace, stacked over `namespaceTail` on
@@ -371,12 +376,17 @@ public final class LexiconsModel {
     ///      failed; the ranked numbers then stand in for creates and dids.
     ///   4. Top: sort by the score. Trending: percent change against the
     ///      prior window, rows without prior data sorted to the back.
-    ///   5. A sparkline per picked row, trimmed to the window's buckets.
+    ///   5. A sparkline per picked row, trimmed to the window's buckets,
+    ///      unless `withSeries` is off (the landing's cards draw none, so
+    ///      they skip a request per row). `withPrior` has Top fetch the
+    ///      prior window for its picked rows too, so they carry a delta.
     public nonisolated static func fetchRanking(
         window: UFOsWindow,
         mode: LexiconRankingMode,
         metric: Metric,
         resultCount: Int,
+        withSeries: Bool = true,
+        withPrior: Bool = false,
         client: UFOsClient,
         now: Date = Date()
     ) async -> [LexiconRankingRow]? {
@@ -404,10 +414,29 @@ public final class LexiconsModel {
         if mode == .top {
             let sorted = filtered.sorted { (currentMap[$0.nsid] ?? 0) > (currentMap[$1.nsid] ?? 0) }
             let picked = Array(sorted.prefix(resultCount))
-            let series = await fetchSeries(client, picked.map(\.nsid), since: sinceIso, window: window, metric: metric)
+            let pickedNsids = picked.map(\.nsid)
+            // No caller asks for both, so the two run one after the other.
+            let series: [[Int]]
+            if withSeries {
+                series = await fetchSeries(client, pickedNsids, since: sinceIso, window: window, metric: metric)
+            } else {
+                series = Array(repeating: [Int](), count: pickedNsids.count)
+            }
+            var priorTop: [String: Int]?
+            if withPrior, !pickedNsids.isEmpty {
+                priorTop = await statsMetric(
+                    client, pickedNsids,
+                    since: UFOsClient.isoAgo(hours: Double(window.hours * 2), now: now),
+                    until: sinceIso,
+                    metric: metric
+                )
+            }
             if Task.isCancelled { return nil }
             return picked.enumerated().map { i, c in
-                LexiconRankingRow(nsid: c.nsid, value: currentMap[c.nsid] ?? 0, series: series[i], deltaPct: nil)
+                let value = currentMap[c.nsid] ?? 0
+                let prior = priorTop.map { $0[c.nsid] ?? 0 }
+                let deltaPct: Double? = prior.flatMap { $0 > 0 ? (Double(value - $0) / Double($0)) * 100 : nil }
+                return LexiconRankingRow(nsid: c.nsid, value: value, series: series[i], deltaPct: deltaPct, prior: prior)
             }
         }
 
@@ -415,11 +444,11 @@ public final class LexiconsModel {
         let priorMap = await statsMetric(client, nsids, since: priorSinceIso, until: sinceIso, metric: metric)
         if Task.isCancelled { return nil }
 
-        let withDelta: [(nsid: String, value: Int, deltaPct: Double?)] = filtered.map { c in
+        let withDelta: [(nsid: String, value: Int, deltaPct: Double?, prior: Int)] = filtered.map { c in
             let current = currentMap[c.nsid] ?? 0
             let prior = priorMap[c.nsid] ?? 0
             let deltaPct: Double? = prior > 0 ? (Double(current - prior) / Double(prior)) * 100 : nil
-            return (c.nsid, current, deltaPct)
+            return (c.nsid, current, deltaPct, prior)
         }
         // Delta descending, nil deltas (no prior data) to the back; the
         // sort is stable, so ties keep the pool's order as they do on the web.
@@ -430,10 +459,16 @@ public final class LexiconsModel {
             case (let x?, let y?): return x > y
             }
         }.prefix(resultCount)
-        let series = await fetchSeries(client, ranked.map(\.nsid), since: sinceIso, window: window, metric: metric)
+        let rankedNsids = ranked.map(\.nsid)
+        let series: [[Int]]
+        if withSeries {
+            series = await fetchSeries(client, rankedNsids, since: sinceIso, window: window, metric: metric)
+        } else {
+            series = Array(repeating: [Int](), count: rankedNsids.count)
+        }
         if Task.isCancelled { return nil }
         return ranked.enumerated().map { i, c in
-            LexiconRankingRow(nsid: c.nsid, value: c.value, series: series[i], deltaPct: c.deltaPct)
+            LexiconRankingRow(nsid: c.nsid, value: c.value, series: series[i], deltaPct: c.deltaPct, prior: c.prior)
         }
     }
 
@@ -1327,12 +1362,6 @@ public final class LexiconDetailModel {
     /// `hasActivity`: true while unknown so the notice does not flash.
     public var hasActivity: Bool {
         activity.value.map { $0.total > 0 } ?? true
-    }
-
-    /// The muted line under the chart once the window is known to be quiet.
-    public var noActivityMessage: String? {
-        guard activity.value != nil, !hasActivity else { return nil }
-        return "No recorded activity for this lexicon in the last \(window.label)."
     }
 
     public var activityErrorMessage: String? {

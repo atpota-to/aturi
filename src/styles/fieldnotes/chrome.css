@@ -590,32 +590,16 @@
   gap: 6px;
 }
 
-/* Menu sections (MENU_SECTIONS in Header.tsx). The bar's groups, kept: a
-   small label, then that group's three destinations across. A tile stands
-   its icon over its name, which is what lets three fit across a phone with
-   room for "Extension". The label is set like the tag that ends the Home
-   row. */
-.fn-menu-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 6px;
-}
-
-.fn-menu-kicker {
-  padding: 0 2px;
-  color: var(--text-tertiary);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
+/* Menu tiles (MENU_ITEMS in Header.tsx): every destination, three across,
+   which with six of them is two rows. A tile stands its icon over its name,
+   which is what lets three fit across a phone with room for "Extension".
+   The margin makes the space above the grid its own 6px gap, so the rows
+   run on one rhythm from the Home row down. */
 .fn-menu-tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  margin-top: 2px;
 }
 
 .fn-header .compact-nav-link.fn-menu-tile {
@@ -637,8 +621,9 @@
 
 /* One grid. Every row of the menu sits on the tiles' three columns, so the
    gutters run straight from the top of the sheet to the bottom: the Home
-   row is two columns of logo and a third shared by the bell and the theme
-   switch (the phone rules below), and the session's rows (SessionPanel.tsx)
+   row is a column and a half of logo, then Feedback, the bell and the
+   theme switch half a column each (the phone rules below), and the
+   session's rows (SessionPanel.tsx)
    are Sign in across two with Settings in the third, or My repo, Settings
    and Sign out one each. Under 360px three labelled tiles don't fit across,
    and the session keeps the single column it already had there
@@ -1001,8 +986,7 @@
    is on its way down to its 180px minimum, which it reaches near 970px, and
    past it the field would push into the nav. */
 @media (max-width: 1023px) {
-  .fn-nav,
-  .fn-feedback-link {
+  .fn-nav {
     display: none;
   }
 
@@ -1109,10 +1093,15 @@
    the what's-new sheet and anything else pinned to the bottom stand on.
    The header's toolbar is a fixed 65px (a 44px field, 10px above and below,
    the 1px top rule) plus the home-indicator inset; the explorer's is
-   measured, since a confirm step can make it taller. */
+   measured, since a confirm step can make it taller.
+
+   --fn-phone-bar-slim-h is the header's toolbar while it is slim on a
+   scroll (below: a 32px field, 4px above and below, the 1px top rule, and
+   the inset), for anything that keeps standing on the bar as it shrinks. */
 
 :root {
   --fn-phone-bar-h: calc(65px + env(safe-area-inset-bottom, 0px));
+  --fn-phone-bar-slim-h: calc(41px + env(safe-area-inset-bottom, 0px));
 }
 
 body.has-explore-chrome {
@@ -1150,6 +1139,7 @@ body.has-explore-chrome {
 
   .fn-header-bar > .fn-header-brand,
   .fn-header .fn-search-toggle,
+  .fn-header .fn-feedback-link,
   .fn-header .fn-menu-toggle,
   .fn-header .whats-new-badge-btn {
     display: none;
@@ -1383,10 +1373,10 @@ body.has-explore-chrome {
   }
 
   /* Its rows follow the sheet up a beat behind, a row at a time (Home's
-     row, the three sections, the session), each lifting 6px. Closing, they
-     fade with the sheet and don't wait. --row is the row's place from the
-     top. */
-  .fn-header-menu-panel :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
+     row, the two rows of tiles, the session), each lifting 6px. Closing,
+     they fade with the sheet and don't wait. --row is the row's place from
+     the top. */
+  .fn-header-menu-panel :is(.fn-menu-top > *, .fn-menu-tiles > *, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 0;
     transform: translateY(6px);
     transition:
@@ -1394,7 +1384,7 @@ body.has-explore-chrome {
       transform 120ms ease-in;
   }
 
-  .fn-header-menu-panel[data-open] :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
+  .fn-header-menu-panel[data-open] :is(.fn-menu-top > *, .fn-menu-tiles > *, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 1;
     transform: none;
     transition:
@@ -1404,17 +1394,14 @@ body.has-explore-chrome {
   }
 
   .fn-header-menu-panel .compact-nav-grid > *,
-  .fn-header-menu-panel .fn-menu-section {
+  .fn-header-menu-panel .fn-menu-tiles > * {
     --row: 1;
   }
-  .fn-header-menu-panel .fn-menu-section ~ .fn-menu-section {
+  .fn-header-menu-panel .fn-menu-tiles > :nth-child(n + 4) {
     --row: 2;
   }
-  .fn-header-menu-panel .fn-menu-section ~ .fn-menu-section ~ .fn-menu-section {
-    --row: 3;
-  }
   .fn-header-menu-panel .fn-menu-session {
-    --row: 4;
+    --row: 3;
   }
 
   .fn-menu {
@@ -1446,9 +1433,9 @@ body.has-explore-chrome {
   }
 
   /* Home's row, which is the header bar's stand-in on a phone: the logo,
-     then the bell and the theme switch as icons at its end. Back joins it,
-     on its left, on a page whose toolbar gave Back and Home's place to its
-     own controls: the stream monitor's Pause and Stop
+     then Feedback, the bell and the theme switch as icons at its end. Back
+     joins it, on its left, on a page whose toolbar gave Back and Home's
+     place to its own controls: the stream monitor's Pause and Stop
      (ExploreChromeBar.tsx). Home is already here, so only Back moves. */
   .fn-menu-top {
     display: grid;
@@ -1458,13 +1445,18 @@ body.has-explore-chrome {
     gap: 6px;
   }
 
+  /* The logo takes three half-columns and the icons one each, so the bell
+     and the theme switch are the third tile column and Feedback the second
+     half of the middle one. */
   .fn-menu-top > .fn-menu-home {
-    grid-column: span 4;
+    grid-column: span 3;
     min-width: 0;
     container-type: inline-size;
   }
 
-  /* With Back in the row, Back and the logo take a column each. */
+  /* With Back in the row, Back is an icon in a half-column of its own and
+     the logo has the tile column after it. Its label stays for a screen
+     reader. */
   body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
     grid-column: span 2;
   }
@@ -1480,9 +1472,21 @@ body.has-explore-chrome {
 
   body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-back {
     display: flex;
-    grid-column: span 2;
+    grid-column: span 1;
     flex: none;
+    justify-content: center;
+    min-width: 0;
+    padding: 0;
     color: var(--text-primary);
+  }
+
+  .fn-menu-back > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .fn-header .compact-nav-link.fn-menu-back:disabled {
@@ -1490,10 +1494,9 @@ body.has-explore-chrome {
     cursor: default;
   }
 
-  /* What's new and the theme switch (Header.tsx, ThemeToggle.tsx): an icon
-     each, half a column wide, so the pair is the third column. A row of
-     their own was two labels for two things the bar has always shown as
-     icons. */
+  /* Feedback, what's new and the theme switch (Header.tsx,
+     ThemeToggle.tsx): an icon each, half a column wide. A row of their own
+     was labels for things the bar has always shown as icons. */
   .fn-header .compact-nav-link.fn-menu-chip {
     justify-content: center;
     min-width: 0;
@@ -1501,8 +1504,9 @@ body.has-explore-chrome {
   }
 
   /* Under 360px a column is too narrow for the logo once Back has taken
-     one, so on that page the row gives up the grid: Back and the icons take
-     what they need and the logo has the rest. */
+     a half-column, so on that page the row gives up the grid: Back and the
+     icons take what they need and the logo has the rest, set a little
+     tighter so the wordmark still fits. */
   @media (max-width: 359px) {
     body:has(.explore-chrome-transport) .fn-menu-top {
       display: flex;
@@ -1510,9 +1514,11 @@ body.has-explore-chrome {
 
     body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
       flex: 1;
+      gap: 6px;
+      padding-inline: 8px;
     }
 
-    body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-chip {
+    body:has(.explore-chrome-transport) .fn-header .compact-nav-link:is(.fn-menu-chip, .fn-menu-back) {
       flex: none;
       width: 44px;
     }
@@ -2105,6 +2111,6 @@ html[data-reduce-motion='true'][data-phone-search] body {
 
 /* The sheet's rows wait for it with a delay, which the global clamp on
    durations leaves standing: drop it, so the menu appears whole. */
-[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
+[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .fn-menu-tiles > *, .compact-nav-grid > *, .fn-menu-session) {
   transition-delay: 0s !important;
 }

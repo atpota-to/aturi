@@ -34,6 +34,9 @@ protocol SessionStoring: AnyObject, Observable {
     /// One atomic `com.atproto.repo.applyWrites` deleting every rkey given,
     /// at most `AuthenticatedPDS.applyWritesMax` per call.
     func applyWrites(deletes rkeys: [String], collection: String) async throws
+    /// One atomic `com.atproto.repo.applyWrites` creating every record given,
+    /// the PDS minting each rkey; at most `AuthenticatedPDS.applyWritesMax`.
+    func applyWrites(creates records: [JSONValue], collection: String) async throws
     /// `app.bsky.actor.getProfile` as the signed-in account, proxied through
     /// its PDS so the `viewer` and `knownFollowers` blocks are filled in.
     func profileWithViewer(actor: String) async throws -> BskyProfile?
@@ -86,6 +89,10 @@ final class NoSession: SessionStoring {
     }
 
     func applyWrites(deletes rkeys: [String], collection: String) async throws {
+        throw NoSessionError.unavailable
+    }
+
+    func applyWrites(creates records: [JSONValue], collection: String) async throws {
         throw NoSessionError.unavailable
     }
 

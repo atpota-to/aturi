@@ -17,6 +17,35 @@
   margin: 0 0 12px;
 }
 
+/* On a phone the switch moves to a line under the page's breadcrumb
+   (<Breadcrumb>, from BreadcrumbBarProvider), so the trail is the top of the
+   screen in Classic as it is in the shell's toolbar. Wider, the bar above
+   the page keeps it and this line isn't drawn. See the phone rules below. */
+.fx-crumbbar {
+  display: none;
+  justify-content: flex-end;
+}
+
+/* Stands in for the switch while the page's skeleton shows: the track's
+   width with three options in it, and its height (taller on touch). */
+.fx-crumbbar-skel {
+  display: block;
+  width: 102px;
+  height: 34px;
+}
+
+/* The explorer's switches sit on the page, or on a phone's toolbar in the
+   page's colour, and their track is --bg-tertiary: in the light themes all
+   but the same colour (#f1eee6 on #f6f4ee), so the switch read as loose
+   words. A deeper track and an edge in the border tone give it its shape
+   on any ground, light or dark. */
+.fx-wb-toolbar .fn-segmented,
+.fx-viewbar .fn-segmented,
+.fx-crumbbar .fn-segmented {
+  background: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 5%);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+
 /* ---------- The frame ----------
    A dashboard that fills the window under the site header, as the stream
    monitor does (tools.css), so the page itself never scrolls; the panes do.
@@ -297,6 +326,20 @@ html:has(.fx-wb) {
   display: none;
 }
 
+/* The card, the views and the tools come before the collections tree, and
+   on a short window would squeeze it to nothing. The tree keeps a usable
+   height and the rail scrolls instead. Phone sheets size to their content
+   and undo this below. */
+.fx-wb-rail {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fx-wb-rail > .fx-wb-tree,
+.fx-wb-rail > .fx-fd-side {
+  min-height: 220px;
+}
+
 .fx-wb-main {
   grid-column: 2;
   grid-row: 1;
@@ -332,7 +375,9 @@ html:has(.fx-wb) {
 
 /* ---------- Rail ----------
    The account, its own views, then the way around its repository: the
-   collections tree in the workbench, places in the Files view. */
+   collections tree in the workbench, places in the Files view. The account
+   is its card where the rail is a column, and a line where it's a drawer or
+   while something is open below it (RailAccount). */
 
 .fx-wb-acct {
   flex: none;
@@ -390,6 +435,45 @@ html:has(.fx-wb) {
   border-bottom: 1px solid var(--border-medium);
 }
 
+/* The account card, the repo page's own, laid flat on the rail rather than
+   framed on it, with the fold button in its corner. Whatever comes first in
+   the card (the avatar and names, or the identity rows when there's no
+   profile) stops short of the button. */
+.fx-wb-acct-card {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-acct-card .fx-acct {
+  padding: 16px 16px 14px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.fx-wb-acct-card .fx-acct > :first-child {
+  padding-right: 26px;
+}
+
+.fx-wb-fold {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  z-index: 1;
+}
+
+.fx-wb-acct-strip {
+  margin: 0 12px 12px;
+}
+
+/* The strip suppresses itself for a visitor who isn't signed in, or who is
+   looking at their own account. */
+.fx-wb-acct-strip:empty {
+  display: none;
+}
+
 .fx-wb-view {
   display: flex;
   align-items: center;
@@ -413,6 +497,34 @@ html:has(.fx-wb) {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-weight: 600;
+}
+
+/* What sits at the end of a view's row: a check's badge (AccountChecks.tsx),
+   or the mark of a tool that opens its own page. */
+.fx-wb-view-end {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+svg.fx-wb-view-end {
+  color: var(--text-tertiary);
+}
+
+/* The tools that read the account, under its views: quieter rows, headed
+   like the collections below them. */
+.fx-wb-tools {
+  padding-top: 0;
+}
+
+.fx-wb-tools .fx-wb-label {
+  padding: 10px 8px 4px;
+}
+
+.fx-wb-tools .fx-wb-view {
+  min-height: 28px;
+  font-size: 13px;
 }
 
 .fx-wb-view:focus-visible,
@@ -703,9 +815,10 @@ html:has(.fx-wb) {
   padding: 20px 24px 40px;
 }
 
-/* Identity, Log and Backlinks read better at a narrower measure, but keep
-   the overview's left edge, so the heading doesn't jump between views. */
-.fx-wb-page-inner:not([data-tab='overview']) .fx-wb-section {
+/* Backlinks reads better at a narrower measure, but keeps the overview's
+   left edge, so the heading doesn't jump between views. The graph is a
+   drawing rather than a measure of text, and takes the overview's width. */
+.fx-wb-page-inner:not([data-tab='overview']):not([data-tab='graph']) .fx-wb-section {
   max-width: 920px;
 }
 
@@ -716,8 +829,10 @@ html:has(.fx-wb) {
   align-items: start;
 }
 
+/* The account card beside the rest, where the rail can't show it
+   (AccountView's `card`): a drawer on a tablet, or a rail put away. */
 @container fx-wb-main (min-width: 860px) {
-  .fx-wb-overview {
+  .fx-wb-overview[data-card] {
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   }
 }
@@ -728,6 +843,39 @@ html:has(.fx-wb) {
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+}
+
+/* Sections, not cards, so a little more air between them. The column is
+   what the tiles and the identity cards below fit themselves to. */
+.fx-wb-overview-main {
+  gap: 24px;
+  container: fx-wb-overview / inline-size;
+}
+
+/* The DID document beside its log, once both have a readable measure; one
+   over the other until then. */
+.fx-wb-idgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@container fx-wb-overview (min-width: 760px) {
+  .fx-wb-idgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fx-wb-idcard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 20px;
+}
+
+.fx-wb-idcard .fx-log-more {
+  align-self: flex-start;
 }
 
 /* A strip or section that suppressed itself must not leave a gap. */
@@ -757,11 +905,18 @@ html:has(.fx-wb) {
   margin-top: 0;
 }
 
-/* The glance tiles fit themselves to the pane; the repo page's counts by
-   window width (explorer.css) don't hold with a rail and an account card
-   beside them. */
+/* The glance tiles fit themselves to the overview's column; the repo page's
+   counts by window width (explorer.css) don't hold with a rail beside them.
+   Four across where the column has the room, two where it doesn't (the
+   account card beside it, a phone): eight tiles fill either. */
 .fx-wb .account-stats-grid {
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container fx-wb-overview (min-width: 640px) {
+  .fx-wb .account-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 /* ---------- Main: backlinks ----------
@@ -1636,6 +1791,72 @@ a.fx-fd-crumb:hover {
     margin-top: 12px;
   }
 
+  /* The page's breadcrumb carries the switch: the bar above steps aside.
+     A page without a breadcrumb (a handle that didn't resolve) keeps it. */
+  .fx-viewbar:has(~ * .fx-crumbbar) {
+    display: none;
+  }
+
+  /* The trail and its switch are drawn as the shell's toolbar draws them
+     (.fx-wb-toolbar below), so changing views moves neither: the trail 12px
+     from the top in the toolbar's 13px, the switch 8px under it, and a rule
+     10px under that running edge to edge, with the page 14px below it. The
+     header that collapses to nothing here keeps a margin, which is the top;
+     the record page's own 8px goes. */
+  body:has(.fx-crumbbar) .fn-header {
+    margin-bottom: 12px;
+  }
+
+  .fn-rec:has(.fx-crumbbar) {
+    padding-top: 0;
+  }
+
+  .fx-crumbs:has(+ .fx-crumbbar) {
+    font-size: 13px;
+  }
+
+  .fx-crumbbar {
+    position: relative;
+    display: flex;
+    margin-top: 8px;
+    /* The account page's 16px row gap, less 2. */
+    margin-bottom: -2px;
+    /* 10px, and the rule's own pixel under it. */
+    padding-bottom: 11px;
+  }
+
+  /* Out through the page's gutter to the screen's edges. */
+  .fx-crumbbar::after {
+    content: '';
+    position: absolute;
+    right: calc(-1 * var(--page-edge));
+    bottom: 0;
+    left: calc(-1 * var(--page-edge));
+    border-bottom: 1px solid var(--border-medium);
+  }
+
+  /* A titled trail ends on a separator that leads into the title under
+     it. With the switch between the two it leads nowhere, so it goes. */
+  .fx-crumbs:has(+ .fx-crumbbar) > .fx-crumb:last-child > .fx-crumb-sep:last-child,
+  .fx-crumbs:has(+ .fx-crumbbar) > .fx-crumb-sep:last-child {
+    display: none;
+  }
+
+  /* A title bar's text column is as wide as its words; holding the switch,
+     it takes the line, so the switch sits at the edge as it does on the
+     account page and in the toolbar. */
+  .fx-titlebar-text:has(> .fx-crumbbar),
+  .fn-rec-titletext:has(> .fx-crumbbar) {
+    flex: 1 1 100%;
+  }
+
+  /* Those columns already set 6px between their lines. */
+  .fx-titlebar-text > .fx-crumbbar,
+  .fn-rec-titletext > .fx-crumbbar {
+    margin-top: 2px;
+    margin-bottom: 8px;
+  }
+
   .fx-wb-toolbar {
     flex-wrap: wrap;
     gap: 8px;
@@ -1653,6 +1874,12 @@ a.fx-fd-crumb:hover {
 
   .fx-wb-path .fx-crumbs {
     flex-wrap: wrap;
+  }
+
+  /* The trail wraps here rather than giving way, so the PDS keeps its
+     place at the head of it, as on the classic pages. */
+  .fx-wb-path .fx-crumb:has(svg):not(:only-child) {
+    display: inline-flex;
   }
 
   /* Short of room for everything on one line, the view's own controls go
@@ -1703,10 +1930,13 @@ a.fx-fd-crumb:hover {
   }
 
   /* The rail's sheet is as tall as what's in it, up to most of the screen;
-     its lists then give way and scroll. */
+     its lists then give way and scroll. Should what comes before them not
+     fit either, the sheet scrolls rather than cutting it off. */
   .fx-wb-rail,
   .fx-wb[data-norail] .fx-wb-rail {
     max-height: 85%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .fx-wb-tree,
@@ -1714,6 +1944,26 @@ a.fx-fd-crumb:hover {
   .fx-wb .fx-wb-tree .fx-tree-scroll,
   .fx-fd-side {
     flex: 0 1 auto;
+  }
+
+  .fx-wb-rail > .fx-wb-tree,
+  .fx-wb-rail > .fx-fd-side {
+    min-height: 0;
+  }
+
+  /* An account's sheet has its views and its tools above the list, which
+     on a phone take most of the sheet by themselves: the list would give
+     way to nothing. It keeps its full height instead and the sheet scrolls
+     as one, so there is no scroller inside a scroller, and no fade at the
+     foot of a list that no longer scrolls on its own. */
+  .fx-wb-rail:has(> .fx-wb-tools) > .fx-wb-tree,
+  .fx-wb-rail:has(> .fx-wb-tools) > .fx-fd-side {
+    flex: none;
+  }
+
+  .fx-wb-rail:has(> .fx-wb-tools) .fx-tree-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .fx-wb-insp {
@@ -1734,7 +1984,9 @@ a.fx-fd-crumb:hover {
     padding-top: 8px;
   }
 
+  /* The tools' quieter rows too: on a phone every row is a tap. */
   .fx-wb-view,
+  .fx-wb-tools .fx-wb-view,
   .fx-fd-place {
     min-height: 42px;
     font-size: 14px;
@@ -1761,17 +2013,23 @@ a.fx-fd-crumb:hover {
   }
 
   .fx-wb-view,
+  .fx-wb-tools .fx-wb-view,
   .fx-fd-place {
     min-height: 40px;
   }
 
-  /* The site's segmented control is 28px, sized for a pointer. These three
+  /* The site's segmented control is 28px, sized for a pointer. These
      are the way between views and between a record's sections, so on touch
      they grow to a comfortable tap. */
   .fx-wb-toolbar .fn-segmented-option,
   .fx-wb-insp-bar .fn-segmented-option,
-  .fx-viewbar .fn-segmented-option {
+  .fx-viewbar .fn-segmented-option,
+  .fx-crumbbar .fn-segmented-option {
     height: 34px;
+  }
+
+  .fx-crumbbar-skel {
+    height: 40px;
   }
 
   .fx-fd-crumb {

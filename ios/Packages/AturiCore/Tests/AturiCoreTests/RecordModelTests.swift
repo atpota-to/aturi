@@ -293,8 +293,31 @@ final class RecordModelTests: XCTestCase {
         XCTAssertEqual(transport.count(containing: "getProfile?actor=did%3Aplc%3Aalice123"), 1)
         XCTAssertEqual(transport.count(containing: Self.thread), 0)
 
+        XCTAssertTrue(model.isProfileRecord)
+        XCTAssertTrue(model.hasRichCard)
+        XCTAssertTrue(model.countsInCard, "the card carries the counts while it is shown")
+        XCTAssertFalse(model.isRichCardLoading)
+        XCTAssertFalse(model.sections.map(\.id).contains("engagement"))
+        guard case .profile(let header)? = model.richCard else {
+            return XCTFail("the self record gets the profile card")
+        }
+        XCTAssertEqual(header.displayName, "Alice")
+        XCTAssertEqual(header.universalLinkPath, "/profile/alice.test")
+
         let sparse = BskyProfile(did: Self.did, handle: "alice.test", postsCount: 7)
         XCTAssertEqual(RecordModel.engagementStats(of: sparse), [RecordEngagementStat(kind: .posts, value: 7)], "absent counts are skipped")
+    }
+
+    func testOnlyTheSelfProfileRecordGetsTheCard() async {
+        let other = #"{"uri":"at://did:plc:alice123/app.bsky.actor.profile/other","cid":"c5","value":{"$type":"app.bsky.actor.profile","displayName":"Not Alice"}}"#
+        let transport = transport(overrides: [(Self.pdsRecord, .reply(status: 200, body: other))])
+        let model = makeModel(transport, collection: "app.bsky.actor.profile", rkey: "other")
+        await model.loadAndWait()
+        XCTAssertFalse(model.isProfileRecord)
+        XCTAssertFalse(model.hasRichCard)
+        XCTAssertNil(model.richCard)
+        XCTAssertTrue(model.profileHeader.isIdle)
+        XCTAssertTrue(model.sections.map(\.id).contains("engagement"), "without the card the strip shows the counts")
     }
 
     func testMarginRecordHasAMarginCard() async {
@@ -403,7 +426,7 @@ final class RecordModelTests: XCTestCase {
         let model = makeModel(transport, repo: "nobody.test")
         await model.loadAndWait()
         XCTAssertEqual(model.identity, .failed("Could not resolve nobody.test"))
-        XCTAssertEqual(model.identityFailureBody, "We tried to resolve \"nobody.test\" and the AT Protocol resolver returned: Could not resolve nobody.test. Try another handle, DID, or AT URI below.")
+        XCTAssertEqual(model.identityFailureBody, "We couldn\u{2019}t find an account for \u{201C}nobody.test\u{201D}. Check the spelling, or try a DID or an at:// URI below.")
         XCTAssertTrue(model.record.isIdle)
         XCTAssertNil(model.copyRow)
         XCTAssertNil(model.atUri)

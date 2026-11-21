@@ -48,13 +48,15 @@ export default function SearchSelect({
     triggerRef.current?.focus();
   }
 
+  // pointerdown, not mousedown: iOS only sends mouse events for a tap on
+  // something clickable, so a tap on empty page left the list open.
   useEffect(() => {
     if (!open) return;
-    function onDocClick(e: MouseEvent) {
+    function onDocClick(e: PointerEvent) {
       if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    document.addEventListener('pointerdown', onDocClick);
+    return () => document.removeEventListener('pointerdown', onDocClick);
   }, [open]);
 
   useEffect(() => {

@@ -540,7 +540,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertEqual(model.identity.errorMessage, "Could not resolve nobody.example")
         XCTAssertEqual(
             model.notFoundMessage,
-            "We tried to resolve \"nobody.example\" and the AT Protocol resolver returned: Could not resolve nobody.example. Try a handle, DID, or AT URI below."
+            "We couldn\u{2019}t find an account for \u{201C}nobody.example\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         )
         XCTAssertNil(model.stats)
         XCTAssertNil(model.did)

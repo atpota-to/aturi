@@ -18,9 +18,12 @@ import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
+import ThreadExplorer from './graph/ThreadExplorer';
+import ThreadSection from './graph/ThreadSection';
 import { RecordSchemaRow } from './RecordSchemaCheck';
 import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
+import { AuthorChecks } from './AccountChecks';
 import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
 import { repoRecordBackend } from './recordBackend';
@@ -50,11 +53,12 @@ type Props = {
 };
 
 /** The tabs a record's sections are filed under in a pane. */
-export type RecordPaneTab = 'preview' | 'record' | 'backlinks' | 'more';
+export type RecordPaneTab = 'preview' | 'record' | 'thread' | 'backlinks' | 'more';
 
 const PANE_TABS: { value: RecordPaneTab; label: string }[] = [
   { value: 'preview', label: 'Preview' },
   { value: 'record', label: 'Record' },
+  { value: 'thread', label: 'Thread' },
   { value: 'backlinks', label: 'Backlinks' },
   { value: 'more', label: 'More' },
 ];
@@ -69,6 +73,7 @@ function paneTabOf(slotId: string, hasPreview: boolean): RecordPaneTab {
   if (slotId === 'richPreview') return 'preview';
   if (slotId === 'engagement') return hasPreview ? 'preview' : 'record';
   if (slotId === 'record') return 'record';
+  if (slotId === 'thread') return 'thread';
   if (slotId === 'backlinks') return 'backlinks';
   return 'more';
 }
@@ -286,6 +291,7 @@ function RecordView({
   );
   const titleActions = (
     <div className="fn-rec-actions">
+      {isPost && <ThreadExplorer uri={atUri} rkey={decodedRkey} />}
       <CopyTextButton value={atUri} label="Copy at:// URI" />
       {/* The Edit button stays watched (setEditChipEl) so the chrome bar
           offers the same action exactly while it isn't on screen. */}
@@ -511,6 +517,9 @@ function RecordView({
 
   type Placed = { id: string; column: 'main' | 'aside'; node: ReactNode };
   const placed: Placed[] = [];
+  // The classic page has no account card, so the author's checks head its
+  // side column. In a workbench pane the rail beside it has the card.
+  if (record && !pane) placed.push({ id: 'author', column: 'aside', node: <AuthorChecks identity={identity} /> });
   if (record && recordForPreview) {
     let recordPlaced = false;
     for (const { id, hidden } of recordSections) {
@@ -579,6 +588,9 @@ function RecordView({
         if (node != null) placed.push({ id, column, node });
       }
     }
+    // A post's whole thread, drawn. Not one of the visitor's sections, so it
+    // follows them; a post with no replies gets a line saying so.
+    if (isPost) placed.push({ id: 'thread', column: 'main', node: <ThreadSection uri={atUri} /> });
   }
   const renderColumn = (column: Placed['column']) =>
     placed
@@ -678,7 +690,7 @@ function recordSkeletonShape(
  * order, since those slots come from both columns). The same values order
  * the slots within each column on wider screens.
  */
-const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1 };
+const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1, author: 0 };
 
 /**
  * The pill beside the rkey: what kind of record this is, in words, for the
@@ -757,9 +769,11 @@ function ViewSwitchButton({
 
 /**
  * The values a record-page visitor might want to grab, as compact copy chips,
- * plus the two ways out (the universal link page and the raw record on the
- * PDS). The URI and CID also sit in the Record card with their own copy
- * buttons; this row keeps the rest together.
+ * and the ways out (the universal link page, the raw record on the PDS, and
+ * any tool with something to say about the record), each under its own
+ * heading so a link is never mistaken for a copy button. The URI and CID
+ * also sit in the Record card with their own copy buttons; this card keeps
+ * the rest together.
  */
 function CopyRow({
   atUri,
@@ -785,7 +799,7 @@ function CopyRow({
   toolLinks: ToolLink[];
 }) {
   return (
-    <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
+    <section className="fn-rec-card fn-rec-copy" aria-label="Copy and open">
       <h2 className="fn-rec-h2">Copy</h2>
       <div className="fn-rec-copy-chips">
         <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
@@ -796,6 +810,7 @@ function CopyRow({
           <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
         )}
       </div>
+      <h2 className="fn-rec-h2 fn-rec-copy-h">Open</h2>
       <div className="fn-rec-copy-links">
         <LinkButton href={universalPath} label="Universal link page" />
         <LinkButton

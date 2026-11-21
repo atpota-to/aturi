@@ -23,7 +23,7 @@ const ROTATE_INTERVAL_MS = 2400;
 const VISIBLE_SLOTS = 3;
 
 /**
- * Hero visual for /links: an aturi.to link and the picker it opens.
+ * Hero visual for /waypoints: an aturi.to link and the picker it opens.
  * Decorative and non-interactive (the real picker is one CTA away): a
  * highlight hops along a row of clients, and the three rows below
  * quietly rotate through the catalog so the breadth of supported

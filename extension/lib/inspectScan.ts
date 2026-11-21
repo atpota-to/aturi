@@ -13,10 +13,19 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { browser } from '#imports';
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { dedupeByUri, type DetectedAtUri } from './inspectScanner';
+import { IS_SAFARI } from './platform';
+import { activeTabOnSafari, retryOnceIfUnanswered } from './activeTab';
 
 export type ActiveTab = { url?: string; id?: number; active?: boolean; [k: string]: unknown };
 
 async function getActiveTab(): Promise<ActiveTab | null> {
+  // Safari: the same tab the popup itself settles on (lib/activeTab.ts), so
+  // the scan and the page match can't come from two different windows.
+  if (IS_SAFARI) {
+    return activeTabOnSafari(
+      info => browser.tabs.query(info) as unknown as Promise<ActiveTab[] | undefined>
+    );
+  }
   try {
     const tabs = (await browser.tabs.query({ active: true, lastFocusedWindow: true })) as unknown as
       | ActiveTab[]
@@ -62,9 +71,13 @@ export async function scanForAtUris(): Promise<ScanOutcome> {
   const tabId = (t?.id as number | undefined) ?? null;
   if (tabId != null) {
     try {
-      const response = (await browser.tabs.sendMessage(tabId, {
-        type: 'aturi:inspect-scan',
-      })) as { atUris?: DetectedAtUri[]; error?: string } | undefined;
+      const ask = () =>
+        browser.tabs.sendMessage(tabId, { type: 'aturi:inspect-scan' }) as Promise<
+          { atUris?: DetectedAtUri[]; error?: string } | undefined
+        >;
+      // On Safari the content script may still be arriving: the popup's click
+      // is what injects it on a site allowed only through activeTab.
+      const response = IS_SAFARI ? await retryOnceIfUnanswered(ask) : await ask();
       if (response?.atUris) out.push(...response.atUris);
       if (response?.error) {
         // Surface but don't escalate — the URL match alone may still be

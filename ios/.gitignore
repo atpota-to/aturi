@@ -7,3 +7,6 @@ DerivedData/
 .build/
 .swiftpm/
 Package.resolved
+# Per-developer settings for scripts/build-safari-web-extension.sh, such as
+# NODE_BINARY for Xcode builds that cannot see the shell's PATH.
+.xcode.env.local

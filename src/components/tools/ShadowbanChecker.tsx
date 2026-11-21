@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Check, EyeOff, LoaderCircle, TriangleAlert, X } from 'lucide-react';
 import { toolHref } from '@/lib/tools/catalog';
@@ -17,7 +17,6 @@ import {
   readAppViewParam,
   readReply,
   shadowbanVerdict,
-  targetKey,
   type AppView,
   type Evidence,
   type PostPresence,
@@ -26,10 +25,10 @@ import {
   type ReplyReading,
   type ShadowbanCheck,
 } from '@/lib/tools/shadowban';
-import { investigate } from '@/lib/tools/shadowbanClient';
 import { formatTidRelative } from '@/utils/atproto/tid';
 import { explorePathFromAtUri, shortDid } from '@/utils/atproto/urls';
 import { CheckList, type CheckItem } from './Checks';
+import { useVisibilityCheck } from './checkRuns';
 import {
   ToolCard,
   ToolError,
@@ -42,7 +41,7 @@ import {
   ToolVerdict,
   type ToolTone,
 } from './ToolFrame';
-import { useToolQuery, useToolRun } from './useToolQuery';
+import { useToolQuery } from './useToolQuery';
 
 const SLUG = 'shadowban';
 const EXAMPLES = [{ value: 'bsky.app' }, { value: 'atproto.com' }, { value: 'aturi.to' }];
@@ -342,17 +341,21 @@ function toItems(checks: ShadowbanCheck[]): CheckItem[] {
  * src/lib/tools/shadowban.ts and the requests in shadowbanClient.ts; this
  * runs them and draws the result.
  */
-export default function ShadowbanChecker() {
-  const [{ subject: raw, appview: rawAppview }, setQuery] = useToolQuery(['subject', 'appview'] as const);
+export default function ShadowbanChecker({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
+  const [query, setQuery] = useToolQuery(['subject', 'appview'] as const);
+  // Embedded in the Explorer, the account comes from the page rather than
+  // the query string, and the tool draws without its head card. The AppView
+  // choice still reads the query string, so it can be shared from there too.
+  const embedded = subject !== undefined;
+  const raw = embedded ? subject : query.subject;
+  const rawAppview = query.appview;
   const input = raw ? parseShadowbanInput(raw) : null;
   const target = input?.ok ? input.target : null;
   const choice = readAppViewParam(rawAppview);
   const appview = choice.ok ? choice.appview : null;
-  const runKey = target && appview ? `${targetKey(target)}|${appview.origin}` : null;
 
-  const run = useToolRun<Evidence>(runKey, ({ signal, publish }) =>
-    investigate(target as NonNullable<typeof target>, appview as AppView, signal, publish),
-  );
+  // Shared (checkRuns.ts), so the account card's check is this one.
+  const run = useVisibilityCheck(target, appview);
 
   const evidence: Evidence | null = run.data ?? (target && appview ? { target, appview } : null);
   const now = evidence?.checkedAt ?? 0;
@@ -385,10 +388,27 @@ export default function ShadowbanChecker() {
       </button>
     );
 
+  const picker = (
+    <AppViewPicker
+      current={appview}
+      problem={choice.ok ? null : choice.reason}
+      onChange={(param) => {
+        // Written to the link in its canonical form, so a typed host for
+        // a listed AppView reads as that AppView, and Bluesky as nothing.
+        const read = readAppViewParam(param);
+        const value = read.ok ? read.appview.param : param;
+        setQuery({ appview: value === DEFAULT_APPVIEW.param ? '' : value }, { replace: true });
+      }}
+    />
+  );
+
   return (
     <ToolShell
       slug={SLUG}
       share={share}
+      embedded={embedded}
+      heading={heading}
+      controls={picker}
       form={
         <>
           <ToolForm
@@ -400,17 +420,7 @@ export default function ShadowbanChecker() {
             examples={EXAMPLES}
             icon={<EyeOff size={17} />}
           />
-          <AppViewPicker
-            current={appview}
-            problem={choice.ok ? null : choice.reason}
-            onChange={(param) => {
-              // Written to the link in its canonical form, so a typed host for
-              // a listed AppView reads as that AppView, and Bluesky as nothing.
-              const read = readAppViewParam(param);
-              const value = read.ok ? read.appview.param : param;
-              setQuery({ appview: value === DEFAULT_APPVIEW.param ? '' : value }, { replace: true });
-            }}
-          />
+          {picker}
         </>
       }
     >
@@ -440,7 +450,9 @@ export default function ShadowbanChecker() {
             <CheckList checks={toItems(accountChecks)} label={`Checks on the account on ${live.appview.name}`} />
           </ToolSection>
 
-          {identity && (
+          {/* The Explorer around an embedded check already shows the
+              account, and is where these links would go. */}
+          {identity && !embedded && (
             <ToolSection title="Account">
               <ToolCard>
                 <ToolFacts>

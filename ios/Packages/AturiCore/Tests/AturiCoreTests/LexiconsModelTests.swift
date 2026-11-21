@@ -398,6 +398,48 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertTrue(transport.urls(containing: "/timeseries").last!.contains("step=86400"))
     }
 
+    func testTopWithPriorCarriesDeltasAndWithoutSeriesSkipsTheTimeseries() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .top, metric: .dids, resultCount: 10,
+            withSeries: false, withPrior: true,
+            client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.nsid), ["app.bsky.feed.post", "social.grain.gallery", "sh.tangled.repo", "net.anisota.harvest.minigame", "com.example.thing"])
+        XCTAssertEqual(rows.map(\.value), [1000, 520, 300, 50, 10])
+        XCTAssertEqual(rows.map(\.prior), [0, 250, 400, 0, 5], "prior counts for the picked rows, zero where stats has none")
+        XCTAssertEqual(rows.map(\.deltaPct), [nil, 108, -25, nil, 100])
+        XCTAssertEqual(rows.map(\.series), Array(repeating: [Int](), count: 5))
+        XCTAssertEqual(transport.count(containing: "/timeseries"), 0)
+        let prior = transport.urls(containing: "since=2024-12-25")
+        XCTAssertEqual(prior.count, 1, "one prior-window lookup for the picked rows")
+        XCTAssertTrue(prior[0].contains("until=2025-01-01T00%3A00%3A00.000Z"), prior[0])
+    }
+
+    func testTrendingRowsCarryTheirPriorCounts() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .trending, metric: .dids, resultCount: 10,
+            withSeries: false,
+            client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.nsid), ["social.grain.gallery", "com.example.thing", "sh.tangled.repo", "net.anisota.harvest.minigame"])
+        XCTAssertEqual(rows.map(\.prior), [250, 5, 400, 0])
+        XCTAssertEqual(transport.count(containing: "/timeseries"), 0)
+    }
+
+    func testTopWithoutPriorLeavesItUnknown() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .top, metric: .dids, resultCount: 10, client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.prior), [nil, nil, nil, nil, nil])
+        XCTAssertEqual(transport.count(containing: "since=2024-12-25"), 0)
+    }
+
     func testStaticFetchRankingReturnsNilOnFailure() async {
         let transport = LexiconsFakeTransport([])
         let client = UFOsClient(http: HTTPClient(transport: transport))
@@ -980,7 +1022,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.series, [])
         XCTAssertFalse(model.hasSeriesActivity)
         XCTAssertTrue(model.hasActivity, "unknown reads as active so the notice does not flash")
-        XCTAssertNil(model.noActivityMessage)
         XCTAssertNil(model.visibleSamples)
         XCTAssertNil(model.browseGroupPath)
 
@@ -996,7 +1037,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(tiles.map(\.valueLabel), ["100", "5", "2", "50"])
         XCTAssertEqual(model.activity.value?.total, 157)
         XCTAssertTrue(model.hasActivity)
-        XCTAssertNil(model.noActivityMessage)
         XCTAssertNil(model.activityErrorMessage)
         XCTAssertEqual(model.series, [1, 0, 3])
         XCTAssertTrue(model.hasSeriesActivity)
@@ -1052,7 +1092,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertFalse(model.isActivityRefreshing)
         XCTAssertEqual(model.statTiles?.map(\.current), [0, 0, 0, 0], "the 1d window has no stats in the fixture")
         XCTAssertFalse(model.hasActivity)
-        XCTAssertEqual(model.noActivityMessage, "No recorded activity for this lexicon in the last 1d.")
         XCTAssertEqual(model.series, [1, 0, 3])
         XCTAssertEqual(transport.count(containing: "/prefix"), 1, "siblings and samples are NSID-only")
         XCTAssertEqual(transport.count(containing: "/records"), 1)
@@ -1094,7 +1133,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertNil(down.statTiles)
         XCTAssertEqual(down.series, [])
         XCTAssertTrue(down.hasActivity)
-        XCTAssertNil(down.noActivityMessage)
         XCTAssertNil(down.visibleSamples)
         XCTAssertNil(down.browseGroupPath)
 
@@ -1119,7 +1157,6 @@ final class LexiconsModelTests: XCTestCase {
         await quiet.load().value
         XCTAssertEqual(quiet.activity.value, LexiconActivity(current: .zero, prior: .zero, buckets: []))
         XCTAssertFalse(quiet.hasActivity)
-        XCTAssertEqual(quiet.noActivityMessage, "No recorded activity for this lexicon in the last 7d.")
         XCTAssertEqual(quiet.siblings.value, [])
         XCTAssertNil(quiet.browseGroupPath)
         XCTAssertEqual(quiet.visibleSamples, [])

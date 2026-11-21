@@ -376,16 +376,16 @@ public final class LinkResolverModel {
     /// Copy for the empty picker.
     public nonisolated static let noWaypointsMessage = "No waypoints available for this content type yet."
 
-    /// `getContextText`: the line under the picker's heading.
+    /// `getContextText`: the picker's heading, "Open @alice.test's post in…".
     public var contextText: String {
         guard let link else { return "" }
         let display = link.displayName
         switch link.type {
-        case .post: return "Open post by \(display) on..."
-        case .profile: return "Open profile for \(display) on..."
-        case .list: return "Open list by \(display) on..."
-        case .record: return "Open record from \(display) on..."
-        case .unknown: return "Open content from \(display) on..."
+        case .post: return "Open \(display)\u{2019}s post in\u{2026}"
+        case .profile: return "Open \(display)\u{2019}s profile in\u{2026}"
+        case .list: return "Open \(display)\u{2019}s list in\u{2026}"
+        case .record: return "Open this record from \(display) in\u{2026}"
+        case .unknown: return "Open content from \(display) in\u{2026}"
         }
     }
 

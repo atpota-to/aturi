@@ -1,16 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { LoaderCircle, ScanSearch, Square, Tags, User } from 'lucide-react';
 import { toolHref } from '@/lib/tools/catalog';
 import {
-  BLUESKY_MODERATION_DID,
   LABELERS_PER_REQUEST,
   MAX_ADDED_LABELERS,
-  SCAN_CONCURRENCY,
-  batchLabelers,
-  cleanLabelerDids,
   describeLabel,
   formatCount,
   groupLabels,
@@ -21,26 +17,14 @@ import {
   parseLabelersParam,
   parseSubjectInput,
   scanPercent,
-  subjectFor,
-  targetKey,
   type Label,
   type LabelGroup,
-  type LabelSubject,
-  type LabelTarget,
-  type ScanProgress,
 } from '@/lib/tools/labels';
-import {
-  SubjectUnavailable,
-  fetchLabelerInfo,
-  fetchLabels,
-  listLabelerDids,
-  resolveActor,
-  type LabelerInfo,
-  type SubjectView,
-} from '@/lib/tools/labelsClient';
+import type { LabelerInfo, SubjectView } from '@/lib/tools/labelsClient';
 import { parseAccountToken } from '@/lib/streamMonitor';
 import { searchActorsTypeahead, shouldQueryHandleTypeahead } from '@/utils/atproto/appview';
 import { explorePathFromAtUri, shortDid } from '@/utils/atproto/urls';
+import { useLabelCheck } from './checkRuns';
 import TokenField, { type FieldToken, type Suggestion } from './TokenField';
 import {
   ToolCard,
@@ -55,147 +39,10 @@ import {
   ToolSkeleton,
   ToolVerdict,
 } from './ToolFrame';
-import { useToolQuery, useToolRun } from './useToolQuery';
+import { useToolQuery } from './useToolQuery';
 
 const SLUG = 'labels';
 const EXAMPLES = [{ value: 'bsky.app' }, { value: 'atproto.com' }, { value: 'aturi.to' }];
-
-/** A labeler someone added by hand, and what became of it. */
-type AddedLabeler = {
-  /** As typed: a handle or a DID. */
-  value: string;
-  /** Null when the handle did not resolve. */
-  did: string | null;
-};
-
-/** The first answer: Bluesky's labeler, the subject's own labels, and any labelers added. */
-type BaseResult = {
-  subject: LabelSubject;
-  view: SubjectView | null;
-  /** The AppView's wording when it would not describe the subject at all. */
-  unavailable: string | null;
-  labels: Label[];
-  labelers: Map<string, LabelerInfo>;
-  added: AddedLabeler[];
-  /** The labeler DIDs that were asked. */
-  asked: string[];
-};
-
-/** Where a scan of every labeler has got to. */
-type ScanResult = {
-  progress: ScanProgress;
-  labels: Label[];
-  labelers: Map<string, LabelerInfo>;
-  stopped: boolean;
-  running: boolean;
-};
-
-async function checkBase(target: LabelTarget, addedValues: string[], signal: AbortSignal): Promise<BaseResult> {
-  const [did, added] = await Promise.all([
-    resolveActor(target.actor),
-    Promise.all(
-      addedValues.map(async (value): Promise<AddedLabeler> => ({ value, did: await resolveActor(value) })),
-    ),
-  ]);
-  if (!did) {
-    throw new Error(`${target.actor} does not resolve to an account. Check the spelling, or use its DID.`);
-  }
-  const subject = subjectFor(target, did);
-  const asked = cleanLabelerDids([BLUESKY_MODERATION_DID, ...added.flatMap((a) => (a.did ? [a.did] : []))]);
-
-  let labels: Label[] = [];
-  let view: SubjectView | null = null;
-  let unavailable: string | null = null;
-  try {
-    for (const batch of batchLabelers(asked)) {
-      const answer = await fetchLabels(subject, batch, signal);
-      labels = mergeLabels(labels, answer.labels);
-      view = answer.view;
-    }
-  } catch (err) {
-    if (!(err instanceof SubjectUnavailable)) throw err;
-    unavailable = err.message;
-  }
-
-  // Everyone whose name will be shown: the labelers that were asked, and
-  // whoever a label came from (a self-label comes from the subject, which
-  // has no service view and is simply absent from the answer).
-  const labelers = await fetchLabelerInfo(cleanLabelerDids([...asked, ...labels.map((l) => l.src)]), signal);
-  return { subject, view, unavailable, labels, labelers, added, asked };
-}
-
-/**
- * Ask every labeler on the network, a batch per request and a few requests
- * at a time, publishing as the answers arrive.
- *
- * `stop` ends it early and keeps what was found. It is separate from the
- * run's own signal, which fires when the subject changes and throws the
- * result away.
- */
-async function scanEveryLabeler(
-  base: BaseResult,
-  signal: AbortSignal,
-  stop: AbortController,
-  publish: (result: ScanResult) => void,
-): Promise<ScanResult> {
-  signal.addEventListener('abort', () => stop.abort(), { once: true });
-
-  const directory = await listLabelerDids(signal);
-  const batches = batchLabelers([...base.asked, ...directory]);
-  const progress: ScanProgress = { total: batches.reduce((n, b) => n + b.length, 0), checked: 0, failed: 0 };
-  let labels: Label[] = [];
-  const labelers = new Map<string, LabelerInfo>();
-  const requested = new Set<string>(base.labelers.keys());
-  const lookups: Promise<void>[] = [];
-
-  const snapshot = (running: boolean): ScanResult => ({
-    progress: { ...progress },
-    labels,
-    labelers: new Map(labelers),
-    stopped: stop.signal.aborted && !signal.aborted,
-    running,
-  });
-  publish(snapshot(true));
-
-  // Name a labeler as soon as it turns up with a label, rather than leaving
-  // a bare DID on the page until the scan ends.
-  const identify = (found: Label[]) => {
-    const fresh = cleanLabelerDids(found.map((l) => l.src)).filter((did) => !requested.has(did));
-    if (fresh.length === 0) return;
-    fresh.forEach((did) => requested.add(did));
-    lookups.push(
-      fetchLabelerInfo(fresh, signal)
-        .then((info) => {
-          info.forEach((value, did) => labelers.set(did, value));
-          if (!signal.aborted) publish(snapshot(true));
-        })
-        .catch(() => undefined),
-    );
-  };
-
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(SCAN_CONCURRENCY, batches.length) }, async () => {
-      for (;;) {
-        if (stop.signal.aborted) return;
-        const batch = batches[next++];
-        if (!batch) return;
-        try {
-          const answer = await fetchLabels(base.subject, batch, stop.signal);
-          labels = mergeLabels(labels, answer.labels);
-          progress.checked += batch.length;
-          identify(answer.labels);
-        } catch {
-          if (stop.signal.aborted) return;
-          progress.failed += batch.length;
-        }
-        publish(snapshot(true));
-      }
-    }),
-  );
-  await Promise.all(lookups);
-  return snapshot(false);
-}
 
 // Suggestions for the labeler field: the AppView typeahead the stream
 // monitor's account filter uses. It offers any account, not only labelers;
@@ -351,36 +198,28 @@ function LabelGroupCard({
  * it means. The logic is in src/lib/tools/labels.ts and the requests in
  * labelsClient.ts; this runs them and draws the result.
  *
- * Two runs. The first is automatic and small: Bluesky's own labeler, the
- * subject's self-labels and any labelers added by hand. The second, a scan
- * of every labeler on the network, is several dozen requests, so it only
- * starts on a button press and is never kept in the link.
+ * Two runs, both automatic. The first is small and answers quickly:
+ * Bluesky's own labeler, the subject's self-labels and any labelers added by
+ * hand. The second, a scan of every labeler on the network, starts as soon
+ * as the first is in. It is a few dozen requests, a few at a time, and can be
+ * stopped part way; whatever it found by then stays on the page.
  */
-export default function LabelChecker() {
-  const [{ subject: raw, labelers: rawLabelers }, setQuery] = useToolQuery(['subject', 'labelers'] as const);
+export default function LabelChecker({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
+  const [query, setQuery] = useToolQuery(['subject', 'labelers'] as const);
+  // Embedded in the Explorer, the account comes from the page rather than
+  // the query string, and the tool draws without its head card.
+  const embedded = subject !== undefined;
+  const raw = embedded ? subject : query.subject;
+  const rawLabelers = query.labelers;
   const input = raw ? parseSubjectInput(raw) : null;
   const target = input?.ok ? input.target : null;
   const addedValues = parseLabelersParam(rawLabelers);
-  const baseKey = target ? `${targetKey(target)}|${addedValues.join(',')}` : null;
 
-  const base = useToolRun<BaseResult>(baseKey, ({ signal }) =>
-    checkBase(target as LabelTarget, addedValues, signal),
-  );
-
-  // The scan belongs to the subject it was started for: change the subject
-  // or the added labelers and it is no longer running, with nothing to reset.
-  const [scanRequest, setScanRequest] = useState<{ key: string; n: number } | null>(null);
-  const stopRef = useRef<AbortController | null>(null);
-  const baseData = base.status === 'done' ? base.data : null;
-  const scanKey =
-    scanRequest && scanRequest.key === baseKey && baseData && !baseData.unavailable
-      ? `${scanRequest.key}#${scanRequest.n}`
-      : null;
-  const scan = useToolRun<ScanResult>(scanKey, ({ signal, publish }) => {
-    const stop = new AbortController();
-    stopRef.current = stop;
-    return scanEveryLabeler(baseData as BaseResult, signal, stop, publish);
-  });
+  // Both runs are shared (checkRuns.ts): the scan starts once the first
+  // answer is in, and belongs to the subject it was started for, so a new
+  // subject or a new set of added labelers starts a new one with nothing to
+  // reset. "Scan again" is the run's own rerun.
+  const { base, baseData, scan, stop: stopScan } = useLabelCheck(target, addedValues);
 
   const [now] = useState(() => Date.now());
   const languages = typeof navigator === 'undefined' ? ['en'] : navigator.languages;
@@ -413,20 +252,26 @@ export default function LabelChecker() {
   let coverage = '';
   if (baseData) {
     const extra = baseData.asked.length - 1;
-    if (scanning && progress) {
-      coverage = `Asking every labeler: ${formatCount(progress.checked + progress.failed)} of ${formatCount(progress.total)} so far.`;
+    const first = `Asked Bluesky’s moderation service${extra > 0 ? ` and ${extra === 1 ? 'one labeler' : `${extra} labelers`} you added` : ''}. Self-labels are included.`;
+    if (scanning) {
+      coverage = progress
+        ? `Asking every labeler: ${formatCount(progress.checked + progress.failed)} of ${formatCount(progress.total)} so far.`
+        : `${first} Listing every other labeler.`;
     } else if (scanDone?.stopped) {
       coverage = `Stopped after ${formatCount(scanDone.progress.checked)} of ${formatCount(scanDone.progress.total)} labelers.`;
     } else if (scanDone) {
       coverage = `Asked all ${formatCount(scanDone.progress.total)} labelers that publish a service record.`;
     } else {
-      coverage = `Asked Bluesky’s moderation service${extra > 0 ? ` and ${extra === 1 ? 'one labeler' : `${extra} labelers`} you added` : ''}. Self-labels are included. Scan every labeler to ask the rest.`;
+      // The scan failed to start; the Labelers section below says why.
+      coverage = `${first} The other labelers could not be asked.`;
     }
   }
 
   return (
     <ToolShell
       slug={SLUG}
+      embedded={embedded}
+      heading={heading}
       share={
         target
           ? `${toolHref(SLUG)}?subject=${encodeURIComponent(raw.trim())}${
@@ -451,7 +296,11 @@ export default function LabelChecker() {
 
       {base.status === 'loading' && (
         <>
-          <ToolVerdict tone="info" title={`Checking ${raw.trim()}`} icon={<LoaderCircle size={18} className="fn-tool-spin" />}>
+          <ToolVerdict
+            tone="info"
+            title={embedded ? 'Checking this account' : `Checking ${raw.trim()}`}
+            icon={<LoaderCircle size={18} className="fn-tool-spin" />}
+          >
             Asking Bluesky’s moderation service.
           </ToolVerdict>
           <ToolSkeleton rows={3} />
@@ -469,12 +318,12 @@ export default function LabelChecker() {
         <>
           <ToolVerdict
             tone="info"
-            title={
+            title={`${
               active === 0
                 ? `No labels on ${subjectName}`
                 : `${active === 1 ? 'One label' : `${active} labels`} on ${subjectName}`
-            }
-            icon={<Tags size={18} />}
+            }${scanning ? ' so far' : ''}`}
+            icon={scanning ? <LoaderCircle size={18} className="fn-tool-spin" /> : <Tags size={18} />}
           >
             {coverage}
           </ToolVerdict>
@@ -509,13 +358,13 @@ export default function LabelChecker() {
             <ToolCard className="fn-tool-labels-scan">
               <p>
                 Anyone can run a labeler, and an app only shows labels from the ones its user
-                subscribes to. A scan asks every labeler the relay lists, {LABELERS_PER_REQUEST} at a time.
+                subscribes to. The checker asks every labeler the relay lists, {LABELERS_PER_REQUEST} at a time.
               </p>
 
               <div className="fn-tool-labels-scanbar" aria-live="polite">
                 {scanning ? (
                   <>
-                    <button type="button" className="fx-btn fx-btn-sm" onClick={() => stopRef.current?.abort()}>
+                    <button type="button" className="fx-btn fx-btn-sm" onClick={stopScan}>
                       <Square size={12} aria-hidden /> Stop
                     </button>
                     <div
@@ -539,9 +388,9 @@ export default function LabelChecker() {
                     <button
                       type="button"
                       className="fx-btn fx-btn-sm"
-                      onClick={() => setScanRequest((prev) => ({ key: baseKey as string, n: (prev?.n ?? 0) + 1 }))}
+                      onClick={scan.rerun}
                     >
-                      <ScanSearch size={14} aria-hidden /> {scanDone || scan.status === 'error' ? 'Scan again' : 'Scan every labeler'}
+                      <ScanSearch size={14} aria-hidden /> Scan again
                     </button>
                     {scanDone && (
                       <span className="fn-tool-labels-count">
@@ -581,50 +430,54 @@ export default function LabelChecker() {
             </ToolCard>
           </ToolSection>
 
-          <ToolSection title="Checked">
-            <ToolCard>
-              <ToolFacts>
-                <ToolFact label={isPost ? 'Author' : 'Account'} plain>
-                  {view?.displayName ? `${view.displayName} (${who})` : who}
-                </ToolFact>
-                <ToolFact label="DID" copy={baseData.subject.did}>
-                  {baseData.subject.did}
-                </ToolFact>
-                {baseData.subject.kind === 'post' && (
-                  <ToolFact label="Post" copy={baseData.subject.uri} wide>
-                    {baseData.subject.uri}
+          {/* The Explorer around an embedded check already says which
+              account this is, and is where the link would go. */}
+          {!embedded && (
+            <ToolSection title="Checked">
+              <ToolCard>
+                <ToolFacts>
+                  <ToolFact label={isPost ? 'Author' : 'Account'} plain>
+                    {view?.displayName ? `${view.displayName} (${who})` : who}
                   </ToolFact>
-                )}
-                {isPost && view?.text && (
-                  <ToolFact label="Text" wide plain>
-                    {view.text.length > 280 ? `${view.text.slice(0, 280)}…` : view.text}
+                  <ToolFact label="DID" copy={baseData.subject.did}>
+                    {baseData.subject.did}
                   </ToolFact>
-                )}
-              </ToolFacts>
-              <div className="fn-tool-actions">
-                <Link
-                  href={
-                    explorePathFromAtUri(
-                      baseData.subject.kind === 'post' ? baseData.subject.uri : baseData.subject.did,
-                    ) ?? `/explore/${baseData.subject.did}`
-                  }
-                  prefetch={false}
-                  className="fx-btn fx-btn-sm"
-                >
-                  Open in the Explorer
-                </Link>
-                {isPost && (
-                  <button
-                    type="button"
+                  {baseData.subject.kind === 'post' && (
+                    <ToolFact label="Post" copy={baseData.subject.uri} wide>
+                      {baseData.subject.uri}
+                    </ToolFact>
+                  )}
+                  {isPost && view?.text && (
+                    <ToolFact label="Text" wide plain>
+                      {view.text.length > 280 ? `${view.text.slice(0, 280)}…` : view.text}
+                    </ToolFact>
+                  )}
+                </ToolFacts>
+                <div className="fn-tool-actions">
+                  <Link
+                    href={
+                      explorePathFromAtUri(
+                        baseData.subject.kind === 'post' ? baseData.subject.uri : baseData.subject.did,
+                      ) ?? `/explore/${baseData.subject.did}`
+                    }
+                    prefetch={false}
                     className="fx-btn fx-btn-sm"
-                    onClick={() => setQuery({ subject: baseData.subject.did })}
                   >
-                    Check the author
-                  </button>
-                )}
-              </div>
-            </ToolCard>
-          </ToolSection>
+                    Open in the Explorer
+                  </Link>
+                  {isPost && (
+                    <button
+                      type="button"
+                      className="fx-btn fx-btn-sm"
+                      onClick={() => setQuery({ subject: baseData.subject.did })}
+                    >
+                      Check the author
+                    </button>
+                  )}
+                </div>
+              </ToolCard>
+            </ToolSection>
+          )}
         </>
       )}
 
@@ -639,8 +492,9 @@ export default function LabelChecker() {
               term: 'Every other labeler',
               text: (
                 <>
-                  A scan lists every account with an <code>app.bsky.labeler.service</code> record and
-                  asks Bluesky’s AppView which of them have labelled this.
+                  Asked straight after. The checker lists every account with an{' '}
+                  <code>app.bsky.labeler.service</code> record and asks Bluesky’s AppView which of
+                  them have labelled this.
                 </>
               ),
             },

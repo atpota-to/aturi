@@ -787,6 +787,14 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+/* An option drawn as its mark alone (Segmented's `icon`), centred in a
+   narrower box than a word needs. */
+.fn-segmented-option[data-icon] {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 8px;
+}
+
 .fn-segmented-option:hover {
   color: var(--text-primary);
 }
@@ -940,7 +948,7 @@
 }
 
 /* ---------- Spaces landing ----------
-   A product landing like /extension, /links and /mcp, built from their
+   A product landing like /extension, /waypoints and /mcp, built from their
    .fl-* classes (landing.css). These are the pieces those don't cover. */
 
 /* Their page frame, .container-narrow.fl-container: a 1120px column with a

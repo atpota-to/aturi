@@ -390,6 +390,14 @@ they use "sign out everywhere" on `/account`, or revoke Aturi from their own PDS
 
 ## The extension, later
 
+> **Update, 20 November 2026.** The browser extension does not sign in yet,
+> on Chrome, Firefox or Safari, so the steps below wait until it does. Its
+> sign-in and the Account tab in its settings were taken out before any store
+> release, and Chrome and Firefox no longer ask for the `identity` permission.
+> The server's extension endpoints (`client=extension` in `/api/oauth/login`,
+> `/api/oauth/exchange` and the `exchange_codes` table) stay, so the
+> extension can get sign-in back later; these steps apply then.
+
 Deliberately its own release. The backend half is done; what is left is store
 process:
 

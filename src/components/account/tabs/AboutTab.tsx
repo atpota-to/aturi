@@ -18,8 +18,8 @@ const LINKS: { label: string; href: string; icon?: React.ReactNode }[] = [
     href: '/extension',
   },
   {
-    label: 'Universal links',
-    href: '/links',
+    label: 'Waypoints',
+    href: '/waypoints',
   },
   {
     label: 'Terms & privacy',

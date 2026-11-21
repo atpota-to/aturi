@@ -53,6 +53,20 @@
   margin-top: 36px;
 }
 
+/* A preview's stage after its name ("alpha"), set like the landing pages'
+   pill tag (.fl-pill-tag, landing.css). */
+.fn-t-tile-tag {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: 1px;
+}
+
 /* The catalog's groups (src/lib/tools/catalog.ts), each a heading with a
    line of what it holds, then its tiles. */
 .fn-t-group {

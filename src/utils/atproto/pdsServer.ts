@@ -3,8 +3,9 @@
  *
  *   - describeServer(pds) → server metadata (DID, available domains, links).
  *   - listRepos(pds, opts) → paginated list of repos hosted on the PDS.
+ *   - getProtectedResourceMetadata(pds) → where its accounts sign in.
  *
- * Both wrap public XRPC endpoints; no auth required.
+ * All wrap public endpoints; no auth required.
  */
 
 import { readCappedJson } from '../cappedJson';
@@ -94,6 +95,22 @@ export type ServerHealth = {
  */
 export async function getServerHealth(pds: string): Promise<ServerHealth> {
   return fetchJson<ServerHealth>(`${normalizePdsBase(pds)}/xrpc/_health`);
+}
+
+export type ProtectedResourceMetadata = {
+  resource?: string;
+  /** Where the PDS's accounts sign in: itself, or an entryway in front of it (bsky.social). */
+  authorization_servers?: string[];
+};
+
+/**
+ * The PDS's OAuth protected-resource metadata (RFC 9728), which names the
+ * authorization server its accounts sign in through. Served at a well-known
+ * path rather than over XRPC, and only by PDSs that support OAuth, so a
+ * failure means "not said" rather than an error.
+ */
+export async function getProtectedResourceMetadata(pds: string): Promise<ProtectedResourceMetadata> {
+  return fetchJson<ProtectedResourceMetadata>(`${normalizePdsBase(pds)}/.well-known/oauth-protected-resource`);
 }
 
 export async function listRepos(

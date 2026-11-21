@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { BadgeCheck, List, LoaderCircle, User } from 'lucide-react';
 import { Credit } from '@/components/explore/lexicons/primitives';
@@ -226,8 +226,11 @@ function ListSection({ title, hint, items }: { title: string; hint: string; item
  * pages of lists load on a button, since a well-known account is on tens of
  * thousands and each one takes two lookups to describe.
  */
-export default function Memberships() {
-  const [{ account: raw }, setQuery] = useToolQuery(['account'] as const);
+export default function Memberships({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
+  const [query, setQuery] = useToolQuery(['account'] as const);
+  // Embedded in the Explorer, the account comes from the page.
+  const embedded = subject !== undefined;
+  const raw = embedded ? subject : query.account;
   const input = raw ? parseAccountInput(raw) : null;
   const actor = input?.ok ? input.actor : null;
 
@@ -294,6 +297,8 @@ export default function Memberships() {
   return (
     <ToolShell
       slug={SLUG}
+      embedded={embedded}
+      heading={heading}
       share={actor ? `${toolHref(SLUG)}?account=${encodeURIComponent(actor)}` : undefined}
       form={
         <ToolForm
@@ -415,23 +420,25 @@ export default function Memberships() {
             </>
           )}
 
-          <ToolSection title="Account">
-            <ToolCard>
-              <ToolFacts>
-                <ToolFact label="Account" plain>
-                  {account.displayName ? `${account.displayName} (${who})` : who}
-                </ToolFact>
-                <ToolFact label="DID" copy={account.did}>
-                  {account.did}
-                </ToolFact>
-              </ToolFacts>
-              <div className="fn-tool-actions">
-                <Link href={`/explore/${account.did}`} prefetch={false} className="fx-btn fx-btn-sm">
-                  Open in the Explorer
-                </Link>
-              </div>
-            </ToolCard>
-          </ToolSection>
+          {!embedded && (
+            <ToolSection title="Account">
+              <ToolCard>
+                <ToolFacts>
+                  <ToolFact label="Account" plain>
+                    {account.displayName ? `${account.displayName} (${who})` : who}
+                  </ToolFact>
+                  <ToolFact label="DID" copy={account.did}>
+                    {account.did}
+                  </ToolFact>
+                </ToolFacts>
+                <div className="fn-tool-actions">
+                  <Link href={`/explore/${account.did}`} prefetch={false} className="fx-btn fx-btn-sm">
+                    Open in the Explorer
+                  </Link>
+                </div>
+              </ToolCard>
+            </ToolSection>
+          )}
 
           <Credit standalone />
         </>

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { Skeleton, type SkeletonShape } from '@/components/SkeletonLoader';
+import { useBreadcrumbBar } from '../BreadcrumbContext';
 
 /**
  * Shared shapes for the explore route skeletons.
@@ -79,43 +80,66 @@ export function SkeletonBreadcrumb({
   /** Mirrors <Breadcrumb titled>: no bottom margin, trailing separator. */
   titled?: boolean;
 }) {
+  // The line <Breadcrumb> carries under itself on a phone, when it carries
+  // one (BreadcrumbBarProvider), held at the switch's size.
+  const bar = useBreadcrumbBar();
   return (
-    <div
-      className="fx-crumbs"
-      style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: '1.5rem' }}
-    >
-      {widths.map((width, i) => (
-        <span key={i} className="fx-crumb">
-          {i > 0 && (
-            <span aria-hidden className="fx-crumb-sep">
-              /
-            </span>
-          )}
-          <SkeletonBar width={width} />
-        </span>
-      ))}
-      {titled && (
-        <span aria-hidden className="fx-crumb-sep">
-          /
-        </span>
+    <>
+      <div
+        className="fx-crumbs"
+        // Carrying the switch, the row is its line of text and no taller, as
+        // the real one is, so the switch under it doesn't shift on load.
+        style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: bar ? undefined : '1.5rem' }}
+      >
+        {widths.map((width, i) => (
+          <span key={i} className="fx-crumb">
+            {i > 0 && (
+              <span aria-hidden className="fx-crumb-sep">
+                /
+              </span>
+            )}
+            <SkeletonBar width={width} />
+          </span>
+        ))}
+        {titled && (
+          <span aria-hidden className="fx-crumb-sep">
+            /
+          </span>
+        )}
+        {share && (
+          <span style={{ marginLeft: 'auto' }}>
+            <SkeletonBar width="5.5rem" height="1.6rem" shape="control" />
+          </span>
+        )}
+      </div>
+      {bar && (
+        <div className="fx-crumbbar">
+          <span className="fx-crumbbar-skel">
+            <SkeletonBar width="100%" height="100%" shape="control" />
+          </span>
+        </div>
       )}
-      {share && (
-        <span style={{ marginLeft: 'auto' }}>
-          <SkeletonBar width="5.5rem" height="1.6rem" shape="control" />
-        </span>
-      )}
-    </div>
+    </>
   );
 }
 
 /**
  * Stand-in for the explorer's account card (<ProfileHeader> with the identity
  * rows): round avatar, name and handle, two lines of bio, the three stats,
- * the DID / handle / PDS list and the "Open profile in…" row.
+ * the DID / handle / PDS list and the "Open profile in…" row. `flat` drops
+ * the frame, for the workbench's rail, where the card lies flat on the rail.
  */
-export function SkeletonAccountCard() {
+export function SkeletonAccountCard({ flat = false }: { flat?: boolean }) {
   return (
-    <SkeletonPanel padding="16px" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <SkeletonPanel
+      padding="16px"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        ...(flat && { border: 0, borderRadius: 0, background: 'none' }),
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Skeleton width="44px" height="44px" shape="circle" style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>

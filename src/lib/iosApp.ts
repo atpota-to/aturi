@@ -45,9 +45,23 @@ export const IOS_METADATA_SCOPE = [
 /**
  * Universal-link path patterns the app claims, in AASA `components` syntax.
  * Bare `aturi.to/{handle}` links are deliberately left to Safari: claiming
- * `/*` would swallow every marketing and docs page too.
+ * `/*` would swallow every marketing and docs page too. `/links` and
+ * `/account` are claimed exactly, with no wildcard: they are the app's Links
+ * tab and its settings (`/account#redirects` opens the Redirects screen, as
+ * the remember bar on a link page does), and nothing lives beneath either.
+ * `/tools` and `/tools/*` are the app's Tools tab and each tool, which read
+ * the same query the web tools keep their input in.
  */
-export const IOS_UNIVERSAL_LINK_PATHS = ['/profile/*', '/explore/*', '/at/*', '/at:*'] as const;
+export const IOS_UNIVERSAL_LINK_PATHS = [
+  '/profile/*',
+  '/explore/*',
+  '/at/*',
+  '/at:*',
+  '/links',
+  '/account',
+  '/tools',
+  '/tools/*',
+] as const;
 
 export function buildIosClientMetadata(origin: string): Record<string, unknown> {
   return {

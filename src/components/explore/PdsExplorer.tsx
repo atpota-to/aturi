@@ -1,162 +1,69 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Globe, Server } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { ExternalLink, Globe, Search, Server } from 'lucide-react';
 import {
-  describeServer,
-  getServerHealth,
-  listRepos,
+  COMMIT_WINDOW_LABELS,
+  COMMIT_WINDOWS,
+  parsePdsLocation,
+  pdsAddress,
+  statusLabel,
+  type AccountSort,
+  type CommitWindow,
+  type PdsLocation,
+} from '@/lib/pdsExplorer';
+import {
   normalizePdsBase,
   pdsHostname,
-  type RepoEntry,
   type ServerDescription,
   type ServerHealth,
 } from '@/utils/atproto/pdsServer';
-import { describeRepo } from '@/utils/atproto/pdsClient';
-import { encodeRepo, shortDid } from '@/utils/atproto/urls';
-import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
+import { encodeRepo } from '@/utils/atproto/urls';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
-import { PdsReposSkeleton } from './skeletons/pages';
 import RelayStatusList from '@/components/tools/RelayStatusList';
 import { CHROME_RESULTS_ID, useChromeBarField } from './ChromeBarContext';
+import { Segmented } from './lexicons/primitives';
+import AccountsList, { AccountsSkeleton, useAccountsView } from './pds/AccountsList';
+import { LoadMore } from './pds/AccountsPane';
+import { SORT_CHOICES } from './pds/parts';
+import {
+  nameOf,
+  useAccountRows,
+  useNamesVersion,
+  usePdsRepos,
+  usePdsServer,
+  type AccountRow,
+} from './pds/usePdsData';
 
 type Props = {
   host: string;
 };
 
 /**
- * Explorer view for a PDS host. Renders server metadata + a paginated list
- * of the repos hosted there. Each repo row resolves its handle lazily so
- * the initial paint isn't blocked on N describeRepo calls.
+ * The classic explorer page for a PDS host: server metadata, what the relays
+ * know of it, and the accounts it hosts, as one scrolling page. The
+ * Workbench and Files views (pds/PdsShell.tsx) draw the same host in the
+ * full-window frame; all three share one reading of the host
+ * (pds/usePdsData.ts), so switching between them doesn't list it again.
  */
 export default function PdsExplorer({ host }: Props) {
   const pdsBase = normalizePdsBase(host);
-  const [serverInfo, setServerInfo] = useState<ServerDescription | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
-  // _health is a separate, optional endpoint — keep its state distinct
-  // from describeServer so a missing version doesn't visually mark the
-  // PDS as broken when the rest of the metadata loaded fine.
-  const [serverHealth, setServerHealth] = useState<ServerHealth | null>(null);
-
-  const [repos, setRepos] = useState<RepoEntry[]>([]);
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const [reposLoading, setReposLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [reposError, setReposError] = useState<string | null>(null);
-  // Search over the repos fetched so far, driven from the bottom chrome bar.
-  // listRepos has no query parameter, so this narrows what's loaded.
-  const [filter, setFilter] = useState('');
-  // Rows resolve their own handle lazily (see <RepoRow>); the results are
-  // kept here so the search can match a handle and not just a DID, and so a
-  // row that scrolls out of the filter and back doesn't refetch it.
-  const [handles, setHandles] = useState<Record<string, string>>({});
-
-  const rememberHandle = useCallback((did: string, handle: string) => {
-    setHandles((prev) => (prev[did] === handle ? prev : { ...prev, [did]: handle }));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setServerInfo(null);
-    setServerError(null);
-    setServerHealth(null);
-    describeServer(pdsBase)
-      .then((d) => {
-        if (!cancelled) setServerInfo(d);
-      })
-      .catch((err) => {
-        if (!cancelled) setServerError(err instanceof Error ? err.message : String(err));
-      });
-    getServerHealth(pdsBase)
-      .then((h) => {
-        if (!cancelled) setServerHealth(h);
-      })
-      .catch(() => {
-        // _health is best-effort — older / non-reference PDSs may 404.
-        // We just leave the version cell off in that case.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pdsBase]);
-
-  const loadPage = useCallback(
-    async (after?: string) => {
-      setReposLoading(true);
-      setReposError(null);
-      try {
-        const res = await listRepos(pdsBase, { limit: 50, cursor: after });
-        const batch = res.repos || [];
-        setRepos((prev) => (after ? [...prev, ...batch] : batch));
-        setCursor(res.cursor);
-        if (!res.cursor || batch.length === 0) setDone(true);
-      } catch (err) {
-        setReposError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setReposLoading(false);
-      }
-    },
-    [pdsBase],
-  );
-
-  useEffect(() => {
-    setRepos([]);
-    setCursor(undefined);
-    setDone(false);
-    setFilter('');
-    setHandles({});
-    loadPage(undefined);
-  }, [loadPage]);
-
-  const query = filter.trim().toLowerCase();
-  const visibleRepos = useMemo(
-    () =>
-      query
-        ? repos.filter(
-            (r) =>
-              r.did.toLowerCase().includes(query) ||
-              (handles[r.did]?.toLowerCase().includes(query) ?? false),
-          )
-        : repos,
-    [repos, handles, query],
-  );
-
-  // The PDS page's find action: search the repos this server hosts. Only
-  // while there is, or may yet be, something to search: `done` stays false
-  // from first render through the first page (no flash), turns true on an
-  // empty listing, and `reposError` covers a first page that failed. A host
-  // that refuses to list (bsky.social does) otherwise left a field over the
-  // notice saying so; without one the bar falls back to the jump search.
-  const searchable = repos.length > 0 || (!reposError && !done);
-  useChromeBarField(
-    searchable
-      ? {
-          placeholder: 'Search repos…',
-          label: 'Search repos on this PDS',
-          value: filter,
-          onChange: setFilter,
-          resultsId: CHROME_RESULTS_ID,
-          status:
-            repos.length === 0
-              ? null
-              : query
-                ? `${visibleRepos.length}/${repos.length}`
-                : `${repos.length}${done ? '' : '+'}`,
-        }
-      : null,
-  );
+  // _health and the rest are separate, optional reads: a missing version
+  // doesn't mark the PDS as broken when describeServer answered.
+  const server = usePdsServer(pdsBase);
 
   return (
     <div className="fn-lexdetail fn-pds">
       <AppearIn rise>
         <PdsHeader
           host={host}
-          info={serverInfo}
-          health={serverHealth}
-          error={serverError}
+          info={server.info}
+          health={server.health}
+          error={server.error}
           pdsBase={pdsBase}
         />
       </AppearIn>
@@ -164,7 +71,7 @@ export default function PdsExplorer({ host }: Props) {
       {/* What the relays know of this host, once it has answered as a PDS:
           a name that is not one would only collect four "not known"s. The
           rows are the relay crawl check's own (RelayStatusList.tsx). */}
-      {serverInfo && (
+      {server.info && (
         <AppearIn delay={0.05}>
           <section>
             <header className="fn-pds-repos-head">
@@ -186,91 +93,214 @@ export default function PdsExplorer({ host }: Props) {
       )}
 
       <AppearIn delay={0.08}>
-        <section id={CHROME_RESULTS_ID}>
-          <header className="fn-pds-repos-head">
-            <h2>Repos on this PDS</h2>
-            {/* No count when the very first page failed: "0+ loaded" beside
-                the error read as a server with no repos. */}
-            {!(reposError && repos.length === 0) && (
-              <span>
-                {query ? (
-                  <>
-                    {visibleRepos.length} of {repos.length} shown
-                  </>
-                ) : (
-                  <>
-                    {repos.length}
-                    {!done && '+'} loaded
-                  </>
-                )}
-              </span>
-            )}
-          </header>
-
-          {/* In words, with the raw error kept for anyone who hovers: a bare
-              "Failed to fetch" said nothing about what had been tried. */}
-          {reposError && (
-            <p className="explore-placeholder" title={reposError}>
-              {repos.length === 0
-                ? 'Couldn’t list the repos on this PDS. It may be offline, or it may not allow listing.'
-                : 'Couldn’t load more repos from this PDS.'}
-            </p>
-          )}
-          {repos.length === 0 && reposLoading && <PdsReposSkeleton />}
-          {repos.length === 0 && !reposLoading && !reposError && (
-            <p className="explore-placeholder">No repos reported by this PDS.</p>
-          )}
-          {/* A search only sees the pages fetched so far — and only the rows
-              whose handle has resolved — so say that rather than implying the
-              PDS doesn't host a match. */}
-          {repos.length > 0 && visibleRepos.length === 0 && (
-            <p className="explore-placeholder">
-              No loaded repos match <code>{filter.trim()}</code>.
-              {!done && ' Load more to search further.'}
-            </p>
-          )}
-
-          <ul
-            className="fn-pds-repos"
-            style={{
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              border: visibleRepos.length ? '1px solid var(--border-medium)' : 0,
-              borderRadius: 'var(--radius-card)',
-              overflow: 'hidden',
-              background: 'var(--bg-secondary)',
-              display: visibleRepos.length ? 'flex' : undefined,
-              flexDirection: 'column',
-            }}
-          >
-            {visibleRepos.map((r) => (
-              <RepoRow
-                key={r.did}
-                repo={r}
-                pdsBase={pdsBase}
-                handle={handles[r.did] ?? null}
-                onHandle={rememberHandle}
-              />
-            ))}
-          </ul>
-
-          {!done && repos.length > 0 && (
-            <div style={{ marginTop: '1rem' }}>
-              <button
-                type="button"
-                onClick={() => loadPage(cursor)}
-                disabled={reposLoading}
-                className="fn-btn"
-                style={{ cursor: reposLoading ? 'wait' : 'pointer' }}
-              >
-                {reposLoading ? 'Loading…' : 'Load more'}
-              </button>
-            </div>
-          )}
-        </section>
+        <ClassicAccounts host={host} base={pdsBase} />
       </AppearIn>
     </div>
+  );
+}
+
+/**
+ * The accounts the host lists, on the classic page: found by handle, name or
+ * DID, narrowed to how they stand and when they last committed, and sorted,
+ * with each row a way into the account's repository.
+ *
+ * The narrowing and the order are the address's, as in the full-window
+ * views (src/lib/pdsExplorer.ts), so switching views keeps them; they
+ * replace the address rather than add to the history.
+ */
+function ClassicAccounts({ host, base }: { host: string; base: string }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const loc = useMemo(
+    () =>
+      parsePdsLocation(pathname, searchParams) ??
+      (parsePdsLocation(`/explore/pds/${encodeURIComponent(host)}`, new URLSearchParams()) as PdsLocation),
+    [pathname, searchParams, host],
+  );
+  const listing = usePdsRepos(base);
+  const rows = useAccountRows(listing.repos);
+  const namesVersion = useNamesVersion();
+  const [filter, setFilter] = useState('');
+  const query = filter.trim().toLowerCase();
+  const { ordered, visible } = useAccountsView({
+    rows,
+    status: loc.status,
+    commit: loc.commit,
+    sort: loc.sort,
+    desc: loc.desc,
+    query,
+    namesVersion,
+  });
+
+  const set = (patch: Partial<PdsLocation>) =>
+    window.history.replaceState(null, '', pdsAddress({ ...loc, ...patch, tab: 'accounts', account: null }, 'accounts'));
+  const onSort = (by: AccountSort) => set({ sort: by, desc: by === loc.sort ? !loc.desc : by === 'commit' });
+  const hrefFor = (row: AccountRow) => `/explore/${encodeRepo(nameOf(row.did)?.handle || row.did)}`;
+
+  // The page's find action: search the accounts this server hosts. Only
+  // while there is, or may yet be, something to search: a host that refuses
+  // to list (bsky.social does) otherwise left a field over the notice saying
+  // so; without one the bar falls back to the jump search.
+  const firstFailed = Boolean(listing.error) && rows.length === 0;
+  const searchable = rows.length > 0 || (!listing.error && !listing.done);
+  useChromeBarField(
+    searchable
+      ? {
+          placeholder: 'Find an account…',
+          label: 'Find an account on this PDS',
+          value: filter,
+          onChange: setFilter,
+          resultsId: CHROME_RESULTS_ID,
+          inPage: true,
+          status: rows.length === 0 ? null : query ? `${visible.length}/${ordered.length}` : `${ordered.length}`,
+        }
+      : null,
+  );
+
+  const narrowed = loc.status !== 'all' || loc.commit !== null;
+  const statusOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    ...(['all', 'active', 'inactive'].includes(loc.status) ? [] : [{ value: loc.status, label: statusLabel(loc.status) }]),
+  ];
+
+  return (
+    <section id={CHROME_RESULTS_ID} className="fx-pd-classic">
+      <header className="fn-pds-repos-head">
+        <h2>Accounts on this PDS</h2>
+        {/* No count when the very first page failed: "0+ loaded" beside the
+            notice read as a server with no accounts. */}
+        {!firstFailed && rows.length > 0 && (
+          <span>
+            {query || narrowed ? (
+              <>
+                {visible.length.toLocaleString()} of {rows.length.toLocaleString()} shown
+              </>
+            ) : (
+              <>
+                {rows.length.toLocaleString()}
+                {!listing.done && '+'} listed
+              </>
+            )}
+          </span>
+        )}
+      </header>
+
+      {/* In words, with the raw error kept for anyone who hovers: a bare
+          "Failed to fetch" said nothing about what had been tried. */}
+      {firstFailed ? (
+        <p className="explore-placeholder" title={listing.error ?? undefined}>
+          Couldn’t list the accounts on this PDS. It may be offline, or it may not allow listing.
+        </p>
+      ) : listing.done && rows.length === 0 ? (
+        <p className="explore-placeholder">No accounts reported by this PDS.</p>
+      ) : (
+        <div className="fx-pd-classic-card">
+          <div className="fx-records-tools">
+            <label className="fx-field">
+              <Search size={14} aria-hidden />
+              <span className="fx-sr">Find an account</span>
+              <input
+                type="text"
+                placeholder="Find a handle, name or DID"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && filter) {
+                    e.preventDefault();
+                    setFilter('');
+                  }
+                }}
+              />
+            </label>
+            <Segmented
+              ariaLabel="Show accounts"
+              options={statusOptions}
+              value={loc.status}
+              onChange={(status: string) => set({ status })}
+            />
+            <label className="fx-pd-select">
+              <span className="fx-pd-select-label">Last commit</span>
+              <select
+                value={loc.commit ?? ''}
+                onChange={(e) => set({ commit: (e.target.value || null) as CommitWindow | null })}
+              >
+                <option value="">Any time</option>
+                {COMMIT_WINDOWS.map((w) => (
+                  <option key={w} value={w}>
+                    {COMMIT_WINDOW_LABELS[w]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="fx-pd-select">
+              <span className="fx-sr">Order</span>
+              <select
+                value={`${loc.sort}:${loc.desc ? 'desc' : 'asc'}`}
+                onChange={(e) => {
+                  const [sort, dir] = e.target.value.split(':') as [AccountSort, string];
+                  set({ sort, desc: dir === 'desc' });
+                }}
+              >
+                {SORT_CHOICES.map((c) => (
+                  <option key={`${c.sort}:${c.desc}`} value={`${c.sort}:${c.desc ? 'desc' : 'asc'}`}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {rows.length === 0 ? (
+            <AccountsSkeleton display="rows" rows={8} />
+          ) : visible.length === 0 ? (
+            // A search only sees the pages fetched so far, so say that
+            // rather than implying the PDS doesn't host a match.
+            <p className="fx-records-msg">
+              {query ? (
+                <>
+                  No listed account matches <code>{filter.trim()}</code>
+                  {narrowed ? ' with these filters' : ''}.
+                </>
+              ) : (
+                'No listed account matches these filters.'
+              )}
+              {!listing.done && ' Load more to look further.'}
+            </p>
+          ) : (
+            <AccountsList
+              base={base}
+              rows={visible}
+              display="rows"
+              files={false}
+              hrefFor={hrefFor}
+              current={null}
+              sort={loc.sort}
+              desc={loc.desc}
+              onSort={onSort}
+            />
+          )}
+
+          {rows.length > 0 && (
+            <div className="fx-records-foot">
+              <span>
+                {listing.done
+                  ? `All ${rows.length.toLocaleString()} listed`
+                  : `${rows.length.toLocaleString()} listed, more on the host`}
+                {listing.error && (
+                  <span className="fx-pd-foot-error" title={listing.error}>
+                    {' '}
+                    The last page didn’t load.
+                  </span>
+                )}
+              </span>
+              {!listing.done && <LoadMore onClick={listing.loadMore} loading={listing.loading} />}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -467,177 +497,5 @@ function ExternalLinkRow({
       <span>{label}</span>
       <ExternalLink size={11} aria-hidden style={{ opacity: 0.6 }} />
     </a>
-  );
-}
-
-// A PDS page renders up to ~50 repo rows at once, each of which looks up its
-// handle via describeRepo. Firing all of them on mount hit the PDS with ~50
-// simultaneous requests (rate-limit / hammer risk). This tiny semaphore caps
-// concurrent lookups; rows still fill in their handle as slots free up.
-const HANDLE_LOOKUP_CONCURRENCY = 6;
-let activeLookups = 0;
-const lookupWaiters: (() => void)[] = [];
-
-function acquireLookupSlot(): Promise<void> {
-  if (activeLookups < HANDLE_LOOKUP_CONCURRENCY) {
-    activeLookups++;
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => lookupWaiters.push(resolve));
-}
-
-function releaseLookupSlot(): void {
-  const next = lookupWaiters.shift();
-  if (next) next(); // hand the slot straight to the next waiter
-  else activeLookups--;
-}
-
-async function describeRepoLimited(pdsBase: string, did: string) {
-  await acquireLookupSlot();
-  try {
-    return await describeRepo(pdsBase, did);
-  } finally {
-    releaseLookupSlot();
-  }
-}
-
-/**
- * Single repo row — DID always shown immediately; the canonical handle is
- * fetched in the background via describeRepo and reported up to the parent,
- * which owns the handle map so the repo search can match on it.
- */
-function RepoRow({
-  repo,
-  pdsBase,
-  handle,
-  onHandle,
-}: {
-  repo: RepoEntry;
-  pdsBase: string;
-  handle: string | null;
-  onHandle: (did: string, handle: string) => void;
-}) {
-  useEffect(() => {
-    // Already resolved (or resolved before a filter hid this row): nothing
-    // to fetch.
-    if (handle) return undefined;
-    let cancelled = false;
-    describeRepoLimited(pdsBase, repo.did)
-      .then((res) => {
-        if (!cancelled && res.handle) onHandle(repo.did, res.handle);
-      })
-      .catch(() => {
-        // Handle lookup is best-effort. Showing just the DID is fine.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pdsBase, repo.did, handle, onHandle]);
-
-  // The repo's head `rev` is itself a TID (the commit timestamp), so we
-  // can render the last-updated time without a second round-trip. Custom
-  // / non-TID revs fall back to null and the line is just hidden.
-  const revDate = repo.rev ? tidToDate(repo.rev) : null;
-
-  // `active === false` records carry a `status` like 'takendown' /
-  // 'suspended' / 'deactivated' / 'deleted'. Show it prominently — those
-  // repos still appear in listRepos but their records won't fetch.
-  const showStatus = repo.active === false || (repo.status && repo.status !== 'active');
-  const statusLabel = repo.status || (repo.active === false ? 'inactive' : null);
-
-  return (
-    <li style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-      {/* `prefetch={false}` + `rel="nofollow"`, per <LinkifiedJson>. One row
-          per repo hosted here, and a busy PDS hosts thousands, so this is the
-          widest single fan-out in the explorer: left on the default, rendering
-          one PDS page queued a prefetch for every account on it. */}
-      <Link
-        href={`/explore/${encodeRepo(handle || repo.did)}`}
-        prefetch={false}
-        rel="nofollow"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(14ch, 24ch) 1fr auto',
-          gap: '0.75rem',
-          alignItems: 'center',
-          minHeight: '50px',
-          boxSizing: 'border-box',
-          padding: '7px 16px',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '12.5px',
-          color: 'var(--text-primary)',
-          textDecoration: 'none',
-          transition: 'background 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--surface-subtle)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <code
-            style={{
-              background: 'transparent',
-              padding: 0,
-              color: 'var(--text-primary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: 'block',
-            }}
-            title={repo.did}
-          >
-            {handle ? `@${handle}` : shortDid(repo.did)}
-          </code>
-          {revDate && (
-            <time
-              dateTime={revDate.toISOString()}
-              title={`rev ${repo.rev} · ${revDate.toISOString()}`}
-              style={{
-                display: 'block',
-                marginTop: '0.125rem',
-                fontSize: '12px',
-                color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-sans)',
-              }}
-            >
-              updated {formatTidRelative(revDate)}
-            </time>
-          )}
-        </div>
-        <span
-          style={{
-            color: 'var(--text-tertiary)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            minWidth: 0,
-          }}
-          title={repo.did}
-        >
-          {handle ? repo.did : ''}
-        </span>
-        {showStatus && statusLabel && (
-          <span
-            title={`Repo status: ${statusLabel}`}
-            style={{
-              padding: '0.125rem 0.4rem',
-              fontSize: '0.7rem',
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--danger)',
-              border: '1px solid var(--danger)',
-              borderRadius: 'var(--radius-pill)',
-              background: 'transparent',
-              whiteSpace: 'nowrap',
-              textTransform: 'lowercase',
-            }}
-          >
-            {statusLabel}
-          </span>
-        )}
-      </Link>
-    </li>
   );
 }

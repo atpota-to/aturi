@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import {
   COMPAT_FAMILIES,
   COMPAT_FAMILY_ORDER,
@@ -12,6 +13,14 @@ import {
 } from '../../../lib/prefs';
 import { allWaypoints, DID_REQUIRED_WAYPOINTS, visibleWaypointIds } from '../../../lib/catalog';
 import { clearSeenLately, loadSeenLately } from '../../../lib/seenLately';
+import { IS_SAFARI } from '../../../lib/platform';
+import { allSourceHosts } from '../../../lib/tabScope';
+import {
+  checkSiteAccess,
+  requestSiteAccess,
+  watchSiteAccess,
+  type SiteAccessSummary,
+} from '../../../lib/siteAccess';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
 import DeclaredClientsImport from '../components/DeclaredClientsImport';
 
@@ -135,6 +144,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             : 'Off: the popup still works, but nothing is redirected automatically.'}
         </ToggleRow>
 
+        {IS_SAFARI && prefs.autoRedirect && <SiteAccessPanel prefs={prefs} />}
+
         {prefs.autoRedirect && (
           <>
             <div className="options-card-subhead defaults-favorites-intro">
@@ -188,28 +199,41 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-subhead">
               <h3>When to leave a link alone</h3>
             </div>
-            <ToggleRow
-              title="Stay put on the app you're using"
-              on={prefs.redirectStayOnCurrentApp}
-              onToggle={() =>
-                onChange({ redirectStayOnCurrentApp: !prefs.redirectStayOnCurrentApp })
-              }
-            >
-              Don't redirect inside a tab that's already showing one of the
-              apps involved. Retyping bsky.app after being sent to your
-              reader takes you to bsky.app, instead of bouncing straight
-              back. Off: every matching link is redirected, wherever the
-              tab already is.
-            </ToggleRow>
-            <ToggleRow
-              title="Skip the first URL in a new tab"
-              on={prefs.redirectSkipNewTab}
-              onToggle={() => onChange({ redirectSkipNewTab: !prefs.redirectSkipNewTab })}
-            >
-              A URL you type or paste into a tab you just opened is left
-              alone. Links opened in a new tab, and links handed over by
-              other apps, still redirect.
-            </ToggleRow>
+            {/* Both of these work by exempting one tab, which Safari's
+                redirect rules have no way to say (no tabIds condition). */}
+            {IS_SAFARI ? (
+              <div className="options-row">
+                <div className="options-row-desc">
+                  Safari can&apos;t limit redirect exceptions to a single tab, so every
+                  matching link is redirected, wherever the tab already is.
+                </div>
+              </div>
+            ) : (
+              <>
+                <ToggleRow
+                  title="Stay put on the app you're using"
+                  on={prefs.redirectStayOnCurrentApp}
+                  onToggle={() =>
+                    onChange({ redirectStayOnCurrentApp: !prefs.redirectStayOnCurrentApp })
+                  }
+                >
+                  Don't redirect inside a tab that's already showing one of the
+                  apps involved. Retyping bsky.app after being sent to your
+                  reader takes you to bsky.app, instead of bouncing straight
+                  back. Off: every matching link is redirected, wherever the
+                  tab already is.
+                </ToggleRow>
+                <ToggleRow
+                  title="Skip the first URL in a new tab"
+                  on={prefs.redirectSkipNewTab}
+                  onToggle={() => onChange({ redirectSkipNewTab: !prefs.redirectSkipNewTab })}
+                >
+                  A URL you type or paste into a tab you just opened is left
+                  alone. Links opened in a new tab, and links handed over by
+                  other apps, still redirect.
+                </ToggleRow>
+              </>
+            )}
           </>
         )}
       </section>
@@ -245,7 +269,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
           onToggle={() => onChange({ passiveScanEnabled: !prefs.passiveScanEnabled })}
         >
           {prefs.passiveScanEnabled
-            ? 'On: every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.'
+            ? 'On: every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.' +
+              (IS_SAFARI ? " In Safari it only runs on sites you've allowed Aturi to access." : '')
             : 'Off: the toolbar icon stays neutral. The popup still scans the page for records when you open it.'}
         </ToggleRow>
 
@@ -328,6 +353,108 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+/**
+ * Safari only. WebKit applies a redirect rule only on a site the user has
+ * allowed Aturi to access, so a redirect source that isn't allowed is passed
+ * over without a word. This shows how many of the sources are allowed, names
+ * the rest, and asks for them. Once every source is allowed it shrinks to one
+ * line, and it comes back if a grant is withdrawn or runs out.
+ */
+function SiteAccessPanel({ prefs }: { prefs: Prefs }) {
+  const hostsKey = useMemo(() => allSourceHosts(prefs).join(' '), [prefs]);
+  const [access, setAccess] = useState<SiteAccessSummary | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [refused, setRefused] = useState(false);
+  const refresh = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const hosts = hostsKey ? hostsKey.split(' ') : [];
+    let live = true;
+    let latest = 0;
+    refresh.current = () => {
+      const mine = ++latest;
+      void checkSiteAccess(hosts).then(summary => {
+        if (live && mine === latest) setAccess(summary);
+      });
+    };
+    refresh.current();
+    const unwatch = watchSiteAccess(() => refresh.current());
+    return () => {
+      live = false;
+      unwatch();
+    };
+  }, [hostsKey]);
+
+  function allow(hosts: string[]) {
+    // First, before any await or state update: Safari only shows its prompt
+    // while the click is still being handled.
+    const asked = requestSiteAccess(hosts);
+    setAsking(true);
+    setRefused(false);
+    void asked.then(granted => {
+      setAsking(false);
+      setRefused(!granted);
+      refresh.current();
+    });
+  }
+
+  if (!access || access.hosts.length === 0) return null;
+  const total = access.hosts.length;
+
+  if (access.missing.length === 0) {
+    return (
+      <div className="options-row site-access is-done">
+        <ShieldCheck size={16} aria-hidden />
+        <div className="options-row-desc">
+          Site access: allowed on{' '}
+          {total === 1 ? 'the one redirect site' : `all ${total} redirect sites`}.
+        </div>
+      </div>
+    );
+  }
+
+  const { missing } = access;
+  return (
+    <div className="options-row site-access" role="group" aria-labelledby="site-access-title">
+      <div className="options-row-text">
+        <div className="options-row-title" id="site-access-title">
+          Site access
+        </div>
+        <div className="options-row-desc">
+          Safari only redirects links to sites you&apos;ve allowed Aturi to access.
+          Allowed on {access.allowed.length} of {total} redirect sites.
+        </div>
+        <div className="site-access-missing">
+          <span id="site-access-missing">Not allowed yet:</span>
+          <ul className="site-access-hosts" aria-labelledby="site-access-missing">
+            {missing.map(host => (
+              <li key={host}>{host}</li>
+            ))}
+          </ul>
+        </div>
+        {refused && (
+          <div className="options-row-desc site-access-refused" role="status">
+            Not allowed. You can also allow Aturi on these sites in Safari&apos;s
+            extension settings.
+          </div>
+        )}
+        <div className="options-row-desc site-access-note">
+          If you allow a site for one day, links to it stop redirecting when the day
+          is up.
+        </div>
+      </div>
+      <button
+        type="button"
+        className="aturi-btn aturi-btn-primary site-access-allow"
+        onClick={() => allow(missing)}
+        disabled={asking}
+      >
+        {missing.length === 1 ? `Allow ${missing[0]}` : `Allow ${missing.length} sites`}
+      </button>
     </div>
   );
 }

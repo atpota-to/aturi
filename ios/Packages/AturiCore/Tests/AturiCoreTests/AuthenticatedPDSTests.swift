@@ -379,6 +379,33 @@ final class AuthenticatedPDSTests: XCTestCase {
         XCTAssertTrue(transport.requests.isEmpty)
     }
 
+    func testApplyWritesSendsOneCreatePerRecordWithoutRkeys() async throws {
+        let transport = PDSFakeTransport([(200, #"{"commit":{"cid":"bafyc","rev":"3k"},"results":[]}"#, [:])])
+        let records: [JSONValue] = [
+            ["$type": "app.bsky.graph.listitem", "subject": "did:plc:a", "list": "at://did:plc:test123/app.bsky.graph.list/3l"],
+            ["$type": "app.bsky.graph.listitem", "subject": "did:plc:b", "list": "at://did:plc:test123/app.bsky.graph.list/3l"],
+        ]
+        try await pds(transport).applyWrites(creates: records, collection: "app.bsky.graph.listitem")
+        let request = try XCTUnwrap(transport.requests.first)
+        XCTAssertEqual(transport.requests.count, 1)
+        XCTAssertEqual(request.url?.absoluteString, "https://pds.test/xrpc/com.atproto.repo.applyWrites")
+        let body = try XCTUnwrap(requestBody(request))
+        XCTAssertEqual(body["repo"]?.stringValue, "did:plc:test123")
+        let writes = try XCTUnwrap(body["writes"]?.arrayValue)
+        XCTAssertEqual(writes.count, 2)
+        XCTAssertEqual(writes[0]["$type"]?.stringValue, "com.atproto.repo.applyWrites#create")
+        XCTAssertEqual(writes[0]["collection"]?.stringValue, "app.bsky.graph.listitem")
+        XCTAssertNil(writes[0]["rkey"])
+        XCTAssertEqual(writes[0]["value"], records[0])
+        XCTAssertEqual(writes[1]["value"], records[1])
+    }
+
+    func testApplyWritesWithNothingToCreateSendsNothing() async throws {
+        let transport = PDSFakeTransport([])
+        try await pds(transport).applyWrites(creates: [], collection: "app.bsky.graph.listitem")
+        XCTAssertTrue(transport.requests.isEmpty)
+    }
+
     func testApplyWritesSurfacesTheStatus() async throws {
         let transport = PDSFakeTransport([(429, #"{"error":"RateLimitExceeded"}"#, [:])])
         do {

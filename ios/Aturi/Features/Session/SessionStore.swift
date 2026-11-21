@@ -233,6 +233,12 @@ final class SessionStore: SessionStoring, PreferencesSync {
         }
     }
 
+    func applyWrites(creates records: [JSONValue], collection: String) async throws {
+        try await withAuthenticatedPDS { pds in
+            try await pds.applyWrites(creates: records, collection: collection)
+        }
+    }
+
     func profileWithViewer(actor: String) async throws -> BskyProfile? {
         try await withAuthenticatedPDS { pds in
             try await pds.getProfileWithViewer(actor)

@@ -20,6 +20,9 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import { HandleCheckMark } from './HandleCheck';
 import AccountToolLinks from './AccountToolLinks';
+import AccountChecks, { CheckNavBadge } from './AccountChecks';
+import dynamic from 'next/dynamic';
+import { ToolSkeleton } from '@/components/tools/ToolFrame';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
 import RepoSpacesSection from './space/RepoSpacesSection';
@@ -28,6 +31,7 @@ import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
+import GraphTab from './graph/GraphTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { useFadeOnChange } from '@/components/useFadeOnChange';
@@ -35,12 +39,23 @@ import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
   { id: 'collections', label: 'Collections' },
+  { id: 'labels', label: 'Labels' },
+  { id: 'visibility', label: 'Visibility' },
   { id: 'identity', label: 'Identity' },
   { id: 'audit', label: 'Log' },
   { id: 'backlinks', label: 'Backlinks' },
+  { id: 'graph', label: 'Graph' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+
+/** The account card's two checks in full, as tabs carrying the checks' badges. */
+const CHECK_TABS: ReadonlySet<TabId> = new Set(['labels', 'visibility']);
+
+// Loaded when their tab opens; the card's rows need only the runs.
+const toolLoading = () => <ToolSkeleton rows={4} />;
+const LabelChecker = dynamic(() => import('@/components/tools/LabelChecker'), { loading: toolLoading });
+const ShadowbanChecker = dynamic(() => import('@/components/tools/ShadowbanChecker'), { loading: toolLoading });
 
 export default function RepoExplorer({ repo }: { repo: string }) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -114,6 +129,7 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
           update((p) => setSectionHidden(p, 'repo', 'profile', !profileHidden))
         }
       />
+      <AccountToolLinks did={identity.did} />
     </div>
   );
 
@@ -185,7 +201,7 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
             />
           </AppearIn>
         )}
-        {/* Tabbed collections / identity / log / backlinks — core content,
+        {/* Tabbed collections / identity / log / backlinks / graph — core content,
             not configurable. */}
         <AppearIn delay={0.2}>
           <TabbedView identity={identity} />
@@ -202,8 +218,10 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
 
 /**
  * The account card: the AppView profile (unless the visitor hid the rich
- * preview) with the repo's identity rows under it. Shared by the repo page and
- * the collection page's sidebar.
+ * preview) with the repo's identity rows under it, then its label and
+ * visibility checks. Shared by the repo page and the collection page's
+ * sidebar, and drawn by the Workbench and Files rails too, so the checks are
+ * on every layout's card.
  */
 export function AccountCard({
   identity,
@@ -223,6 +241,7 @@ export function AccountCard({
       shareUrl={`/profile/${identity.handle || identity.did}`}
     >
       {!identityHidden && <IdentityRow identity={identity} />}
+      <AccountChecks identity={identity} />
     </ProfileHeader>
   );
 }
@@ -259,7 +278,6 @@ function RepoGlanceSection({
       {!isCollapsed && (
         <>
           <AccountStats did={identity.did} handle={identity.handle} />
-          <AccountToolLinks did={identity.did} />
         </>
       )}
     </section>
@@ -398,6 +416,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
               <span className="fx-tab-label" data-label={t.label}>
                 {t.label}
               </span>
+              {CHECK_TABS.has(t.id) && <CheckNavBadge did={identity.did} check={t.id as 'labels' | 'visibility'} />}
             </button>
           );
         })}
@@ -411,13 +430,31 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         className="fx-tabpanel"
       >
         {tab === 'collections' && <CollectionsTab identity={identity} />}
+        {tab === 'labels' && (
+          <div className="fx-tabpanel-tool">
+            <LabelChecker subject={identity.did} />
+          </div>
+        )}
+        {tab === 'visibility' && (
+          <div className="fx-tabpanel-tool">
+            <ShadowbanChecker subject={identity.did} />
+          </div>
+        )}
         {tab === 'identity' && <IdentityTab identity={identity} />}
         {tab === 'audit' && <AuditTab identity={identity} />}
         {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
+        {tab === 'graph' && <GraphTab key={identity.did} identity={identity} />}
       </div>
     </section>
   );
 }
+
+/**
+ * Graph stays off the sidebar copy below: its strip is sized for four labels
+ * in the 300px column (explorer.css), and a fifth would scroll out of sight.
+ * So do the two check tabs, which the account card's own rows link to.
+ */
+const SIDEBAR_TABS = TABS.filter((t) => t.id !== 'graph' && !CHECK_TABS.has(t.id));
 
 /**
  * The collection page's sidebar copy of the repository card: the same four
@@ -435,7 +472,7 @@ export function RepoNavCard({
   return (
     <section aria-label="Repository" className="fx-repo">
       <nav aria-label="Repository views" className="fx-tabs">
-        {TABS.map((t) => (
+        {SIDEBAR_TABS.map((t) => (
           <Link
             key={t.id}
             href={t.id === 'collections' ? repoPath : `${repoPath}?tab=${t.id}`}

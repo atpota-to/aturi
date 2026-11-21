@@ -571,6 +571,81 @@
   font-size: var(--fs-md);
 }
 
+/* Safari only: which redirect sources Aturi is allowed on. The missing hosts
+   sit in a wrapping run of small mono tags under the description. */
+.site-access {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.site-access-missing {
+  margin: 4px 0 2px;
+  font-size: var(--fs-sm);
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+
+.site-access-missing > span {
+  margin-right: 6px;
+}
+
+.site-access-hosts {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-access-hosts > li {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 6px;
+  line-height: 1.5;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.site-access-refused {
+  color: var(--warn-fg);
+}
+
+.site-access-note {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+}
+
+.site-access-allow {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.site-access.is-done {
+  align-items: center;
+  gap: 8px;
+}
+
+.site-access.is-done > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.site-access.is-done > .options-row-desc {
+  flex: 1;
+  min-width: 0;
+}
+
+/* On a phone the button drops under the text. */
+@media (max-width: 560px) {
+  .site-access:not(.is-done) {
+    flex-wrap: wrap;
+  }
+}
+
 /* Segmented control. */
 .appearance-row > .options-row-title {
   flex: 1 1 200px;
@@ -1796,6 +1871,30 @@
 
 .dev-info-row code {
   color: var(--text-accent);
+}
+
+/* iOS Safari zooms the page in when a field with text under 16px takes
+   focus, and leaves it zoomed. -webkit-touch-callout is a property only iOS
+   and iPadOS WebKit support (macOS Safari, Chrome and Firefox don't), so this
+   block never applies on a desktop. max() keeps the larger text presets'
+   sizes where they are already bigger. */
+@supports (-webkit-touch-callout: none) {
+  .aturi-input,
+  .aturi-select,
+  .search-select-input,
+  .waypoint-picker-input {
+    font-size: max(16px, var(--fs-md));
+  }
+
+  .aturi-input.is-mono,
+  .dev-select,
+  .custom-template-field {
+    font-size: max(16px, var(--fs-sm));
+  }
+
+  .group-name-input {
+    font-size: max(16px, var(--fs-lg));
+  }
 }
 
 /* Touch: the dense in-card controls grow to a thumb's width, as on the

@@ -148,6 +148,27 @@ public struct AuthenticatedPDS: Sendable {
         _ = try await send(method: "POST", nsid: "com.atproto.repo.applyWrites", query: [], body: .object(body))
     }
 
+    /// com.atproto.repo.applyWrites with one `#create` per record, each rkey
+    /// minted by the PDS: one atomic commit, or none of it. At most
+    /// `applyWritesMax` records per call; the caller chunks a larger set.
+    /// The mutuals tool writes a list's members this way, as the web does.
+    public func applyWrites(creates records: [JSONValue], collection: String) async throws {
+        precondition(records.count <= Self.applyWritesMax, "applyWrites batch exceeds the lexicon's maxLength")
+        guard !records.isEmpty else { return }
+        let writes: [JSONValue] = records.map { record in
+            .object([
+                "$type": .string("com.atproto.repo.applyWrites#create"),
+                "collection": .string(collection),
+                "value": record,
+            ])
+        }
+        let body: [String: JSONValue] = [
+            "repo": .string(session.did),
+            "writes": .array(writes),
+        ]
+        _ = try await send(method: "POST", nsid: "com.atproto.repo.applyWrites", query: [], body: .object(body))
+    }
+
     // MARK: AppView through the PDS
 
     /// `app.bsky.actor.getProfile` as the signed-in account sees it, with

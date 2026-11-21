@@ -1,0 +1,1831 @@
+/* The Graph tab and the post page's Thread section (components/explore/graph).
+
+   Relation colours are the drawing's one categorical set: mutual, followed
+   one way, following one way, 2nd degree, and a neutral for no measured
+   link. Picked to stay apart for deutan, protan and tritan readers across
+   every pair, not just neighbours (dots of any two can sit side by side),
+   and checked against both themes' surfaces. The neutral is never the only
+   cue: it is also the outermost ring and is named in the key. */
+:root {
+  --g-mutual: #3a9a78;
+  --g-following: #cf7a34;
+  --g-follower: #4a8bd6;
+  --g-second: #c46aae;
+  --g-further: #6f7168;
+  --g-op: var(--text-primary);
+  /* Pinned accounts in the thread explorer: four hues kept clear of the
+     relation set above, each drawn with its number too, so the colour is
+     never the only cue. */
+  --g-pin-1: #e0b020;
+  --g-pin-2: #2bb3c9;
+  --g-pin-3: #9884f7;
+  --g-pin-4: #e46f9e;
+}
+
+[data-theme='light'] {
+  --g-mutual: #23805e;
+  --g-following: #bd5f1c;
+  --g-follower: #3b6fc4;
+  --g-second: #a64d97;
+  --g-further: #8f9186;
+  --g-pin-1: #a87e00;
+  --g-pin-2: #0d8297;
+  --g-pin-3: #6650dc;
+  --g-pin-4: #bf3f73;
+}
+
+.fx-graph {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fx-graph-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.fx-graph-head .fn-rec-h2 {
+  margin: 0;
+}
+
+/* On a post page the section is a record card, which leaves padding to
+   what's inside it. */
+.fx-graph-thread {
+  padding: 12px 16px 16px;
+}
+
+.fx-graph-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-graph-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.fx-graph-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fx-graph-caption {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.fx-graph-placeholder {
+  height: 420px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+/* ─── Drawing frames ─────────────────────────────────────────────────── */
+
+.fx-graph-zoom,
+.fx-graph-flow,
+.fx-graph-bands {
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.fx-graph-zoom {
+  overflow: hidden;
+}
+
+.fx-graph-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fx-graph-tools-zoom {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.fx-graph-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fx-graph-tool:focus-visible,
+.fx-graph-rank-row:focus-visible,
+.fx-graph-mark:focus-visible,
+.fx-graph-dot:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fx-graph-scroll {
+  overflow: auto;
+  max-height: min(72vh, 680px);
+  overscroll-behavior: contain;
+}
+
+.fx-graph-sheet {
+  margin: 0 auto;
+}
+
+.fx-graph-sheet > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fx-graph-svg {
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+.fx-graph-bands {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ─── Marks ──────────────────────────────────────────────────────────── */
+
+.fx-graph-ring {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.fx-graph-ring-label {
+  fill: var(--text-tertiary);
+  font-size: 19px;
+  paint-order: stroke;
+  stroke: var(--bg-secondary);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.fx-graph-dot {
+  stroke: var(--bg-secondary);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.fx-graph-dot[data-current] {
+  stroke: var(--text-accent);
+  stroke-width: 3;
+}
+
+.fx-graph-dot[data-focus] {
+  stroke: var(--text-primary);
+  stroke-width: 3;
+}
+
+.fx-graph-mark {
+  cursor: pointer;
+}
+
+.fx-graph-mark:focus,
+.fx-graph-dot:focus {
+  outline: none;
+}
+
+.fx-graph-edge {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.fx-graph-edge[data-hot] {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+}
+
+.fx-graph-card {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.fx-graph-card[data-group] {
+  fill: var(--bg-tertiary);
+}
+
+.fx-graph-card[data-open] {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-graph-card[data-strong] {
+  stroke: var(--text-secondary);
+}
+
+.fx-graph-card[data-current] {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-graph-mark[data-focus] .fx-graph-card {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.fx-graph-stub {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+  stroke-dasharray: 3 3;
+}
+
+.fx-graph-hit {
+  fill: transparent;
+}
+
+.fx-graph-spine {
+  fill: var(--text-primary);
+}
+
+.fx-graph-cell[data-current] rect:first-child {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-graph-cell[data-focus] rect:first-child {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.fx-graph-face-blank {
+  fill: var(--bg-tertiary);
+}
+
+.fx-graph-face-letter {
+  fill: var(--text-secondary);
+  font-weight: 650;
+}
+
+.fx-graph-t-name {
+  fill: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.fx-graph-t-sub {
+  fill: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.fx-graph-t-body {
+  fill: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.fx-graph-t-num {
+  fill: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-t-head {
+  fill: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ─── Moving cards in the tree drawings ─────────────────────────────────
+
+   A mouse or pen can drag a card (and what hangs off it) out of the way;
+   the card lifts while it's held. A card on its way out after its branch
+   closed can't be pointed at. Tidy, in the flow's corner or the thread
+   explorer's toolbar, puts moved cards back. */
+
+[data-mnode][data-lifted] .fx-graph-card {
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.18));
+}
+
+[data-mnode][data-leaving] {
+  pointer-events: none;
+}
+
+g[data-moving],
+g[data-moving] .fx-graph-mark,
+.fx-tx-canvas[data-moving] {
+  cursor: grabbing;
+}
+
+.fx-graph-flow-frame {
+  position: relative;
+  min-width: 0;
+}
+
+.fx-graph-tidy {
+  position: absolute;
+  top: 8px;
+  right: 20px;
+  box-shadow: var(--shadow-overlay);
+}
+
+/* ─── Detail panel ───────────────────────────────────────────────────── */
+
+.fx-graph-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.fx-graph-detail-empty,
+.fx-graph-detail-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fx-graph-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.fx-graph-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fx-graph-dn {
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-hd {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-rel {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-post-text {
+  margin: 0;
+  max-height: 14em;
+  overflow: auto;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.fx-graph-facts div {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-facts dt {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.fx-graph-facts dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.fx-graph-links a {
+  color: var(--text-accent);
+}
+
+/* ─── Details pane ───────────────────────────────────────────────────── */
+
+/* The account Graph tab and a post's Thread section open details for a
+   click (data-pick), in a pane that slides in beside the drawing and pushes
+   it narrower while it's open. Laid over the drawing it would hide the
+   Ledger's right-hand names, the very ones being clicked. Below 820px it
+   falls under the drawing. */
+.fx-graph[data-pick] {
+  position: relative;
+}
+
+.fx-graph-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.fx-graph-split > .fx-graph-detail {
+  position: relative;
+  animation: fx-graph-pane-in 180ms ease-out;
+}
+
+/* A handle can be longer than the pane is wide. */
+.fx-graph-split .fx-graph-facts dt {
+  overflow-wrap: anywhere;
+}
+
+@container (min-width: 820px) {
+  .fx-graph-split[data-open] {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+  }
+
+  .fx-graph-split > .fx-graph-detail {
+    position: sticky;
+    top: 88px;
+  }
+
+  /* The workbench scrolls its own pane, which starts below the site header,
+     where the classic page scrolls the window under it. */
+  .fx-wb-page .fx-graph-split > .fx-graph-detail {
+    top: 12px;
+  }
+}
+
+@keyframes fx-graph-pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-graph-split > .fx-graph-detail {
+    animation: none;
+  }
+}
+
+.fx-graph-detail-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-tertiary);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-detail-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-detail-close:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fx-graph-detail-close + * {
+  padding-right: 28px;
+}
+
+/* Pointing marks what's under the pointer; the details wait for a click. */
+[data-pick] .fx-graph-dot:hover:not([data-focus]) {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+[data-pick] .fx-graph-mark:hover:not([data-focus]) .fx-graph-card {
+  stroke: var(--text-secondary);
+}
+
+[data-pick] .fx-graph-band-row:has(> .fx-graph-mark:hover:not([data-focus])) > path {
+  fill-opacity: 0.48;
+}
+
+[data-pick] .fx-graph-cell:hover:not([data-focus]) rect:first-child {
+  fill-opacity: 0.36;
+}
+
+/* A thread's Flow folds from a button on a card's edge, where the lines to
+   its replies start, since a click on the card opens its details. */
+.fx-graph-fold circle {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.fx-graph-fold line {
+  stroke: var(--text-secondary);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.fx-graph-fold:hover circle {
+  stroke: var(--text-primary);
+}
+
+/* Whose dot it is, or what post, on the Orbit. Placed by usePickedDetails
+   above the dot, or below it near the top, and never in the pointer's way. */
+.fx-graph-tip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-overlay);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.fx-graph-tip[data-below] {
+  transform: translate(-50%, 8px);
+}
+
+.fx-graph-tip-name {
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-tip-rel {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.fx-graph-tip-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+/* ─── Ledger ─────────────────────────────────────────────────────────── */
+
+.fx-graph-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.fx-graph-ledger-lists,
+.fx-graph-bars {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@container (min-width: 600px) {
+  .fx-graph-ledger-lists,
+  .fx-graph-bars {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.fx-graph-rank-h {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.fx-graph-rank ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-graph-rank-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(60px, 38%) 3.5ch;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 6px;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-rank-row:hover,
+.fx-graph-rank-row[data-focus] {
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-graph-rank-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.fx-graph-rank-n {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.fx-graph-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.fx-graph-bar-head span {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar-track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+}
+
+.fx-graph-bar-track span {
+  min-width: 3px;
+  border-radius: 3px;
+}
+
+.fx-graph-bar-table {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.fx-graph-bar-table div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fx-graph-bar-table dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.fx-graph-bar-table dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar-table dd span {
+  color: var(--text-tertiary);
+}
+
+/* ─── Reading ────────────────────────────────────────────────────────── */
+
+.fx-graph-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-graph-progress-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.fx-graph-progress-step {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-progress-step > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-accent);
+  transition: width 0.3s ease;
+}
+
+.fx-graph-progress-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-progress-found {
+  color: var(--text-tertiary);
+}
+
+/* ─── Arrivals ───────────────────────────────────────────────────────────
+
+   The drawing fills in as the read lands: a dot pops in when its account is
+   found and glides to another ring when a follow-back or a count of follows
+   in common arrives (.fx-graph-place carries the position as a transform, so
+   the move animates everywhere); bands and blocks fade in. The tree drawings
+   (flow charts and the thread explorer) animate their cards from script, in
+   graph/motion.ts. Nothing moves for anyone who asked for less motion. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .fx-graph-arrive {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: fx-graph-pop 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  }
+
+  .fx-graph-fade {
+    animation: fx-graph-fade-in 0.5s ease-out both;
+  }
+
+  .fx-graph-place {
+    transition: transform 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+
+  .fx-graph-dot {
+    transition:
+      r 0.4s ease,
+      fill 0.4s ease,
+      fill-opacity 0.4s ease;
+  }
+
+  .fx-graph-rank-bar span {
+    transition: width 0.45s ease;
+  }
+
+  .fx-graph-bar-track span {
+    transition: flex-grow 0.45s ease;
+  }
+
+  .fx-graph-progress-step[data-state='active'] > span {
+    animation: fx-graph-breathe 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes fx-graph-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@keyframes fx-graph-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fx-graph-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── The thread explorer ────────────────────────────────────────────────
+
+   Full screen over the page: a header with the key and the controls, the
+   tree on a canvas that scrolls both ways (and pans with a mouse drag), and
+   the detail panel beside it, or under it on a phone. */
+
+.fx-tx {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  padding-top: env(safe-area-inset-top, 0px);
+  outline: none;
+}
+
+.fx-tx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.fx-tx-title h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fx-tx-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fx-tx-close {
+  color: var(--text-primary);
+}
+
+.fx-tx-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+/* The details column is there only while a card's details are open. */
+.fx-tx-body[data-open] {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.fx-tx-canvas {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.fx-tx-canvas[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.fx-tx-canvas > svg {
+  display: block;
+}
+
+.fx-tx-msg {
+  margin: 48px;
+}
+
+.fx-tx-side {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px 16px;
+  border-left: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-side {
+  animation: fx-graph-pane-in 180ms ease-out;
+}
+
+.fx-tx-side .fx-graph-detail {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.fx-tx-side .fx-graph-detail-close {
+  top: -4px;
+  right: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tx-side {
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The detail panel names each account's relation; on a phone the key's
+     three lines are worth more as canvas. */
+  .fx-tx-head .fx-tx-keys {
+    display: none;
+  }
+
+  .fx-tx-body,
+  .fx-tx-body[data-open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .fx-tx-side {
+    max-height: 38vh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border-medium);
+    border-left: 0;
+  }
+}
+
+.fx-tx-chip rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip text {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fx-tx-chip[data-active] rect,
+.fx-tx-group rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-tx-chip[data-active] text {
+  fill: var(--accent-soft-fg);
+}
+
+.fx-tx-group:not([data-open]) rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip:hover rect,
+.fx-tx-group:hover rect {
+  stroke: var(--text-tertiary);
+}
+
+/* ─── The thread explorer's insights ─────────────────────────────────────
+
+   The toolbar under the header, and what the drawing adds on top of the
+   tree: the thread's author ringed and tagged, pinned people haloed in
+   their colour with their number, blocks in the danger colour (a mark on
+   each card, the line between two posts when it runs across a reply, arcs
+   between whoever is pinned or picked and the people they block), and the
+   replies Bluesky leaves out as dashed cards where they would be. */
+
+.fx-tx-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+}
+
+.fx-tx-marks svg {
+  flex: none;
+}
+
+.fx-tx-key-block {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.fx-tx-key-cut {
+  fill: none;
+  stroke: var(--text-tertiary);
+  stroke-dasharray: 3 2;
+}
+
+.fx-tx-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+
+.fx-tx-search {
+  display: inline-flex;
+  flex: 1 1 220px;
+  align-items: center;
+  gap: 4px;
+  max-width: 380px;
+  min-height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.fx-tx-search:focus-within {
+  border-color: var(--text-accent);
+}
+
+.fx-tx-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.fx-tx-search-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-search-count,
+.fx-tx-count {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-tx-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fx-tx-icon:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.fx-tx-icon:focus-visible,
+.fx-tx-pin-go:focus-visible,
+.fx-tx-person:focus-visible,
+.fx-tx-link:focus-visible,
+.fx-tx-stat:focus-visible,
+.fx-tx-select select:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fx-tx-bar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-tx-select select {
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+}
+
+.fx-tx-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fx-tx-toggle[data-on] {
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+
+.fx-tx-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-left: auto;
+}
+
+.fx-tx-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-tx-stat[data-tone='block'] svg {
+  color: var(--danger);
+}
+
+button.fx-tx-stat {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+button.fx-tx-stat:disabled {
+  text-decoration: none;
+  cursor: default;
+}
+
+.fx-tx-pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-tx-pin {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 2px;
+  border: 1.5px solid;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+}
+
+.fx-tx-pin-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 190px;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.fx-tx-pin-go span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-tx-pinmark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bg-primary);
+}
+
+.fx-tx-people {
+  position: relative;
+}
+
+.fx-tx-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  padding: 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.fx-tx-pop-filter {
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+}
+
+.fx-tx-pop-note {
+  margin: 0;
+  padding: 2px 4px;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-pop-list {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.fx-tx-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fx-tx-person:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-person[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+
+.fx-tx-person:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fx-tx-person-face {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-person-names {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fx-tx-person-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fx-tx-person-sub {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fx-tx-person-blocks {
+  color: var(--danger);
+}
+
+.fx-tx-person-blocks svg {
+  vertical-align: -1px;
+}
+
+.fx-tx-person-pin {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-op {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bg-primary);
+  background: var(--g-op);
+}
+
+/* Cards */
+
+.fx-graph-card[data-op] {
+  stroke: var(--g-op);
+  stroke-width: 1.5;
+}
+
+.fx-tx-op-ring {
+  fill: none;
+  stroke: var(--g-op);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.fx-tx-pin-ring {
+  fill: none;
+  stroke-width: 3;
+}
+
+.fx-tx-badge text {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.fx-tx-b-op rect {
+  fill: var(--g-op);
+}
+
+.fx-tx-b-op text,
+.fx-tx-b-pin text,
+.fx-tx-b-label text {
+  fill: var(--bg-primary);
+}
+
+.fx-tx-b-block rect {
+  fill: var(--danger-soft);
+  stroke: var(--danger-border);
+}
+
+.fx-tx-b-block text {
+  fill: var(--danger);
+}
+
+.fx-tx-b-fold rect,
+.fx-tx-b-cut rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-strong);
+}
+
+.fx-tx-b-fold rect {
+  stroke-dasharray: 2 2;
+}
+
+.fx-tx-b-fold text,
+.fx-tx-b-cut text {
+  fill: var(--text-secondary);
+}
+
+.fx-tx-b-label rect {
+  fill: var(--danger);
+}
+
+.fx-tx-blockglyph circle {
+  fill: var(--bg-primary);
+  stroke: var(--danger);
+  stroke-width: 1.6;
+}
+
+.fx-tx-blockglyph line {
+  stroke: var(--danger);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.fx-tx-b-block .fx-tx-blockglyph circle {
+  fill: none;
+}
+
+/* Lines */
+
+.fx-tx-edge[data-block] {
+  stroke: var(--danger);
+  stroke-width: 1.75;
+  stroke-dasharray: 5 4;
+}
+
+.fx-tx-edge[data-cut] {
+  stroke-dasharray: 3 4;
+}
+
+.fx-tx-edge[data-pin] {
+  stroke-width: 3.5;
+}
+
+.fx-tx-arc {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.8;
+}
+
+.fx-tx-arrowhead {
+  fill: var(--danger);
+}
+
+/* Replies Bluesky leaves out */
+
+.fx-tx-ghost-card {
+  fill: var(--bg-secondary);
+  stroke: var(--text-tertiary);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-ghost-card,
+.fx-tx-ghost[data-tone='social'] .fx-tx-ghost-card {
+  stroke: var(--danger);
+}
+
+.fx-tx-ghost-body {
+  opacity: 0.78;
+}
+
+.fx-tx-ghost-none {
+  font-style: italic;
+  fill: var(--text-tertiary);
+}
+
+.fx-tx-cut-pill rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-cut-pill text {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: var(--text-secondary);
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-cut-pill rect {
+  fill: var(--danger-soft);
+  stroke: var(--danger-border);
+}
+
+.fx-tx-ghost[data-tone='social'] .fx-tx-cut-pill rect {
+  fill: none;
+  stroke: var(--danger);
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-cut-pill text,
+.fx-tx-ghost[data-tone='social'] .fx-tx-cut-pill text {
+  fill: var(--danger);
+}
+
+.fx-tx-ghost[data-tone='unknown'] .fx-tx-cut-pill rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-tx-ghost[data-tone='unknown'] .fx-tx-cut-pill text {
+  fill: var(--accent-soft-fg);
+}
+
+[data-pick] .fx-tx-ghost:hover:not([data-focus]) .fx-tx-ghost-card {
+  stroke: var(--text-secondary);
+}
+
+.fx-tx-ghost[data-focus] .fx-tx-ghost-card {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+/* Search hits, the post stepped to, and everything else faded back */
+
+.fx-tx-canvas [data-hit] .fx-graph-card,
+.fx-tx-canvas [data-hit] .fx-tx-ghost-card {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-tx-canvas [data-hit-current] .fx-graph-card,
+.fx-tx-canvas [data-hit-current] .fx-tx-ghost-card {
+  stroke-width: 3.5;
+}
+
+.fx-tx-canvas [data-flash] .fx-graph-card,
+.fx-tx-canvas [data-flash] .fx-tx-ghost-card {
+  stroke: var(--text-accent);
+  animation: fx-tx-flash 0.8s ease-in-out 2;
+}
+
+.fx-tx-canvas [data-dim] {
+  opacity: 0.18;
+}
+
+/* Not the card's own <g> or the edge's <path>: the motion engine writes
+   their opacity a frame at a time as they arrive and leave. */
+.fx-tx-canvas [data-mnode] > g,
+.fx-tx-canvas .fx-tx-edge-wrap,
+.fx-tx-canvas .fx-tx-arc {
+  transition: opacity 160ms ease;
+}
+
+@keyframes fx-tx-flash {
+  50% {
+    stroke-width: 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tx-canvas [data-flash] .fx-graph-card,
+  .fx-tx-canvas [data-flash] .fx-tx-ghost-card {
+    animation: none;
+    stroke-width: 3.5;
+  }
+}
+
+/* The details pane's account section */
+
+.fx-tx-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fx-tx-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fx-tx-insight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fx-tx-insight-h {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-blocklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+.fx-tx-blocklist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-tx-blocklist svg {
+  flex: none;
+  color: var(--danger);
+}
+
+.fx-tx-link {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text-accent);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.fx-tx-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-tx-labels li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-labels li span {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-labels li[data-mod] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* The reason sits on one line, so the pill stays a pill; a long handle
+   ends in an ellipsis, and the sentence under it names everyone in full. */
+.fx-tx-cut-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fx-tx-cut-tag {
+  max-width: 100%;
+  margin: 0;
+  padding: 3px 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-cut-tag[data-tone='moderation'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.fx-tx-cut-tag[data-tone='social'] {
+  color: var(--danger);
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.fx-tx-cut-tag[data-tone='unknown'] {
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 760px) {
+  /* Icons only for the tools, their names kept for screen readers. */
+  .fx-tx-tool-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .fx-tx-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .fx-tx-summary {
+    width: 100%;
+    margin-left: 0;
+  }
+}

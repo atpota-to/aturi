@@ -236,6 +236,34 @@
   min-width: 0;
 }
 
+/* A tool inside the Explorer (ToolShell's embedded mode): no head card, a
+   bar with the tool's own settings and the way to its page, then the
+   results, spaced a little tighter to sit in a pane. */
+.fn-tool[data-embedded] {
+  gap: 18px;
+}
+
+.fn-tool[data-embedded] .fn-tool-body {
+  gap: 22px;
+}
+
+.fn-tool-embed-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.fn-tool-embed-open {
+  margin-left: auto;
+}
+
+.fn-tool-embed-bar > h1,
+.fn-tool-embed-bar > h2 {
+  margin: 0 8px 0 0;
+}
+
 .fn-tool-section {
   min-width: 0;
 }
@@ -2613,6 +2641,1013 @@ button.fn-tool-activity-stat:focus-visible {
   .fn-tool-shadowban-pills {
     justify-content: flex-start;
     margin-left: 0;
+  }
+}
+
+/* ==========================================================================
+   Mutuals' blocks (/tools/mutuals)
+   Only what this tool alone needs, under fn-tool-mutuals-. Two shades of
+   the accent carry everything: full for what is counted (columns at the
+   threshold, lit lines, the meter), a wash of it for what is not.
+   ========================================================================== */
+
+.fn-tool-mutuals-blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+/* ---------- While it runs ---------- */
+
+.fn-tool-mutuals-running {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-tool-mutuals-running-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fn-tool-mutuals-running-bar .fn-tool-progress {
+  flex: 1;
+}
+
+/* ---------- Stats ---------- */
+
+.fn-tool-mutuals-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .fn-tool-mutuals-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fn-tool-mutuals-stat {
+  gap: 2px;
+  min-width: 0;
+}
+
+.fn-tool-mutuals-stat .fn-stat-value {
+  font-size: 22px;
+}
+
+.fn-tool-mutuals-stat-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- The wall of mutuals ---------- */
+
+.fn-tool-mutuals-wall {
+  --fn-tool-mutuals-tile: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fn-tool-mutuals-wall[data-dots] {
+  --fn-tool-mutuals-tile: 11px;
+  gap: 3px;
+}
+
+.fn-tool-mutuals-tile {
+  position: relative;
+  width: var(--fn-tool-mutuals-tile);
+  height: var(--fn-tool-mutuals-tile);
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: opacity var(--motion-panel, 0.2s) ease, filter var(--motion-panel, 0.2s) ease;
+}
+
+.fn-tool-mutuals-tile:disabled {
+  cursor: default;
+}
+
+.fn-tool-mutuals-tile .fn-tool-avatar {
+  display: block;
+}
+
+.fn-tool-mutuals-tile[data-status='queued'] {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* A ring that turns while a mutual's pages come in. */
+.fn-tool-mutuals-tile[data-status='reading']::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--text-accent);
+  border-right-color: var(--text-accent);
+  animation: fn-tool-spin 0.9s linear infinite;
+}
+
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-status='reading']::after {
+  inset: -2px;
+  border-width: 1.5px;
+}
+
+.fn-tool-mutuals-tile[data-status='skipped'] {
+  opacity: 0.45;
+  filter: grayscale(1);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+/* Not reached because the scan was stopped: waiting, not failed. */
+.fn-tool-mutuals-tile[data-stopped] {
+  opacity: 0.35;
+  box-shadow: none;
+}
+
+.fn-tool-mutuals-tile[aria-pressed='true'] {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-tool-mutuals-tile:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* Dots: shaded by how many accounts each mutual blocks, the activity
+   calendar's steps. */
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-level='1'] {
+  background: color-mix(in srgb, var(--text-accent) 26%, var(--bg-secondary));
+}
+
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-level='2'] {
+  background: color-mix(in srgb, var(--text-accent) 50%, var(--bg-secondary));
+}
+
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-level='3'] {
+  background: color-mix(in srgb, var(--text-accent) 76%, var(--bg-secondary));
+}
+
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-level='4'] {
+  background: var(--text-accent);
+}
+
+.fn-tool-mutuals-wall[data-dots] .fn-tool-mutuals-tile[data-status='done'][data-level='0'] {
+  background: var(--border-strong);
+}
+
+.fn-tool-mutuals-wall-note {
+  margin-top: 12px;
+}
+
+/* ---------- The distribution ---------- */
+
+.fn-tool-mutuals-dist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-tool-card p.fn-tool-mutuals-dist-caption {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fn-tool-mutuals-plot {
+  position: relative;
+  height: 180px;
+  padding-left: 34px;
+}
+
+.fn-tool-mutuals-grid {
+  position: absolute;
+  inset: 0 0 22px 0;
+  pointer-events: none;
+}
+
+.fn-tool-mutuals-grid span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+}
+
+/* The value, in the gutter left of the columns. */
+.fn-tool-mutuals-grid span b {
+  position: absolute;
+  left: 0;
+  width: 28px;
+  transform: translateY(-50%);
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: right;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-mutuals-grid span::after {
+  content: '';
+  position: absolute;
+  left: 34px;
+  right: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-mutuals-cols {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 100%;
+}
+
+.fn-tool-mutuals-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.fn-tool-mutuals-barbox {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.fn-tool-mutuals-bar {
+  display: block;
+  width: 100%;
+  max-width: 24px;
+  min-height: 0;
+  border-radius: 4px 4px 0 0;
+  background: color-mix(in srgb, var(--text-accent) 24%, var(--bg-secondary));
+  transition: background 0.15s ease;
+}
+
+.fn-tool-mutuals-col[data-on] .fn-tool-mutuals-bar {
+  background: var(--text-accent);
+}
+
+.fn-tool-mutuals-col:hover .fn-tool-mutuals-bar,
+.fn-tool-mutuals-col:focus-visible .fn-tool-mutuals-bar {
+  background: var(--accent-forest);
+}
+
+.fn-tool-mutuals-col:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The baseline the columns stand on. */
+.fn-tool-mutuals-cols::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  border-top: 1px solid var(--border-strong);
+  pointer-events: none;
+}
+
+.fn-tool-mutuals-tick {
+  height: 16px;
+  font-size: 10.5px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fn-tool-mutuals-col[data-edge] .fn-tool-mutuals-tick {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.fn-tool-card p.fn-tool-mutuals-axis {
+  margin: -4px 0 0;
+  padding-left: 34px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.fn-tool-mutuals-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fn-tool-mutuals-slider label {
+  flex: none;
+  min-width: 11.5em;
+}
+
+.fn-tool-mutuals-slider strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-mutuals-slider input {
+  --fn-tool-mutuals-fill: 0%;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* The track: the accent up to the thumb, a quiet step after it. The fill
+   width comes in as --fn-tool-mutuals-fill from the component. */
+.fn-tool-mutuals-slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--text-accent) var(--fn-tool-mutuals-fill),
+    var(--bg-tertiary) var(--fn-tool-mutuals-fill)
+  );
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+
+.fn-tool-mutuals-slider input::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+
+.fn-tool-mutuals-slider input::-moz-range-progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text-accent);
+}
+
+.fn-tool-mutuals-slider input::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border: 2px solid var(--bg-secondary);
+  border-radius: 50%;
+  background: var(--accent-moss);
+  box-shadow: 0 0 0 1px var(--accent-moss);
+}
+
+.fn-tool-mutuals-slider input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg-secondary);
+  border-radius: 50%;
+  background: var(--accent-moss);
+  box-shadow: 0 0 0 1px var(--accent-moss);
+}
+
+.fn-tool-mutuals-slider input:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.fn-tool-mutuals-slider > span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Narrowed to one mutual ---------- */
+
+.fn-tool-mutuals-focus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-card);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 13.5px;
+}
+
+.fn-tool-mutuals-focus span:not(.fn-tool-avatar) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- The map ---------- */
+
+.fn-tool-mutuals-orbit {
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(0, 1fr);
+  grid-template-areas:
+    'map inspect'
+    'map legend';
+  grid-template-rows: 1fr auto;
+  gap: 16px 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .fn-tool-mutuals-orbit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'map' 'legend' 'inspect';
+    grid-template-rows: auto;
+  }
+}
+
+.fn-tool-mutuals-svg {
+  grid-area: map;
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.fn-tool-mutuals-ring {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 1;
+}
+
+.fn-tool-mutuals-edges path {
+  fill: none;
+  stroke: var(--text-accent);
+  stroke-width: 1;
+  stroke-opacity: 0.16;
+  stroke-linecap: round;
+  transition: stroke-opacity 0.15s ease;
+}
+
+.fn-tool-mutuals-svg[data-active] .fn-tool-mutuals-edges:not([data-lit]) path {
+  stroke-opacity: 0.04;
+}
+
+.fn-tool-mutuals-edges[data-lit] path {
+  stroke-width: 1.6;
+  stroke-opacity: 0.85;
+}
+
+.fn-tool-mutuals-node {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.fn-tool-mutuals-node[data-dim] {
+  opacity: 0.3;
+}
+
+.fn-tool-mutuals-node[data-unticked]:not([data-on]) {
+  opacity: 0.4;
+}
+
+.fn-tool-mutuals-node:focus {
+  outline: none;
+}
+
+.fn-tool-mutuals-node:focus-visible .fn-tool-mutuals-halo {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fn-tool-mutuals-hit {
+  fill: transparent;
+}
+
+/* The surface ring that keeps a face legible over the lines. */
+.fn-tool-mutuals-halo {
+  fill: var(--bg-secondary);
+  stroke: var(--bg-secondary);
+  stroke-width: 2;
+}
+
+.fn-tool-mutuals-node[data-on] .fn-tool-mutuals-halo {
+  fill: var(--text-accent);
+  stroke: var(--text-accent);
+}
+
+.fn-tool-mutuals-dot {
+  fill: var(--text-tertiary);
+  stroke: var(--bg-secondary);
+  stroke-width: 2;
+}
+
+.fn-tool-mutuals-node[data-on] .fn-tool-mutuals-dot {
+  fill: var(--text-accent);
+}
+
+.fn-tool-mutuals-blankdot {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.fn-tool-mutuals-count {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-mutuals-centre {
+  pointer-events: none;
+}
+
+.fn-tool-mutuals-legend {
+  grid-area: legend;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-mutuals-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-tool-mutuals-legend i {
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.fn-tool-mutuals-legend i[data-kind='mutual'] {
+  width: 8px;
+  height: 8px;
+  background: var(--text-tertiary);
+}
+
+.fn-tool-mutuals-legend i[data-kind='target'] {
+  width: 14px;
+  height: 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-strong);
+}
+
+.fn-tool-mutuals-inspect {
+  grid-area: inspect;
+  min-width: 0;
+}
+
+.fn-tool-mutuals-card {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-subtle);
+}
+
+.fn-tool-mutuals-card-main {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fn-tool-mutuals-card-main strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-mutuals-card-main > span {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-mutuals-inspect-head {
+  min-height: 132px;
+}
+
+.fn-tool-mutuals-top {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fn-tool-mutuals-top button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fn-tool-mutuals-top button:hover,
+.fn-tool-mutuals-top button[data-on] {
+  background: var(--surface-subtle);
+}
+
+.fn-tool-mutuals-top button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-mutuals-top button:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-tool-mutuals-top span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-tool-mutuals-top b {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Faces in a row ---------- */
+
+.fn-tool-mutuals-stack {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+}
+
+button.fn-tool-mutuals-stack {
+  cursor: pointer;
+  padding: 2px 4px 2px 2px;
+  border-radius: var(--radius-pill);
+}
+
+button.fn-tool-mutuals-stack:hover {
+  background: var(--surface-subtle);
+}
+
+button.fn-tool-mutuals-stack:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fn-tool-mutuals-stack .fn-tool-avatar,
+.fn-tool-mutuals-stack .fn-tool-mutuals-blank {
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.fn-tool-mutuals-stack .fn-tool-avatar + .fn-tool-avatar {
+  margin-left: -6px;
+}
+
+.fn-tool-mutuals-stack em {
+  margin-left: 6px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.fn-tool-mutuals-stack svg {
+  margin-left: 4px;
+  transition: transform 0.15s ease;
+}
+
+.fn-tool-mutuals-stack svg[data-open] {
+  transform: rotate(180deg);
+}
+
+/* ---------- The accounts ---------- */
+
+.fn-tool-mutuals-toolbar {
+  margin-bottom: 10px;
+}
+
+.fn-tool-mutuals-toolbar .fn-tool-bar-end {
+  max-width: 34em;
+  text-align: right;
+}
+
+.fn-tool-mutuals-row {
+  align-items: flex-start;
+}
+
+.fn-tool-mutuals-row > .fn-tool-avatar,
+.fn-tool-mutuals-row > .fn-tool-mutuals-blank {
+  margin-top: 1px;
+}
+
+.fn-tool-mutuals-row[data-unticked] > .fn-tool-avatar,
+.fn-tool-mutuals-row[data-unticked] > .fn-tool-mutuals-blank,
+.fn-tool-mutuals-row[data-unticked] .fn-tool-row-title {
+  opacity: 0.55;
+}
+
+.fn-tool-mutuals-row-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.fn-tool-mutuals-row-sub [data-mono] {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* A checkbox drawn as the site draws one: hidden input, square mark. */
+.fn-tool-mutuals-tick-box {
+  position: relative;
+  flex: none;
+  margin-top: 9px;
+  cursor: pointer;
+}
+
+.fn-tool-mutuals-tick-box input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.fn-tool-mutuals-tick-box span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  color: transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fn-tool-mutuals-tick-box input:checked + span {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-tool-mutuals-tick-box input:focus-visible + span {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-tool-mutuals-row-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.fn-tool-mutuals-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  width: 84px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-mutuals-meter strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.fn-tool-mutuals-meter-track {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-accent) 18%, var(--bg-tertiary));
+  overflow: hidden;
+}
+
+.fn-tool-mutuals-meter-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-accent);
+}
+
+.fn-tool-mutuals-blockers {
+  list-style: none;
+  margin: 8px 0 2px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fn-tool-mutuals-blockers a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.fn-tool-mutuals-blockers a:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.fn-tool-mutuals-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fn-tool-mutuals-hint {
+  margin-bottom: 10px;
+}
+
+.fn-tool-mutuals-out {
+  width: 30px;
+  height: 30px;
+}
+
+.fn-tool-mutuals-gone {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .fn-tool-mutuals-row {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-mutuals-row-end {
+    width: 100%;
+    justify-content: space-between;
+    padding-left: 30px;
+  }
+
+  .fn-tool-mutuals-toolbar .fn-tool-bar-end {
+    margin-left: 0;
+    text-align: left;
+  }
+
+  .fn-tool-mutuals-slider {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-mutuals-slider label {
+    width: 100%;
+  }
+}
+
+/* ---------- Saving ---------- */
+
+.fn-tool-mutuals-save {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fn-tool-mutuals-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fn-tool-mutuals-field input,
+.fn-tool-mutuals-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.fn-tool-mutuals-field input:focus,
+.fn-tool-mutuals-field textarea:focus {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -1px;
+}
+
+.fn-tool-mutuals-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.fn-tool-mutuals-check input {
+  accent-color: var(--accent-moss);
+}
+
+.fn-tool-card p.fn-tool-mutuals-problem {
+  margin: -6px 0 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+.fn-tool-mutuals-save-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-mutuals-save-row .fn-tool-note {
+  flex: 1 1 260px;
+}
+
+.fn-tool-mutuals-save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+}
+
+.fn-tool-mutuals-save-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.fn-tool-mutuals-save-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fn-tool-mutuals-caveat {
+  max-width: 62em;
+}
+
+[data-reduce-motion='true'] .fn-tool-mutuals-tile[data-status='reading']::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fn-tool-mutuals-tile[data-status='reading']::after {
+    animation: none;
   }
 }
 

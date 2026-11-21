@@ -6,11 +6,10 @@ import { newBuiltinWaypoints, visibleWaypointIds } from '../../lib/catalog';
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
-import AccountTab from './tabs/AccountTab';
 import AboutTab from './tabs/AboutTab';
 import DevTab from './tabs/DevTab';
 
-type TabId = 'defaults' | 'visibility' | 'custom' | 'account' | 'about' | 'dev';
+type TabId = 'defaults' | 'visibility' | 'custom' | 'about' | 'dev';
 
 function AturiMark() {
   return (
@@ -35,7 +34,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'defaults', label: 'General' },
   { id: 'visibility', label: 'Waypoints' },
   { id: 'custom', label: 'Custom waypoints' },
-  { id: 'account', label: 'Account' },
   { id: 'about', label: 'About' },
   { id: 'dev', label: 'Dev' },
 ];
@@ -48,7 +46,6 @@ const HASH_TO_TAB: Record<string, TabId> = {
   waypoints: 'visibility',
   visibility: 'visibility',
   custom: 'custom',
-  account: 'account',
   about: 'about',
   dev: 'dev',
 };
@@ -220,7 +217,6 @@ export default function App() {
             {prefs && tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
             {prefs && tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
             {prefs && tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
-            {prefs && tab === 'account' && <AccountTab prefs={prefs} onUpdate={update} />}
             {prefs && tab === 'about' && <AboutTab />}
             {prefs && tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
           </div>

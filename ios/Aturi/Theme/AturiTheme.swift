@@ -102,6 +102,29 @@ struct AturiTheme: Equatable {
     /// `--status-live`: the "live" dot.
     var statusLive: Color { Color(hex: palette.statusLive) }
 
+    /* Tokens globals.css derives with color-mix rather than spelling out
+       per scheme, derived here the same way from the palette so every
+       scheme follows. */
+
+    /// `--surface-filed`: tabs filed behind the open one. Dark takes the
+    /// page 62% toward black; light uses the tertiary background.
+    var surfaceFiled: Color {
+        Color(hex: isDark ? (Palette.mix(palette.bgPrimary, 0.62, over: "#000000") ?? palette.bgTertiary) : palette.bgTertiary)
+    }
+    /// `--accent-soft-ring`: the outline every soft pill wears (eyebrows,
+    /// kind chips, tags), firmer than `accentSoftBorder`, which outlines
+    /// selected rows and stays quiet.
+    var accentSoftRing: Color {
+        Color(hex: Palette.mix(palette.textAccent, 0.26, over: palette.accentSoft) ?? palette.accentSoftBorder)
+    }
+    /// `--skeleton-fill`: the strong hairline tone made part-transparent,
+    /// so a loading bar reads on a card, the page or a tinted strip alike.
+    var skeletonFill: Color { borderStrong.opacity(0.72) }
+    /// `--fx-stripe`: the band behind every other row of a record list.
+    var stripe: Color {
+        Color(hex: Palette.mix(palette.bgTertiary, 0.7, over: palette.bgSecondary) ?? palette.bgTertiary)
+    }
+
     /// Field Notes radii: cards 12pt, controls (buttons, fields, rows)
     /// 8pt; pills are capsules.
     static let cardRadius: CGFloat = 12
@@ -210,7 +233,12 @@ struct ThemedRoot: ViewModifier {
         return content
             .environment(\.aturiTheme, theme)
             .font(AturiFont.body)
-            .tint(theme.accent)
+            /* Tint colours text (toolbar buttons, bare text buttons), so it
+               is the web's link colour, `--text-accent`; `--accent-moss` is
+               a fill colour, too faint to read as text in the dark themes.
+               Switches keep the moss track the web gives them. */
+            .tint(theme.textAccent)
+            .toggleStyle(AturiSwitchToggleStyle())
             .preferredColorScheme(appearance.preferredColorScheme)
             .background(theme.bgPrimary.ignoresSafeArea())
     }
@@ -220,5 +248,47 @@ extension View {
     /// Apply once, on the root view, inside the `PreferencesStore` environment.
     func themedRoot() -> some View {
         modifier(ThemedRoot())
+    }
+}
+
+/// The web's switch: a moss track. Set once on the root so every `Toggle`
+/// keeps it while the app tint is the text accent; a toggle that asks for
+/// another style still gets it.
+struct AturiSwitchToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        AturiSwitch(configuration: configuration)
+    }
+}
+
+private struct AturiSwitch: View {
+    let configuration: ToggleStyleConfiguration
+
+    @Environment(\.aturiTheme) private var theme
+
+    var body: some View {
+        Toggle(configuration)
+            .toggleStyle(.switch)
+            .tint(theme.accent)
+    }
+}
+
+/// The web's motion tokens (`--dur-*` and `--ease-soft` in globals.css,
+/// `src/lib/motion.ts`): a press, a quick state change, a panel, an
+/// arrival. `animation(_:reduceMotion:)` gives nil under Reduce Motion,
+/// which is where the web's reduced-motion flag, seeded from the same OS
+/// setting, stops every animation.
+enum AturiMotion {
+    static let press: Double = 0.12
+    static let quick: Double = 0.18
+    static let panel: Double = 0.24
+    static let arrive: Double = 0.36
+
+    /// `cubic-bezier(0.22, 1, 0.36, 1)`.
+    static func soft(_ duration: Double) -> Animation {
+        .timingCurve(0.22, 1, 0.36, 1, duration: duration)
+    }
+
+    static func animation(_ animation: Animation, reduceMotion: Bool) -> Animation? {
+        reduceMotion ? nil : animation
     }
 }

@@ -23,27 +23,44 @@ export default function ScrollIndicator({
   const [pickerInView, setPickerInView] = useState(true);
   const isVisible = !scrolled && !pickerInView;
 
+  // Only offer the hint while the picker is still below the fold, and hide it
+  // once the visitor has scrolled a bit. The picker's place is measured
+  // rather than read off an observer entry: the remember bar pins itself
+  // over the screen's bottom edge, where this hint sits, as soon as the
+  // picker's top is on screen, so a hint left up by a stale entry lands on
+  // the bar. Viewport resizes measure again too (iOS Safari's toolbar or
+  // keyboard settling after load); the observer only reports layout moving
+  // the picker.
   useEffect(() => {
-    const handleScroll = () => {
-      // Hide indicator once user has scrolled a bit
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
       setScrolled(window.scrollY > 150);
+      const element = document.getElementById(targetId);
+      // Nothing to scroll to: leave the hint hidden.
+      setPickerInView(!element || element.getBoundingClientRect().top < window.innerHeight);
     };
-    handleScroll();
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Only offer the hint while the picker is still below the fold.
-  useEffect(() => {
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    window.visualViewport?.addEventListener('resize', schedule);
     const element = document.getElementById(targetId);
-    // Nothing to scroll to (or no observer support): leave the hint hidden.
-    if (!element || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(([entry]) => {
-      setPickerInView(entry.isIntersecting || entry.boundingClientRect.top < 0);
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
+    const observer =
+      element && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(schedule)
+        : null;
+    if (element) observer?.observe(element);
+    return () => {
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      window.visualViewport?.removeEventListener('resize', schedule);
+      observer?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [targetId]);
 
   const handleClick = () => {

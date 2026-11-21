@@ -131,8 +131,34 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(lenient?.templates, [.post: "https://x/{rkey}"])
         XCTAssertEqual(lenient?.redirectCompat, [.blueskySocial])
         XCTAssertNil(lenient?.domain)
+        XCTAssertEqual(lenient?.passthrough.supportedTypes, ["future"], "unknown values are kept aside, not dropped")
+        XCTAssertEqual(lenient?.passthrough.templates, ["future": "y"])
+        XCTAssertEqual(lenient?.passthrough.redirectCompat, ["future-family"])
+        XCTAssertEqual(lenient?.passthrough.fields, ["domain": 5])
         let bare = CustomWaypoint(json: json(#"{"id": "custom:a", "name": "A", "supportedTypes": [], "templates": {}}"#))
         XCTAssertNil(bare?.redirectCompat)
+    }
+
+    func testCustomWaypointRoundTripsWhatThisBuildCannotRead() throws {
+        let original = json(#"""
+        {"id": "custom:a", "name": "A", "icon": "star", "domain": "x.test",
+         "supportedTypes": ["post", "thread"],
+         "templates": {"post": "https://x.test/{rkey}", "thread": "https://x.test/t/{rkey}"},
+         "redirectCompat": ["bluesky-social", "future-family"]}
+        """#)
+        let waypoint = try XCTUnwrap(CustomWaypoint(json: original))
+        XCTAssertFalse(waypoint.passthrough.isEmpty)
+        XCTAssertEqual(waypoint.jsonValue, original, "a save from this app writes back what it read")
+
+        // Through the whole preferences record, as a sync writes it.
+        let merged = Preferences.mergeWithDefaults(.object(["customWaypoints": .array([original])]))
+        let written = merged.toRecordValue()["customWaypoints"]?[0]
+        XCTAssertEqual(written, original)
+
+        // Only unknown families: the array still goes out.
+        let onlyFuture = try XCTUnwrap(CustomWaypoint(json: json(#"{"id": "custom:b", "name": "B", "supportedTypes": ["post"], "templates": {"post": "https://y/{rkey}"}, "redirectCompat": ["future-family"]}"#)))
+        XCTAssertEqual(onlyFuture.redirectCompat, [])
+        XCTAssertEqual(onlyFuture.jsonValue["redirectCompat"], .array(["future-family"]))
     }
 
     func testWaypointGroupValidation() {

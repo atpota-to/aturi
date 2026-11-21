@@ -344,16 +344,16 @@ export const COMMANDS: CommandMeta[] = [
     keywords: [
       'tools', 'utilities', 'jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live',
       'handle', 'debugger', 'validator', 'validate', 'xrpc', 'console', 'decoder', 'decode',
-      'labels', 'feed', 'relay', 'oauth', 'resolver', 'calendar', 'inspector', 'shadowban',
+      'labels', 'feed', 'relay', 'oauth', 'resolver', 'calendar', 'inspector', 'shadowban', 'mutuals',
     ],
   },
   {
     id: 'go-links',
-    label: 'Go to universal links',
-    description: 'The at:// universal link tools.',
+    label: 'Go to waypoints',
+    description: 'Universal links, the client catalog, and the packages behind them.',
     group: 'navigation',
     defaultBindings: ['g l'],
-    keywords: ['links', 'universal', 'share'],
+    keywords: ['waypoints', 'links', 'universal', 'share', 'catalog', 'clients', 'open in'],
   },
   {
     id: 'go-extension',

@@ -2,12 +2,16 @@
 
 import { usePathname } from 'next/navigation';
 import { parseExplorerPath, type ExplorerLocation } from '@/lib/explorerView';
+import { BreadcrumbBarProvider } from '../BreadcrumbContext';
 import CollectionExplorer from '../CollectionExplorer';
 import RecordExplorer from '../RecordExplorer';
 import RepoExplorer from '../RepoExplorer';
 import ExplorerShell from './ExplorerShell';
 import { useExplorerView } from './useExplorerView';
 import ViewSwitch from './ViewSwitch';
+
+/** The switch the classic pages' breadcrumb carries on a phone. */
+const CRUMB_BAR = <ViewSwitch />;
 
 /**
  * What the three account routes render: /explore/{repo}, its collections
@@ -22,7 +26,10 @@ import ViewSwitch from './ViewSwitch';
  * Classic is the explorer's three pages as they have always been, with the
  * view switch set above them. It reads the address bar the same way, so
  * switching to it from deep inside the shell opens the page for where you
- * are rather than the one you arrived on.
+ * are rather than the one you arrived on. On a phone the switch moves to the
+ * line under the page's breadcrumb instead (BreadcrumbBarProvider), so the
+ * trail is the top of the screen in Classic as it is in the shell's toolbar;
+ * the bar above stays for a page that has no breadcrumb to carry it.
  */
 export default function ExplorerRoute({
   repo,
@@ -46,7 +53,7 @@ export default function ExplorerRoute({
   }
 
   return (
-    <>
+    <BreadcrumbBarProvider value={CRUMB_BAR}>
       <div className="fx-viewbar">
         <ViewSwitch />
       </div>
@@ -57,6 +64,6 @@ export default function ExplorerRoute({
       ) : (
         <RepoExplorer repo={at.repo} />
       )}
-    </>
+    </BreadcrumbBarProvider>
   );
 }

@@ -91,22 +91,40 @@ struct ExploreBreadcrumb: View {
     }
 }
 
-/// The explorer's "that did not resolve" panel: a small-caps eyebrow, a
-/// bold headline and the resolver's own words, with a retry when the
-/// failure might be transient.
+/// The explorer's "that did not resolve" panel, port of `NotFoundPanel.tsx`:
+/// an eyebrow, a bold headline, the plain-words body, the resolver's own
+/// error folded under "Technical details", and the explorer's search
+/// prefilled with what was tried, so a typo is one edit from a retry. The
+/// retry button stays for failures that might be transient.
 struct ExploreNotFoundPanel: View {
     let eyebrow: String
     let headline: String
     let message: String
+    var details: String? = nil
+    var query: String? = nil
     var retry: (() -> Void)? = nil
 
+    @State private var text: String
+    @State private var showsDetails = false
+
+    @Environment(AppRouter.self) private var router
     @Environment(\.aturiTheme) private var theme
 
-    init(eyebrow: String, headline: String, message: String, retry: (() -> Void)? = nil) {
+    init(
+        eyebrow: String,
+        headline: String,
+        message: String,
+        details: String? = nil,
+        query: String? = nil,
+        retry: (() -> Void)? = nil
+    ) {
         self.eyebrow = eyebrow
         self.headline = headline
         self.message = message
+        self.details = details
+        self.query = query
         self.retry = retry
+        _text = State(initialValue: query ?? "")
     }
 
     var body: some View {
@@ -123,6 +141,37 @@ struct ExploreNotFoundPanel: View {
                 .foregroundStyle(theme.textSecondary)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+            if let details, !details.isEmpty, details != message {
+                DisclosureGroup("Technical details", isExpanded: $showsDetails) {
+                    Text(details)
+                        .font(AturiFont.monoSmall)
+                        .foregroundStyle(theme.danger)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+                }
+                .font(AturiFont.footnote)
+                .foregroundStyle(theme.textSecondary)
+            }
+            if query != nil {
+                HStack(spacing: 8) {
+                    TextField("Handle, DID, at:// URI or URL", text: $text)
+                        .font(AturiFont.monoSmall)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .submitLabel(.search)
+                        .onSubmit(lookUp)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .cardBackground(cornerRadius: AturiTheme.controlRadius)
+                        .accessibilityLabel("Search the Atmosphere")
+                    Button("Look up", action: lookUp)
+                        .buttonStyle(.aturiSecondary)
+                        .disabled(trimmed.isEmpty)
+                }
+            }
             if let retry {
                 Button("Retry", action: retry)
                     .buttonStyle(.aturiSecondary)
@@ -131,6 +180,16 @@ struct ExploreNotFoundPanel: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardBackground()
+    }
+
+    private var trimmed: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Routed by the search screen, as the landing's box routes a query.
+    private func lookUp() {
+        guard !trimmed.isEmpty else { return }
+        router.open(.search(trimmed))
     }
 }
 
@@ -242,6 +301,7 @@ struct WaypointOpenRow: View {
     let targets: [WaypointOpenTarget]
     var title: String = "Open in"
 
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
@@ -290,8 +350,7 @@ struct WaypointOpenRow: View {
     }
 
     private func open(_ string: String) {
-        guard let url = URL(string: string) else { return }
-        openURL(url)
+        LinkNavigation.openWaypoint(string, router: router, openURL: openURL)
     }
 }
 

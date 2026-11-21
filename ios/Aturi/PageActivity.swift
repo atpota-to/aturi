@@ -21,13 +21,13 @@ extension Route {
     /// which are a lookup rather than a page to come back to.
     var activityTitle: String? {
         switch self {
-        case .repo(let repo):
+        case .repo(let repo, _):
             return repo
         case .collection(let repo, let collection):
             return "\(collection) · \(repo)"
         case .record(let repo, let collection, let rkey):
             return "\(collection)/\(rkey) · \(repo)"
-        case .pds(let host):
+        case .pds(let host, _):
             return "\(host) (PDS)"
         case .lexicon(let nsid):
             return nsid
@@ -43,6 +43,8 @@ extension Route {
             }
         case .search:
             return nil
+        case .tool(let slug, _):
+            return ToolCatalog.tool(slug)?.title
         }
     }
 
@@ -50,13 +52,13 @@ extension Route {
     /// NSID or a record key finds it.
     var activityKeywords: Set<String> {
         switch self {
-        case .repo(let repo):
+        case .repo(let repo, _):
             return [repo]
         case .collection(let repo, let collection):
             return [repo, collection]
         case .record(let repo, let collection, let rkey):
             return [repo, collection, rkey]
-        case .pds(let host):
+        case .pds(let host, _):
             return [host]
         case .lexicon(let nsid):
             return [nsid]
@@ -66,6 +68,8 @@ extension Route {
             return Set([components.identifier, components.collection, components.rkey].compactMap { $0 })
         case .search:
             return []
+        case .tool(let slug, let query):
+            return Set([slug] + query.values.filter { !$0.isEmpty })
         }
     }
 }

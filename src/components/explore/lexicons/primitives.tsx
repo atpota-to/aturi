@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ExternalLink, type LucideIcon } from 'lucide-react';
 import { formatPct } from '@/utils/ufos/format';
 import SegmentThumb from '@/components/SegmentThumb';
 
@@ -105,6 +105,11 @@ export function Nsid({ value }: { value: string }) {
 
 // ─── Segmented toggle ──────────────────────────────────────────────────────
 
+/**
+ * An option with an `icon` is drawn as the mark alone, its label kept as
+ * its accessible name and its tooltip, for a toggle that has to share a
+ * phone's line with others.
+ */
 export function Segmented<T extends string>({
   ariaLabel,
   options,
@@ -112,14 +117,14 @@ export function Segmented<T extends string>({
   onChange,
 }: {
   ariaLabel: string;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon?: LucideIcon }[];
   value: T;
   onChange: (v: T) => void;
 }) {
   return (
     <div role="group" aria-label={ariaLabel} className="fn-segmented">
       <SegmentThumb active={value} />
-      {options.map(({ value: v, label }) => {
+      {options.map(({ value: v, label, icon: Icon }) => {
         const active = v === value;
         return (
           <button
@@ -127,9 +132,12 @@ export function Segmented<T extends string>({
             type="button"
             onClick={() => v !== value && onChange(v)}
             aria-pressed={active}
+            aria-label={Icon ? label : undefined}
+            title={Icon ? label : undefined}
+            data-icon={Icon ? '' : undefined}
             className="fn-segmented-option"
           >
-            {label}
+            {Icon ? <Icon size={16} aria-hidden /> : label}
           </button>
         );
       })}

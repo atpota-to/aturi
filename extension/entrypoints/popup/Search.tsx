@@ -5,9 +5,23 @@ import { encodeRepo } from '@aturi/atproto/urls';
 import { ATURI_BASE } from '../../lib/aturiUrl';
 import { filterSeen, seenLabel, type SeenRepo } from '../../lib/seenLately';
 import { initialOf } from '../../lib/pageRecords';
+import { IS_SAFARI } from '../../lib/platform';
 import { closePopupSoon, openAturi } from './actions';
+import { isIOSPopup } from './host';
 
 export const GO_TO_LABEL = 'Go to a handle, DID or at:// URI';
+
+/**
+ * Handles, DIDs and AT URIs are typed as they are: no capital first letter,
+ * no autocorrect (both iOS habits) and no spellcheck. spellCheck is the
+ * string "false" on purpose: Preact drops a `false` value for it, which
+ * would leave spellcheck on (see VERBATIM_INPUT in the options' CustomTab).
+ */
+const VERBATIM_INPUT = {
+  autoCapitalize: 'none',
+  autoCorrect: 'off',
+  spellCheck: 'false',
+} as const;
 
 /**
  * The drawer lists five repos at most, so it never grows past the popup's
@@ -103,7 +117,8 @@ export function SearchDrawer({
             placeholder={GO_TO_LABEL}
             aria-label={GO_TO_LABEL}
             autoComplete="off"
-            spellCheck={false}
+            {...VERBATIM_INPUT}
+            enterKeyHint="go"
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={options.length > 0}
@@ -191,7 +206,8 @@ export function SearchDrawer({
 
 /**
  * The go-to field in the no-data card: the one thing to do on a page with
- * nothing to look up, so it takes focus when the popup opens. A faint `/`
+ * nothing to look up, so it takes focus when the popup opens (except on iOS,
+ * where that brings up no keyboard and only gets in the way). A faint `/`
  * keycap says how to get back to it; once typed, a row spells out what
  * Enter does.
  */
@@ -207,7 +223,22 @@ export function LookupField({
   const go = typed ? goToUrl(typed) : null;
 
   useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
+    if (!autoFocus) return undefined;
+    if (!IS_SAFARI) {
+      inputRef.current?.focus();
+      return undefined;
+    }
+    // Safari: skip it on iOS. A focus the user didn't tap for raises no
+    // keyboard there, so the field would only look ready, and focusing while
+    // the popup loads is what left iPadOS popups opening scrolled down
+    // (WebKit bug 296056).
+    let live = true;
+    void isIOSPopup().then(ios => {
+      if (live && !ios) inputRef.current?.focus();
+    });
+    return () => {
+      live = false;
+    };
   }, [autoFocus, inputRef]);
 
   return (
@@ -232,7 +263,8 @@ export function LookupField({
           aria-label={GO_TO_LABEL}
           aria-describedby="popup-lookup-hint"
           autoComplete="off"
-          spellCheck={false}
+          {...VERBATIM_INPUT}
+          enterKeyHint="go"
         />
         <kbd className="popup-kbd" aria-hidden="true">
           /

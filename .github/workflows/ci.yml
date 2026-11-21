@@ -51,6 +51,32 @@ jobs:
         working-directory: extension
       - run: npm test
         working-directory: extension
+      # The Safari build, which the Xcode project copies into the iOS and
+      # macOS extensions. Built here too so a manifest regression shows up
+      # without a macOS runner.
+      - run: npm run build:safari
+        working-directory: extension
+      - name: Check the Safari manifest
+        working-directory: extension
+        run: |
+          node -e '
+            const m = require("./.output/safari-mv3/manifest.json");
+            const permissions = m.permissions ?? [];
+            const settings = m.browser_specific_settings ?? {};
+            const gecko = Object.keys(settings).filter((key) => key.startsWith("gecko"));
+            const problems = [
+              permissions.includes("identity") && "asks for identity, which Safari does not have",
+              !permissions.includes("declarativeNetRequestWithHostAccess") && "lacks declarativeNetRequestWithHostAccess, without which Safari ignores redirect rules",
+              !settings.safari && "lacks browser_specific_settings.safari",
+              gecko.length > 0 && "carries Firefox settings: " + gecko.join(", "),
+              !m.icons?.["512"] && "lacks a 512px icon",
+            ].filter(Boolean);
+            if (problems.length > 0) {
+              console.error("Safari manifest " + problems.join("; "));
+              process.exit(1);
+            }
+            console.log("Safari manifest OK");
+          '
 
   packages:
     name: Packages (sync guard · typecheck · test · build)
@@ -88,14 +114,49 @@ jobs:
       # run under SwiftPM without a simulator.
       - run: swift test
         working-directory: ios/Packages/AturiCore
-      # The app and share extension are SwiftUI and only compile on Apple
+      # Both Safari extension targets build the web extension with WXT as
+      # part of the Xcode build (ios/scripts/build-safari-web-extension.sh),
+      # so the job needs Node and both installs: the extension imports
+      # ../src/utils, which imports root packages.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            extension/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: extension
+      # The iOS 26.2 SDK is the first with the Safari extension APIs the
+      # iOS app's settings use, so a failure there starts with this line.
+      - run: xcodebuild -version
+      # The apps and extensions are SwiftUI and only compile on Apple
       # platforms, so this is the compiler pass the package tests cannot give.
       # No signing: the build stops short of code signing so no team is needed.
-      - run: >
+      - name: Build the iOS app (with its share and Safari extensions)
+        run: >
           xcodebuild build
           -project ios/Aturi.xcodeproj
           -scheme Aturi
           -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/DerivedData
           CODE_SIGNING_ALLOWED=NO
           CODE_SIGN_IDENTITY=""
           DEVELOPMENT_TEAM=""
+      # ATURI_SKIP_WEB_BUILD reuses the web build the iOS build just made, so
+      # both extensions carry the same files and the check below compares
+      # them against one folder.
+      - name: Build the Mac app (with its Safari extension)
+        run: >
+          xcodebuild build
+          -project ios/Aturi.xcodeproj
+          -scheme AturiMac
+          -destination 'generic/platform=macOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_IDENTITY=""
+          DEVELOPMENT_TEAM=""
+          ATURI_SKIP_WEB_BUILD=1
+      - name: Check both Safari extensions carry the web build
+        run: sh ios/scripts/check-safari-bundles.sh build/DerivedData

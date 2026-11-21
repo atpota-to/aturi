@@ -12,7 +12,7 @@ aturi.to: universal links, an Atmosphere Explorer, a browser extension and an iO
 | `extension/` | WXT, Preact-aliased React 19, Vitest | `cd extension && npm run compile && npm test` |
 | `packages/waypoints` | tsup, zero runtime deps, MIT | `cd packages && npm run sync:check && npm test && npm run build` |
 | `packages/waypoints-react` | tsup, React peer dep, MIT | `cd packages && npm run typecheck && npm run build` |
-| `ios/` | SwiftUI app + `AturiCore` Swift package (Foundation only) | `cd ios/Packages/AturiCore && swift test` (Linux or macOS); `xcodebuild -project ios/Aturi.xcodeproj -scheme Aturi build` (macOS) |
+| `ios/` | SwiftUI iOS app, a small Mac app, the Safari extension targets for both + `AturiCore` Swift package (Foundation only) | `cd ios/Packages/AturiCore && swift test` (Linux or macOS); `xcodebuild -project ios/Aturi.xcodeproj -scheme Aturi build` and `-scheme AturiMac` (macOS; both build the Safari extension with WXT, so run `npm ci` at the root and in `extension/` first) |
 
 Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `extension/` and `packages/` have their own lockfiles and need separate installs.
 

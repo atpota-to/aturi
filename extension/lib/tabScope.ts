@@ -26,6 +26,11 @@ export function isTabScopeRuleId(id: number): boolean {
  * URLs a browser parks an empty tab on. A tab that starts on one of these and
  * has no opener is a tab you opened yourself, so whatever URL lands in it next
  * is one you typed or pasted.
+ *
+ * On Safari `''` is ambiguous: it is what a new tab reports, but it is also
+ * what any page the user hasn't granted the extension reports, because Safari
+ * hides the URL. That is one reason the background doesn't track tab scopes
+ * on Safari at all.
  */
 const BLANK_TAB_URLS = new Set([
   '',
@@ -114,6 +119,12 @@ export function allSourceHosts(prefs: Prefs): string[] {
  * can legally follow a host, so `bsky.app` matches `bsky.app/x` and
  * `bsky.app:443` but never `evil-bsky.app` or `bsky.app.example.com`. That
  * mirrors the redirect rules, which are host-exact too.
+ *
+ * Chrome and Firefox only. Safari can't express this rule: it has no
+ * `tabIds` condition and silently ignores the key, so the rule would exempt
+ * these hosts in every tab, and its regex dialect has no `|`, so it rejects
+ * the pattern (and with it the whole batch) anyway. The background never
+ * installs these on Safari.
  */
 export function buildTabScopeRule(
   hosts: string[],

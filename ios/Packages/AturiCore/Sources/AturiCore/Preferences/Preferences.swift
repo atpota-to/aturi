@@ -63,7 +63,7 @@ public struct SectionMeta: Hashable, Sendable, Identifiable {
 public enum ExploreSections {
     /// Record-page sections in default display order.
     public static let recordSectionMeta: [SectionMeta] = [
-        SectionMeta(id: "richPreview", label: "Rich preview", description: "The rendered Bluesky post card (or margin-lexicon card). Records without a card skip this.", kind: .recordData),
+        SectionMeta(id: "richPreview", label: "Rich preview", description: "The rendered Bluesky post or profile card (or margin-lexicon card). Records without a card skip this.", kind: .recordData),
         SectionMeta(id: "structuredJson", label: "Rich JSON preview", description: "The record's fields as a structured, linkified table.", kind: .recordData),
         SectionMeta(id: "rawJson", label: "Raw JSON", description: "The full, linkified record JSON.", kind: .recordData),
         SectionMeta(id: "engagement", label: "Engagement counts", description: "Followers / posts and similar counts (non-post records).", kind: .helper),
@@ -160,6 +160,37 @@ public struct CustomWaypointContext: Hashable, Sendable {
     }
 }
 
+/// What a custom waypoint in the PDS record held that this build cannot
+/// read: content types, template keys and redirect families it has no case
+/// for, and any other field. The web keeps a valid waypoint object as it
+/// found it (`isValidCustomWaypoint` checks it and passes it through), and
+/// this app writes the whole record back on every change, so whatever a
+/// newer client added has to survive a save from here unchanged.
+public struct CustomWaypointPassthrough: Hashable, Sendable {
+    public var supportedTypes: [String]
+    public var templates: [String: String]
+    public var redirectCompat: [String]
+    /// Top-level fields outside the ones this build models, and `domain` or
+    /// `description` when they are not strings.
+    public var fields: [String: JSONValue]
+
+    public init(
+        supportedTypes: [String] = [],
+        templates: [String: String] = [:],
+        redirectCompat: [String] = [],
+        fields: [String: JSONValue] = [:]
+    ) {
+        self.supportedTypes = supportedTypes
+        self.templates = templates
+        self.redirectCompat = redirectCompat
+        self.fields = fields
+    }
+
+    public var isEmpty: Bool {
+        supportedTypes.isEmpty && templates.isEmpty && redirectCompat.isEmpty && fields.isEmpty
+    }
+}
+
 /// A user-defined waypoint. Ids are `custom:<id>`; templates carry
 /// `{handle}`, `{did}`, `{actor}`, `{collection}` and `{rkey}` placeholders.
 public struct CustomWaypoint: Hashable, Sendable, Identifiable {
@@ -174,6 +205,8 @@ public struct CustomWaypoint: Hashable, Sendable, Identifiable {
     /// empty means it is never an auto-redirect destination, the right
     /// default for a personal bookmark.
     public var redirectCompat: [RedirectCompatFamily]?
+    /// What the record held that this build cannot read, written back as is.
+    public var passthrough: CustomWaypointPassthrough
 
     public init(
         id: String,
@@ -182,7 +215,8 @@ public struct CustomWaypoint: Hashable, Sendable, Identifiable {
         description: String? = nil,
         supportedTypes: [WaypointType],
         templates: [WaypointType: String],
-        redirectCompat: [RedirectCompatFamily]? = nil
+        redirectCompat: [RedirectCompatFamily]? = nil,
+        passthrough: CustomWaypointPassthrough = CustomWaypointPassthrough()
     ) {
         self.id = id
         self.name = name
@@ -191,28 +225,43 @@ public struct CustomWaypoint: Hashable, Sendable, Identifiable {
         self.supportedTypes = supportedTypes
         self.templates = templates
         self.redirectCompat = redirectCompat
+        self.passthrough = passthrough
     }
+
+    /// The top-level keys this build models; anything else is passed through.
+    static let modelledKeys: Set<String> = ["id", "name", "domain", "description", "supportedTypes", "templates", "redirectCompat"]
 
     /// `isValidCustomWaypoint`. The preferences record is user-writable in the
     /// PDS, so a template value that is not a string, or a `redirectCompat`
     /// that is not an array of strings, rejects the whole waypoint rather
     /// than shipping one that would crash the picker or never redirect.
-    /// Strings naming a type or family this build does not know are dropped
-    /// from the arrays; the web keeps them but they never match anything.
+    /// Strings naming a type or family this build does not know never match
+    /// anything here, so they are kept aside in `passthrough` and written
+    /// back, as the web keeps them, along with any field this build does not
+    /// model.
     public init?(json: JSONValue) {
         guard let id = json["id"]?.stringValue,
               let name = json["name"]?.stringValue,
               let rawTypes = json["supportedTypes"]?.arrayValue,
               let rawTemplates = json["templates"]?.objectValue else { return nil }
+        var passthrough = CustomWaypointPassthrough()
         var types: [WaypointType] = []
         for raw in rawTypes {
             guard let s = raw.stringValue else { return nil }
-            if let type = WaypointType(rawValue: s) { types.append(type) }
+            if let type = WaypointType(rawValue: s) {
+                types.append(type)
+            } else {
+                passthrough.supportedTypes.append(s)
+            }
         }
         var templates: [WaypointType: String] = [:]
         for (key, raw) in rawTemplates {
             guard let s = raw.stringValue else { return nil }
-            if let type = WaypointType(rawValue: key) { templates[type] = s }
+            if let type = WaypointType(rawValue: key) {
+                templates[type] = s
+            } else {
+                passthrough.templates[key] = s
+            }
         }
         var families: [RedirectCompatFamily]?
         if let rawFamilies = json["redirectCompat"] {
@@ -220,9 +269,24 @@ public struct CustomWaypoint: Hashable, Sendable, Identifiable {
             var out: [RedirectCompatFamily] = []
             for raw in list {
                 guard let s = raw.stringValue else { return nil }
-                if let family = RedirectCompatFamily(rawValue: s) { out.append(family) }
+                if let family = RedirectCompatFamily(rawValue: s) {
+                    out.append(family)
+                } else {
+                    passthrough.redirectCompat.append(s)
+                }
             }
             families = out
+        }
+        if let object = json.objectValue {
+            for (key, value) in object where !CustomWaypoint.modelledKeys.contains(key) {
+                passthrough.fields[key] = value
+            }
+        }
+        // A non-string display hint means nothing here but is the record's.
+        for key in ["domain", "description"] {
+            if let value = json[key], value.stringValue == nil {
+                passthrough.fields[key] = value
+            }
         }
         self.init(
             id: id,
@@ -231,22 +295,34 @@ public struct CustomWaypoint: Hashable, Sendable, Identifiable {
             description: json["description"]?.stringValue,
             supportedTypes: types,
             templates: templates,
-            redirectCompat: families
+            redirectCompat: families,
+            passthrough: passthrough
         )
     }
 
     /// The JSON the web writes for one custom waypoint. Optional fields are
-    /// omitted when nil, like `JSON.stringify` drops `undefined`.
+    /// omitted when nil, like `JSON.stringify` drops `undefined`. What came
+    /// in through `passthrough` goes back out: unknown types and families
+    /// after the known ones, unknown template keys beside the known, and
+    /// unmodelled fields as they were.
     public var jsonValue: JSONValue {
-        var object: [String: JSONValue] = [
-            "id": .string(id),
-            "name": .string(name),
-            "supportedTypes": .array(supportedTypes.map { .string($0.rawValue) }),
-            "templates": .object(Dictionary(uniqueKeysWithValues: templates.map { ($0.key.rawValue, JSONValue.string($0.value)) })),
-        ]
+        var object = passthrough.fields
+        object["id"] = .string(id)
+        object["name"] = .string(name)
+        let typeValues: [JSONValue] = supportedTypes.map { JSONValue.string($0.rawValue) } + passthrough.supportedTypes.map { JSONValue.string($0) }
+        object["supportedTypes"] = .array(typeValues)
+        var templateObject: [String: JSONValue] = passthrough.templates.mapValues { JSONValue.string($0) }
+        for (type, template) in templates {
+            templateObject[type.rawValue] = .string(template)
+        }
+        object["templates"] = .object(templateObject)
         if let domain { object["domain"] = .string(domain) }
         if let description { object["description"] = .string(description) }
-        if let redirectCompat { object["redirectCompat"] = .array(redirectCompat.map { .string($0.rawValue) }) }
+        if redirectCompat != nil || !passthrough.redirectCompat.isEmpty {
+            let familyValues: [JSONValue] = (redirectCompat ?? []).map { JSONValue.string($0.rawValue) }
+                + passthrough.redirectCompat.map { JSONValue.string($0) }
+            object["redirectCompat"] = .array(familyValues)
+        }
         return .object(object)
     }
 
@@ -522,10 +598,10 @@ public struct Preferences: Hashable, Sendable {
     public var pinnedLexicons: [String]
     public var pinnedLexiconsOthers: [String]
     public var pinScope: PinScope
-    /// What the web's lexicons explorer has pinned: NSIDs, and namespaces as
-    /// `prefix.*`. Apart from `pinnedLexicons`, which lifts collections in
-    /// every account's tree. This app has no lexicons explorer; the list is
-    /// carried through untouched so a write from this device keeps it.
+    /// What the lexicons explorer has pinned (the web's, and this app's
+    /// Lexicons tab): NSIDs, and namespaces as `prefix.*`, in the order
+    /// pinned. Apart from `pinnedLexicons`, which lifts collections in every
+    /// account's tree.
     public var lexiconExplorerPins: [String]
     public var collectionGroupsCollapsedByDefault: Bool
     public var hideRelationshipBar: Bool

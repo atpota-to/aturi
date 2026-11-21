@@ -2,13 +2,14 @@ import SwiftUI
 import Observation
 import AturiCore
 
-/// The four top-level destinations, in tab-bar order. `Sendable` is spelled
+/// The top-level destinations, in tab-bar order. `Sendable` is spelled
 /// out because the App Intents conformance (Intents/NavigationIntents.swift)
 /// requires it, and Swift wants it declared in this file.
 enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
     case explore
     case links
     case lexicons
+    case tools
     case settings
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .explore: return "Explore"
         case .links: return "Links"
         case .lexicons: return "Lexicons"
+        case .tools: return "Tools"
         case .settings: return "Settings"
         }
     }
@@ -27,6 +29,7 @@ enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .explore: return "magnifyingglass"
         case .links: return "link"
         case .lexicons: return "book.closed"
+        case .tools: return "wrench.and.screwdriver"
         case .settings: return "gearshape"
         }
     }
@@ -35,32 +38,40 @@ enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
 /// Every screen a `NavigationStack` can push. Values carry raw (decoded)
 /// identifiers; the explorer path spelling is derived on the way out.
 enum Route: Hashable {
-    case repo(String)
+    /// A repo page, opened on `tab` when a link names one: the web's
+    /// `?tab=` value (`DeepLinkRouting.repoTabs`), left nil for Collections.
+    case repo(String, tab: String? = nil)
     case collection(repo: String, collection: String)
     case record(repo: String, collection: String, rkey: String)
-    case pds(host: String)
+    /// A PDS page, with its accounts' filters and order when a link names
+    /// them (`?status=`, `?commit=`, `?sort=`, `?dir=`).
+    case pds(host: String, query: [String: String] = [:])
     case lexicon(nsid: String)
     case lexiconGroup(prefix: String)
     /// The universal-link page: preview card plus waypoint picker.
     case preview(AtUriComponents)
     /// Free-text search results from the explore landing.
     case search(String)
+    /// A tool's page (`/tools/{slug}`), with the input a link handed it in
+    /// the query the web tool reads (`?handle=`, `?actor=`, ...).
+    case tool(slug: String, query: [String: String] = [:])
 }
 
 extension Route {
     /// The typed reading of an explorer path, when the path names a page
     /// this app models. Nil for the lexicons index, space pages and
-    /// anything else `SearchDestination` carries verbatim.
-    init?(destination: SearchDestination) {
+    /// anything else `SearchDestination` carries verbatim. `repoTab` is a
+    /// link's `?tab=`, which only a repo page reads.
+    init?(destination: SearchDestination, repoTab: String? = nil, pdsQuery: [String: String] = [:]) {
         switch destination {
         case .repo(let repo):
-            self = .repo(repo)
+            self = .repo(repo, tab: repoTab)
         case .collection(let repo, let collection):
             self = .collection(repo: repo, collection: collection)
         case .record(let repo, let collection, let rkey):
             self = .record(repo: repo, collection: collection, rkey: rkey)
         case .pds(let host):
-            self = .pds(host: host)
+            self = .pds(host: host, query: pdsQuery)
         case .lexicon(let nsid):
             self = .lexicon(nsid: nsid)
         case .lexiconGroup(let prefix):
@@ -94,19 +105,19 @@ extension Route {
     /// page and search results, which are not explorer pages.
     var destination: SearchDestination? {
         switch self {
-        case .repo(let repo):
+        case .repo(let repo, _):
             return .repo(repo)
         case .collection(let repo, let collection):
             return .collection(repo: repo, collection: collection)
         case .record(let repo, let collection, let rkey):
             return .record(repo: repo, collection: collection, rkey: rkey)
-        case .pds(let host):
+        case .pds(let host, _):
             return .pds(host: host)
         case .lexicon(let nsid):
             return .lexicon(nsid: nsid)
         case .lexiconGroup(let prefix):
             return .lexiconGroup(prefix: prefix)
-        case .preview, .search:
+        case .preview, .search, .tool:
             return nil
         }
     }
@@ -123,271 +134,119 @@ extension Route {
             return URL(string: generateAturiLink(components))
         case .search:
             return nil
+        case .tool(let slug, let query):
+            return URL(string: Endpoints.aturiBase.absoluteString + "/tools/" + slug + Route.queryString(query))
         default:
             guard let path = explorePath else { return nil }
-            return URL(string: Endpoints.aturiBase.absoluteString + path)
+            return URL(string: Endpoints.aturiBase.absoluteString + path + tabQuery)
         }
     }
 
+    /// `?tab=` for a repo page opened on a tab, so the page handed to
+    /// Handoff or Spotlight reopens on it, as the link that opened it did.
+    private var tabQuery: String {
+        switch self {
+        case .repo(_, let tab?):
+            return "?tab=" + URIEncoding.encodeComponent(tab)
+        case .pds(_, let query):
+            return Route.queryString(query)
+        default:
+            return ""
+        }
+    }
+
+    /// `?a=1&b=2` with the keys sorted, so one input is always one URL;
+    /// empty for no query.
+    static func queryString(_ query: [String: String]) -> String {
+        guard !query.isEmpty else { return "" }
+        let pairs = query.keys.sorted().map { key in
+            URIEncoding.encodeComponent(key) + "=" + URIEncoding.encodeComponent(query[key] ?? "")
+        }
+        return "?" + pairs.joined(separator: "&")
+    }
+
     /// The tab a route belongs to when nothing else decides: universal
-    /// links land on Links, lexicon pages on Lexicons, the rest on Explore.
+    /// links land on Links, lexicon pages on Lexicons, tools on Tools, the
+    /// rest on Explore.
     var defaultTab: Tab {
         switch self {
         case .preview:
             return .links
         case .lexicon, .lexiconGroup:
             return .lexicons
+        case .tool:
+            return .tools
         case .repo, .collection, .record, .pds, .search:
             return .explore
         }
     }
 }
 
-/// What a URL maps to: a route pushed on a tab, or a tab's root.
+/// What a URL maps to: a route pushed on a tab, a tab's root, or the
+/// Lexicons tab's New section.
 enum DeepLinkTarget: Hashable {
     case route(Route, tab: Tab)
     case tabRoot(Tab)
+    /// The Lexicons tab at its root on the New section
+    /// (`AppRouter.showNewLexicons`).
+    case newLexicons
 }
 
-/// Pure URL-to-target mapping, kept separate from the router so it can be
-/// exercised without a `NavigationPath`. The grammar follows the web's
-/// route tree: `/profile/*` and the bare `/{handle}` forms are the
-/// universal-link pages (Links tab); `/explore/*` is the explorer;
-/// `/at/*`, `/at:*` and the `at` scheme land on the explorer too, as the
-/// web's `/at/[...slug]` redirect sends pasted AT URIs there.
+/// URL-to-target mapping, kept separate from the router so it can be
+/// exercised without a `NavigationPath`. The grammar itself, the web's
+/// route tree and the query its pages read, is `DeepLinkRouting` in
+/// AturiCore, where it is tested; this maps its destinations onto the
+/// app's routes and tabs.
 enum DeepLinks {
-    /// `aturi://open?url=` can wrap a link that wraps another; two levels
-    /// is already more than the share extension produces.
-    private static let maxNesting = 2
-
-    /// Top-level aturi.to pages that are not handles even though the
-    /// segment carries a dot.
-    private static let fileSuffixes = [".md", ".txt", ".json", ".xml"]
-
     static func target(for url: URL) -> DeepLinkTarget? {
         target(for: url.absoluteString)
     }
 
     static func target(for string: String) -> DeepLinkTarget? {
-        target(for: string, depth: 0)
-    }
-
-    private static func target(for string: String, depth: Int) -> DeepLinkTarget? {
-        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parts = LinkParts(trimmed) else { return nil }
-
-        switch parts.scheme {
-        case "at":
-            return Route(atUri: trimmed).map { DeepLinkTarget.route($0, tab: .explore) }
-
-        case "aturi":
-            /* The app's own scheme: `aturi://open?url=<encoded link>` from
-               the share extension. The wrapped link goes through the same
-               grammar, so an unsupported page is refused here and the
-               caller hands it to Safari. */
-            guard parts.host == "open", depth < maxNesting, let inner = parts.query["url"] else { return nil }
-            return target(for: inner, depth: depth + 1)
-
-        case "http", "https":
-            if parts.host == Endpoints.aturiHost {
-                return aturiTarget(segments: parts.pathSegments)
-            }
-            guard let url = URL(string: trimmed), let match = matchSupportedUrl(url) else { return nil }
-            let parsed = match.parsed
-            let components = AtUriComponents(
-                identifier: parsed.handle,
-                collection: nonEmpty(parsed.collection),
-                rkey: nonEmpty(parsed.rkey)
-            )
+        guard let destination = DeepLinkRouting.destination(for: string) else { return nil }
+        switch destination {
+        case .preview(let components):
             return .route(.preview(components), tab: .links)
-
-        default:
-            // `to.aturi:` (the OAuth redirect) and anything else is not a page.
-            return nil
-        }
-    }
-
-    /// aturi.to paths. `segments` are the percent-encoded path segments;
-    /// identifiers are decoded here because they are handed to resolvers
-    /// raw, while the explorer ladder decodes through `SearchDestination`.
-    private static func aturiTarget(segments: [String]) -> DeepLinkTarget? {
-        guard let first = segments.first else { return .tabRoot(.links) }
-        let rest = Array(segments.dropFirst())
-
-        switch first {
-        case "explore":
-            return exploreTarget(rest)
-
-        case "links":
-            return .tabRoot(.links)
-
-        case "account":
-            return .tabRoot(.settings)
-
-        case "profile":
-            guard let handle = rest.first.map(decode), !handle.isEmpty else { return nil }
-            switch rest.count {
-            case 1:
-                return .route(.preview(AtUriComponents(identifier: handle)), tab: .links)
-            case 3:
-                let segment = rest[1]
-                let rkey = decode(rest[2])
-                let collection: String
-                if segment == "post" {
-                    collection = "app.bsky.feed.post"
-                } else if segment == "lists" || segment == "list" {
-                    collection = "app.bsky.graph.list"
-                } else {
-                    collection = decode(segment)
-                }
-                guard !rkey.isEmpty, !collection.isEmpty else { return nil }
-                return .route(.preview(AtUriComponents(identifier: handle, collection: collection, rkey: rkey)), tab: .links)
-            default:
-                return nil
-            }
-
-        case "at", "at:":
-            /* `/at/{repo}[/{collection}/{rkey}]`, `/at://{repo}/...` and
-               `/at:/{repo}/...` all split to the same segments once the
-               empty ones between the slashes are dropped. */
-            return atPathTarget(rest)
-
-        default:
-            /* Bare `/{handle}[/{collection}/{rkey}]`. Only a segment that
-               spells a handle or a DID qualifies; `/about`, `/docs` and the
-               served files (`/llms.txt`, `/openapi.json`) stay with Safari. */
-            let identifier = decode(first)
-            guard !fileSuffixes.contains(where: { identifier.lowercased().hasSuffix($0) }) else { return nil }
-            guard identifier.hasPrefix("did:") || isValidHandle(identifier) else { return nil }
-            switch segments.count {
-            case 1:
-                return .route(.preview(AtUriComponents(identifier: identifier)), tab: .links)
-            case 3:
-                let collection = decode(segments[1])
-                let rkey = decode(segments[2])
-                guard collection.contains("."), !rkey.isEmpty else { return nil }
-                return .route(.preview(AtUriComponents(identifier: identifier, collection: collection, rkey: rkey)), tab: .links)
-            default:
-                return nil
-            }
-        }
-    }
-
-    /// `/explore/...`: the ladder `SearchDestination` already decodes, plus
-    /// the two index pages that have a tab of their own.
-    private static func exploreTarget(_ rest: [String]) -> DeepLinkTarget? {
-        if rest.isEmpty { return .tabRoot(.explore) }
-        let path = "/explore/" + rest.joined(separator: "/")
-        let destination = SearchDestination(explorePath: path)
-        if let route = Route(destination: destination) {
+        case .explore(let explorer, let repoTab, let pdsQuery):
+            guard let route = Route(destination: explorer, repoTab: repoTab, pdsQuery: pdsQuery) else { return nil }
             return .route(route, tab: route.defaultTab)
-        }
-        // Index pages the destination type carries verbatim.
-        if rest == ["lexicons"] { return .tabRoot(.lexicons) }
-        if rest == ["pds"] { return .tabRoot(.explore) }
-        // Space pages and anything future: not modelled here.
-        return nil
-    }
-
-    /// `/at/...` segments as an explorer route.
-    private static func atPathTarget(_ rest: [String]) -> DeepLinkTarget? {
-        let decoded = rest.map(decode)
-        guard let repo = decoded.first, !repo.isEmpty else { return nil }
-        if decoded.count > 1, decoded[1] == "space" { return nil }
-        switch decoded.count {
-        case 1:
-            return .route(.repo(repo), tab: .explore)
-        case 2:
-            return .route(.collection(repo: repo, collection: decoded[1]), tab: .explore)
-        case 3:
-            return .route(.record(repo: repo, collection: decoded[1], rkey: decoded[2]), tab: .explore)
-        default:
-            return nil
+        case .lexiconList(let list):
+            /* New is the one list the Lexicons tab can be sent to from
+               outside; any other opens the tab as it stands. */
+            if list == "new" {
+                return .newLexicons
+            }
+            return .tabRoot(.lexicons)
+        case .section(let section):
+            return .tabRoot(Tab(section))
+        case .tool(let slug, let query):
+            return .route(.tool(slug: slug, query: query), tab: .tools)
         }
     }
 
-    private static func decode(_ segment: String) -> String {
-        segment.removingPercentEncoding ?? segment
+    /// Whether the link carries the web's `?stay=1`, looking through the
+    /// share extension's `aturi://open?url=` wrapper.
+    static func asksToStay(_ string: String) -> Bool {
+        DeepLinkRouting.asksToStay(string)
     }
 
-    private static func nonEmpty(_ value: String?) -> String? {
-        guard let value, !value.isEmpty else { return nil }
-        return value
+    /// `/account#redirects` and the other settings tabs, as the web's
+    /// `SettingsShell` reads its hash. Nil for any other link.
+    static func settingsPage(for string: String) -> SettingsPage? {
+        DeepLinkRouting.settingsFragment(for: string).flatMap { SettingsPage(rawValue: $0) }
     }
 }
 
-/// A hand-parsed URL. Foundation's `URL` is avoided on purpose: `at://`
-/// authorities carry colons (`did:plc:...`) that read as ports, and a
-/// literal `at://` inside an https path confuses the RFC 3986 parser.
-/// Enough of the grammar to route on: scheme, host, path and query.
-private struct LinkParts {
-    let scheme: String
-    /// Lowercased, without a `www.` prefix; empty for scheme-only URLs
-    /// such as `to.aturi:/oauth/callback`.
-    let host: String
-    /// Percent-encoded, leading slash kept.
-    let path: String
-    let query: [String: String]
-
-    init?(_ raw: String) {
-        guard let colon = raw.firstIndex(of: ":") else { return nil }
-        let schemePart = raw[..<colon]
-        guard let head = schemePart.first, head.isLetter,
-              schemePart.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "+" || $0 == "-" || $0 == "." })
-        else { return nil }
-        scheme = schemePart.lowercased()
-
-        var rest = raw[raw.index(after: colon)...]
-        if let hash = rest.firstIndex(of: "#") {
-            rest = rest[..<hash]
+extension Tab {
+    /// The tab for a section a link names.
+    init(_ section: LinkSection) {
+        switch section {
+        case .explore: self = .explore
+        case .links: self = .links
+        case .lexicons: self = .lexicons
+        case .tools: self = .tools
+        case .settings: self = .settings
         }
-        var queryPart: Substring = ""
-        if let question = rest.firstIndex(of: "?") {
-            queryPart = rest[rest.index(after: question)...]
-            rest = rest[..<question]
-        }
-
-        if rest.hasPrefix("//") {
-            let authorityAndPath = rest.dropFirst(2)
-            if let slash = authorityAndPath.firstIndex(of: "/") {
-                host = LinkParts.normalizeHost(authorityAndPath[..<slash])
-                path = String(authorityAndPath[slash...])
-            } else {
-                host = LinkParts.normalizeHost(authorityAndPath)
-                path = ""
-            }
-        } else {
-            host = ""
-            path = String(rest)
-        }
-
-        var items: [String: String] = [:]
-        for pair in queryPart.split(separator: "&") {
-            let keyValue = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            let key = String(keyValue[0]).removingPercentEncoding ?? String(keyValue[0])
-            let value = keyValue.count > 1 ? (String(keyValue[1]).removingPercentEncoding ?? String(keyValue[1])) : ""
-            if items[key] == nil {
-                items[key] = value
-            }
-        }
-        query = items
-    }
-
-    /// Non-empty path segments, still percent-encoded.
-    var pathSegments: [String] {
-        path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
-    }
-
-    private static func normalizeHost(_ authority: Substring) -> String {
-        var host = authority
-        if let at = host.lastIndex(of: "@") {
-            host = host[host.index(after: at)...]
-        }
-        var lowered = host.lowercased()
-        if lowered.hasPrefix("www.") {
-            lowered.removeFirst("www.".count)
-        }
-        return lowered
     }
 }
 
@@ -401,12 +260,18 @@ final class AppRouter {
     var explorePath = NavigationPath()
     var linksPath = NavigationPath()
     var lexiconsPath = NavigationPath()
+    var toolsPath = NavigationPath()
     var settingsPath = NavigationPath()
     /// Set by the "Open Copied Link" shortcut, cleared by the Links tab when
     /// it reads the clipboard. The read waits for the Links tab because iOS
     /// asks before an app reads what another app copied, and only an app
     /// that is on screen can be asked.
     private(set) var clipboardLinkRequested = false
+    /// Set by the Explore landing's "All new lexicons", cleared by the
+    /// Lexicons tab when it turns to its New section: the web's link to
+    /// `/explore/lexicons#new`, which lands on that card. An incoming link
+    /// to that address, or to `?list=new`, sets it too.
+    private(set) var newLexiconsRequested = false
 
     init() {}
 
@@ -421,6 +286,7 @@ final class AppRouter {
         case .explore: explorePath.append(route)
         case .links: linksPath.append(route)
         case .lexicons: lexiconsPath.append(route)
+        case .tools: toolsPath.append(route)
         case .settings: settingsPath.append(route)
         }
     }
@@ -445,6 +311,7 @@ final class AppRouter {
         case .explore: explorePath = NavigationPath()
         case .links: linksPath = NavigationPath()
         case .lexicons: lexiconsPath = NavigationPath()
+        case .tools: toolsPath = NavigationPath()
         case .settings: settingsPath = NavigationPath()
         }
     }
@@ -457,9 +324,7 @@ final class AppRouter {
     /// the caller can hand them to Safari.
     @discardableResult
     func handle(url: URL) -> Bool {
-        guard let target = DeepLinks.target(for: url) else { return false }
-        apply(target)
-        return true
+        handle(string: url.absoluteString)
     }
 
     /// `handle(url:)` for pasted text and strings Foundation's `URL`
@@ -467,8 +332,23 @@ final class AppRouter {
     @discardableResult
     func handle(string: String) -> Bool {
         guard let target = DeepLinks.target(for: string) else { return false }
+        if case .tabRoot(.settings) = target, let page = DeepLinks.settingsPage(for: string) {
+            openSettings(page)
+            return true
+        }
+        if case .route(.preview(let components), _) = target, DeepLinks.asksToStay(string) {
+            LinkNavigation.noteStay(components)
+        }
         apply(target)
         return true
+    }
+
+    /// Show one settings screen over the Settings root, as a link to
+    /// `/account#redirects` does on the web.
+    func openSettings(_ page: SettingsPage) {
+        settingsPath = NavigationPath()
+        settingsPath.append(page)
+        selectedTab = .settings
     }
 
     /// Open a link that came from outside the app (a Shortcuts action, the
@@ -509,6 +389,22 @@ final class AppRouter {
         return true
     }
 
+    /// Show the Lexicons tab at its root with the New section selected
+    /// (see `newLexiconsRequested`).
+    func showNewLexicons() {
+        popToRoot(.lexicons)
+        selectedTab = .lexicons
+        newLexiconsRequested = true
+    }
+
+    /// True once per request: the Lexicons tab calls this when it appears
+    /// and when the request changes, then shows its New section.
+    func consumeNewLexiconsRequest() -> Bool {
+        guard newLexiconsRequested else { return false }
+        newLexiconsRequested = false
+        return true
+    }
+
     private func apply(_ target: DeepLinkTarget) {
         switch target {
         case .tabRoot(let tab):
@@ -516,6 +412,8 @@ final class AppRouter {
             selectedTab = tab
         case .route(let route, let tab):
             open(route, in: tab)
+        case .newLexicons:
+            showNewLexicons()
         }
     }
 }
