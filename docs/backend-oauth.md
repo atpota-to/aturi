@@ -243,15 +243,22 @@ gap in the first place.
 
 ### Extension sign-in, as built
 
-> **Update, 20 November 2026.** The browser extension no longer signs in on
-> Chrome, Firefox or Safari. Its sign-in and the Account tab in its settings
-> were removed (the Safari build never had the `identity` permission; Chrome
-> and Firefox no longer ask for it). No store release ever shipped the
-> sign-in, so no installed copy uses the server's extension endpoints
-> (`client=extension` in `/api/oauth/login`, `/api/oauth/exchange` and the
-> `exchange_codes` table). They are unused and can be removed as a separate
-> server change. The rest of this section, and §8, describe the design as it
-> was built.
+> **Update, 20 November 2026.** The browser extension does not sign in yet,
+> on Chrome, Firefox or Safari. The sign-in and the Account tab described
+> below were taken out of the extension before any store release, and Chrome
+> and Firefox no longer ask for the `identity` permission (the Safari build
+> never had it). The server side stays as built, including `client=extension`
+> in `/api/oauth/login`, `/api/oauth/exchange` and the `exchange_codes` table,
+> so the extension can be given sign-in again later. The rest of this
+> section, and §8, describe the design as it was built.
+>
+> For when it comes back: Safari has no `identity` API. A tab-based design
+> for it, returning to a first-party page on aturi.to, was built and
+> reviewed on branch `claude/focused-keller-dywb60` (commits `99b9dd8` and
+> `4fe811a`) before sign-in was taken out of the extension. That review also
+> found the nonce-and-claim contingency in §8 open to remote phishing (RFC
+> 8628 §5.4): whoever holds the verifier can both start the flow and collect
+> its result.
 
 Read-only, and off unless a user goes looking for it: Settings → Account, a
 handle, and a browser-managed consent window. `?scopes=` is sent empty, which
@@ -291,12 +298,11 @@ them it is.
 
 ### Still open
 
-> **Update, 20 November 2026.** The extension no longer signs in, so the
+> **Update, 20 November 2026.** The extension does not sign in yet, so the
 > Web Store "Authentication information" item and the Safari and Firefox for
-> Android item below no longer apply, and pinning the Chrome key matters only
-> for the storage reasons it gives. The manifest declares no `identity`
-> permission and no `authenticationInfo` data collection, so the Web Store
-> listing should not claim authentication information either.
+> Android item below wait until it does. Until then the manifest declares no
+> `identity` permission and no `authenticationInfo` data collection, and the
+> Web Store listing should not claim authentication information.
 
 - **`testing.aturi.to`'s Vercel project.** Decides whether staging shares
   production's signing key. Needs a look at the dashboard.
@@ -1267,7 +1273,7 @@ and never `credentials: 'include'`. Nothing about this migration reaches them.
 
 ## 8. Extension sign-in
 
-> **Update, 20 November 2026.** The extension no longer signs in. See the
+> **Update, 20 November 2026.** The extension does not sign in yet. See the
 > note under [Extension sign-in, as built](#extension-sign-in-as-built).
 
 **Ships in its own phase and its own release.** The code is ~150 lines with

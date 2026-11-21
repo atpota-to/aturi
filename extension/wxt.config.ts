@@ -95,10 +95,11 @@ export default defineConfig({
               strict_min_version: '140.0',
               // Required for new Firefox submissions on AMO (Nov 2025+).
               //
-              // Back to `none`, as it was before sign-in to aturi.to existed.
-              // While it did, this was `authenticationInfo`, because signing in
-              // sent a handle to aturi.to and stored a session token. Sign-in
-              // has since been removed.
+              // `none` while the extension has no sign-in, as on main. If
+              // sign-in to aturi.to comes back, this has to be
+              // `authenticationInfo` again (signing in sends a handle to
+              // aturi.to and stores a session token), and Chrome and Firefox
+              // need the `identity` permission back.
               //
               // Deliberately NOT declared: `websiteContent`. Page scanning
               // happens entirely on-device and nothing it reads is ever
