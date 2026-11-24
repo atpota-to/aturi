@@ -13,6 +13,13 @@
   --g-second: #c46aae;
   --g-further: #6f7168;
   --g-op: var(--text-primary);
+  /* Exchange (ExchangeView.tsx) counts engagement by direction, and the
+     three directions are the follow relations' own: toward the account is
+     a follower's blue, from it a follow's orange, both ways the mutual
+     green. Aliases, so the light values above follow them. */
+  --g-in: var(--g-follower);
+  --g-out: var(--g-following);
+  --g-both: var(--g-mutual);
   /* Pinned accounts in the thread explorer: four hues kept clear of the
      relation set above, each drawn with its number too, so the colour is
      never the only cue. */
@@ -801,6 +808,423 @@ g[data-moving] .fx-graph-mark,
 
 .fx-graph-bar-table dd span {
   color: var(--text-tertiary);
+}
+
+/* ─── Exchange ───────────────────────────────────────────────────────── */
+
+/* Every mark in the view, and in the account card's summary, takes its
+   colour from the direction it stands for. */
+:is(.fx-graph-swatch, .fx-graph-xs-row > span, .fx-graph-kinds-bar, .fx-graph-xrow-bars span)[data-dir='in'] {
+  background: var(--g-in);
+}
+
+:is(.fx-graph-swatch, .fx-graph-xs-row > span, .fx-graph-kinds-bar, .fx-graph-xrow-bars span)[data-dir='out'] {
+  background: var(--g-out);
+}
+
+:is(.fx-graph-swatch, .fx-graph-xs-row > span)[data-dir='both'] {
+  background: var(--g-both);
+}
+
+.fx-graph-day rect[data-dir='in'] {
+  fill: var(--g-in);
+}
+
+.fx-graph-day rect[data-dir='out'] {
+  fill: var(--g-out);
+}
+
+/* Its own container, so the two-up row below goes by the drawing's width,
+   which narrows when the details pane opens beside it. */
+.fx-graph-x {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.fx-graph-x-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px 32px;
+  align-items: start;
+}
+
+@container (min-width: 640px) {
+  .fx-graph-x-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.fx-graph-x-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+/* The totals: three figures over the overlap. */
+.fx-graph-xs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fx-graph-xs-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+/* Figure above its label, as the account card's stats read, with the label
+   still first for anyone hearing it. */
+.fx-graph-xs-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fx-graph-xs-stats dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-xs-stats dd {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.fx-graph-xs-stats dd span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* In the view the figures sit together at the left; in the account card
+   they take the stats' three columns, under the counts above them. */
+.fx-graph-xs:not([data-compact]) .fx-graph-xs-stats {
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  column-gap: 48px;
+}
+
+@container (max-width: 420px) {
+  .fx-graph-xs:not([data-compact]) .fx-graph-xs-stats {
+    column-gap: 24px;
+  }
+}
+
+.fx-graph-xs[data-compact] {
+  gap: 10px;
+}
+
+.fx-graph-xs[data-compact] .fx-graph-xs-stats dd {
+  font-size: 15px;
+}
+
+.fx-graph-xs[data-compact] .fx-graph-xs-stats dt {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fx-graph-xs[data-compact] .fx-graph-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.fx-graph-xs-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fx-graph-xs-row {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.fx-graph-xs[data-compact] .fx-graph-xs-row {
+  height: 5px;
+}
+
+.fx-graph-xs-row > span {
+  flex-basis: 0;
+  min-width: 2px;
+  border-radius: 3px;
+  transition: flex-grow var(--motion-panel) var(--ease-soft);
+}
+
+/* Accounts per day. */
+.fx-graph-days {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.fx-graph-days-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.fx-graph-days-read {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-days-read > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-graph-days-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: pan-y;
+  border-radius: 4px;
+}
+
+.fx-graph-days-svg:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 4px;
+}
+
+.fx-graph-days-grid {
+  stroke: var(--border-subtle);
+}
+
+.fx-graph-days-base {
+  stroke: var(--border-strong);
+}
+
+/* Days whose posts weren't read for engagement (Neighbourhood.inboundSince). */
+.fx-graph-days-unread rect {
+  fill: var(--bg-tertiary);
+}
+
+.fx-graph-days-unread text {
+  fill: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.fx-graph-days-tick {
+  fill: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.fx-graph-day rect {
+  transition: opacity var(--motion-press) ease;
+}
+
+.fx-graph-days-svg[data-active] .fx-graph-day rect {
+  opacity: 0.35;
+}
+
+.fx-graph-days-svg[data-active] .fx-graph-day[data-on] rect {
+  opacity: 1;
+}
+
+.fx-graph-days-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* By kind: a table, toward the account on the left, from it on the right. */
+.fx-graph-kinds {
+  min-width: 0;
+}
+
+.fx-graph-kinds-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.85rem;
+}
+
+.fx-graph-kinds-table thead th {
+  padding: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-graph-kinds-table thead th:nth-child(2) {
+  width: 6rem;
+}
+
+.fx-graph-kinds-table thead th:last-child {
+  text-align: left;
+}
+
+.fx-graph-kinds-table td {
+  padding: 4px 0;
+}
+
+.fx-graph-kinds-table tbody th {
+  padding: 4px 6px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.fx-graph-kinds-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.fx-graph-kinds-cell[data-side='in'] {
+  justify-content: flex-end;
+}
+
+.fx-graph-kinds-bar {
+  display: block;
+  flex: none;
+  height: 10px;
+  transition: width var(--motion-panel) var(--ease-soft);
+}
+
+.fx-graph-kinds-cell[data-side='in'] .fx-graph-kinds-bar {
+  border-radius: 3px 0 0 3px;
+}
+
+.fx-graph-kinds-cell[data-side='out'] .fx-graph-kinds-bar {
+  border-radius: 0 3px 3px 0;
+}
+
+.fx-graph-kinds-n {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Back and forth: the rank list's rows, with in and out meeting in the
+   middle of each. */
+.fx-graph-xlist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-graph-xrow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(128px, 46%);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-xrow:hover,
+.fx-graph-xrow[data-focus] {
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-xrow:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-graph-xrow .fx-graph-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.fx-graph-xrow-mini {
+  display: grid;
+  grid-template-columns: 3ch minmax(0, 1fr) 3ch;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-graph-xrow-n {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-xrow-n:first-child {
+  text-align: right;
+}
+
+.fx-graph-xrow-bars {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2px;
+  height: 8px;
+}
+
+.fx-graph-xrow-bars > span {
+  display: flex;
+  min-width: 0;
+}
+
+.fx-graph-xrow-bars > [data-side='in'] {
+  justify-content: flex-end;
+}
+
+.fx-graph-xrow-bars [data-dir] {
+  height: 100%;
+}
+
+.fx-graph-xrow-bars [data-dir='in'] {
+  border-radius: 3px 0 0 3px;
+}
+
+.fx-graph-xrow-bars [data-dir='out'] {
+  border-radius: 0 3px 3px 0;
 }
 
 /* ─── Reading ────────────────────────────────────────────────────────── */

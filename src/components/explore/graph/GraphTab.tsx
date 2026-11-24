@@ -6,25 +6,28 @@ import type { IdentityBundle } from '@/utils/atproto/identity';
 import { relationOf } from '@/lib/socialGraph';
 import { loadNeighbourhood, STAGE_LABELS, STAGE_ORDER, type Neighbourhood } from '@/utils/atproto/graphData';
 import { Segmented } from '../lexicons/primitives';
+import { ExchangeAccount, ExchangeLegend } from './ExchangeView';
 import { FlowAccount } from './FlowView';
 import { LedgerAccount } from './LedgerView';
 import { OrbitAccount } from './OrbitView';
 import { GraphDetail, GraphTip, Legend, atName, fmt, usePickedDetails, type GraphFocus } from './shared';
 
-export const GRAPH_LAYOUTS = ['orbit', 'ledger', 'flow'] as const;
+export const GRAPH_LAYOUTS = ['orbit', 'ledger', 'flow', 'exchange'] as const;
 export type GraphLayout = (typeof GRAPH_LAYOUTS)[number];
 
 export const GRAPH_LAYOUT_OPTIONS: { value: GraphLayout; label: string }[] = [
   { value: 'orbit', label: 'Orbit' },
   { value: 'ledger', label: 'Ledger' },
   { value: 'flow', label: 'Flow' },
+  { value: 'exchange', label: 'Exchange' },
 ];
 
 /**
- * The account's Graph tab: who sits around it, in three views of the same
+ * The account's Graph tab: who sits around it, in four views of the same
  * read. Orbit shows where everyone sits at once, Ledger who engages with
- * whom, and Flow lets you walk outward from the account one relationship at
- * a time. The layout is kept in the address (`?layout=`), so Back and a
+ * whom, Flow lets you walk outward from the account one relationship at a
+ * time, and Exchange counts engagement as relationships, in, out and both
+ * ways. The layout is kept in the address (`?layout=`), so Back and a
  * shared link land on the same view.
  *
  * Nothing is read until the tab is opened; the read is staged (see
@@ -94,12 +97,17 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
         </p>
       ) : data ? (
         <>
-          {layout !== 'ledger' && <Legend subject={subjectName} />}
+          {layout === 'exchange' ? (
+            <ExchangeLegend subject={subjectName} />
+          ) : (
+            layout !== 'ledger' && <Legend subject={subjectName} />
+          )}
           <div className="fx-graph-split" data-open={shown ? '' : undefined}>
             <div className="fx-graph-main" {...drawingProps}>
               {layout === 'orbit' && <OrbitAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
               {layout === 'ledger' && <LedgerAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
               {layout === 'flow' && <FlowAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
+              {layout === 'exchange' && <ExchangeAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
             </div>
             {shown && <GraphDetail focus={shown} subjectName={subjectName} onClose={closePane} />}
           </div>

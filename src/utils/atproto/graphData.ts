@@ -17,7 +17,8 @@
  * handed to the caller as they land, so the drawing fills in rather than
  * waiting on the slowest read. For a typical account the whole thing is a
  * few hundred requests, which is why the explorer only starts it when the
- * Graph tab is opened, and keeps the result for ten minutes.
+ * Graph tab is opened or the account card is asked for its relationships,
+ * shares one read between them, and keeps the result for ten minutes.
  */
 
 import { withIdentification } from '../requestDeadline';
@@ -29,6 +30,7 @@ import {
   DAY_MS,
   WINDOW_DAYS,
   buildThread,
+  dailyReach,
   didOfUri,
   tally,
   tidToMs,
@@ -244,6 +246,17 @@ export type Neighbourhood = {
   stageDone: number;
   /** The subject's own likes, reposts and posts read from the window. */
   records: number;
+  /** How many of the subject's posts their inbound engagement was read from. */
+  inboundPosts: number;
+  /**
+   * The oldest of the subject's posts scanned for those, in ms, or
+   * `windowStart` when the scan reached the start of the window. A busy
+   * poster's feed pages (LIMITS.feedPages) can run out first, and engagement
+   * on posts older than this went unread.
+   */
+  inboundSince: number;
+  /** Distinct accounts engaging each way, per day of the window, oldest first. */
+  days: { in: number[]; out: number[] };
   requests: number;
   windowStart: number;
   windowEnd: number;
@@ -334,11 +347,28 @@ type FeedItem = {
 };
 
 /**
+ * A read in progress, shared by everyone who asked for it: the Graph tab and
+ * the account card's summary can both want the same account at once, and the
+ * read is a few hundred requests. It stops when the last of them lets go.
+ */
+type Flight = {
+  latest: Neighbourhood | null;
+  listeners: Set<(n: Neighbourhood) => void>;
+  ac: AbortController;
+  done: Promise<Neighbourhood | null>;
+};
+const flights = new Map<string, Flight>();
+
+/** Anyone following an account's graph without having asked for a read. */
+const watchers = new Map<string, Set<(n: Neighbourhood) => void>>();
+
+/**
  * The social graph around `subject`, in stages. `onUpdate` receives each
  * stage's state as it lands (the same object shape every time, never
- * mutated afterwards), and the promise resolves with the finished one.
+ * mutated afterwards), and the promise resolves with the finished one, or
+ * null if the read failed or `signal` gave up on it.
  */
-export async function loadNeighbourhood(
+export function loadNeighbourhood(
   subject: { did: string; pds: string },
   onUpdate: (n: Neighbourhood) => void,
   signal?: AbortSignal,
@@ -346,8 +376,65 @@ export async function loadNeighbourhood(
   const cached = neighbourhoodCache.get(subject.did);
   if (cached) {
     onUpdate(cached);
-    return cached;
+    return Promise.resolve(cached);
   }
+  let flight = flights.get(subject.did);
+  if (!flight) {
+    const ac = new AbortController();
+    const f: Flight = { latest: null, listeners: new Set(), ac, done: Promise.resolve(null) };
+    f.done = readNeighbourhood(
+      subject,
+      (n) => {
+        f.latest = n;
+        f.listeners.forEach((l) => l(n));
+        watchers.get(subject.did)?.forEach((w) => w(n));
+      },
+      ac.signal,
+    ).finally(() => {
+      if (flights.get(subject.did) === f) flights.delete(subject.did);
+    });
+    flights.set(subject.did, f);
+    flight = f;
+  }
+  const f = flight;
+  f.listeners.add(onUpdate);
+  if (f.latest) onUpdate(f.latest);
+  const leave = () => {
+    if (!f.listeners.delete(onUpdate) || f.listeners.size) return;
+    f.ac.abort();
+    if (flights.get(subject.did) === f) flights.delete(subject.did);
+  };
+  if (signal?.aborted) leave();
+  else signal?.addEventListener('abort', leave, { once: true });
+  return f.done.then((n) => {
+    f.listeners.delete(onUpdate);
+    return signal?.aborted ? null : n;
+  });
+}
+
+/**
+ * Follow an account's graph without starting a read: `onUpdate` hears the
+ * cached read at once if there is one, a read in progress as it lands, and
+ * any read someone starts later. Returns the unsubscribe.
+ */
+export function watchNeighbourhood(did: string, onUpdate: (n: Neighbourhood) => void): () => void {
+  let set = watchers.get(did);
+  if (!set) watchers.set(did, (set = new Set()));
+  set.add(onUpdate);
+  const now = neighbourhoodCache.get(did) ?? flights.get(did)?.latest;
+  if (now) onUpdate(now);
+  return () => {
+    set.delete(onUpdate);
+    if (!set.size && watchers.get(did) === set) watchers.delete(did);
+  };
+}
+
+/** One read, start to finish; loadNeighbourhood shares it and caches it. */
+async function readNeighbourhood(
+  subject: { did: string; pds: string },
+  onUpdate: (n: Neighbourhood) => void,
+  signal?: AbortSignal,
+): Promise<Neighbourhood | null> {
   const ctx: Ctx = { calls: 0, signal };
   const windowEnd = Date.now();
   const windowStart = windowEnd - WINDOW_DAYS * DAY_MS;
@@ -373,6 +460,11 @@ export async function loadNeighbourhood(
   let stage: GraphStage = 'follows';
   let stageDone = 0;
   let records = 0;
+  let inboundPosts = 0;
+  let inboundSince = windowStart;
+  // Every act of engagement read, each way, for the per-day counts.
+  const outbound: EngagementEvent[] = [];
+  const inbound: EngagementEvent[] = [];
   let lastEmit = 0;
   const follows: string[] = [];
   // Who may be drawn, in the order they became drawable: an account joins
@@ -415,6 +507,9 @@ export async function loadNeighbourhood(
     stage,
     stageDone,
     records,
+    inboundPosts,
+    inboundSince,
+    days: dailyReach(inbound, outbound, { t0: windowStart, exclude: subject.did }),
     requests: ctx.calls,
     windowStart,
     windowEnd,
@@ -486,7 +581,6 @@ export async function loadNeighbourhood(
 
   // 3. Outbound: the subject's own records.
   emit('outbound');
-  const outbound: EngagementEvent[] = [];
   const [likes, reposts, posts] = await Promise.all([
     recentRecords(subject.pds, subject.did, 'app.bsky.feed.like', LIMITS.likes, windowStart, ctx),
     recentRecords(subject.pds, subject.did, 'app.bsky.feed.repost', LIMITS.reposts, windowStart, ctx),
@@ -518,6 +612,7 @@ export async function loadNeighbourhood(
   emit('inbound');
   const feed: FeedItem['post'][] = [];
   let cursor: string | undefined;
+  let scannedAll = false;
   for (let i = 0; i < LIMITS.feedPages; i++) {
     const params = new URLSearchParams({ actor: subject.did, filter: 'posts_with_replies', limit: '100' });
     if (cursor) params.set('cursor', cursor);
@@ -525,7 +620,11 @@ export async function loadNeighbourhood(
       `${APPVIEW}/xrpc/app.bsky.feed.getAuthorFeed?${params}`,
       ctx,
     );
-    if (!page?.feed?.length) break;
+    if (!page) break;
+    if (!page.feed?.length) {
+      scannedAll = true;
+      break;
+    }
     let old = false;
     for (const item of page.feed) {
       if (item.reason || item.post.author.did !== subject.did) continue;
@@ -536,13 +635,20 @@ export async function loadNeighbourhood(
       }
       feed.push(item.post);
     }
-    if (old || !page.cursor) break;
+    if (old || !page.cursor) {
+      scannedAll = true;
+      break;
+    }
     cursor = page.cursor;
+  }
+  if (!scannedAll) {
+    const oldest = Math.min(...feed.map((p) => Date.parse(p.record?.createdAt ?? '')).filter(Number.isFinite));
+    inboundSince = Number.isFinite(oldest) ? Math.max(windowStart, oldest) : windowEnd;
   }
   const score = (p: FeedItem['post']) => (p.likeCount ?? 0) + (p.repostCount ?? 0) + (p.replyCount ?? 0) + (p.quoteCount ?? 0);
   const picked = [...feed].sort((a, b) => score(b) - score(a)).slice(0, LIMITS.inboundPosts).filter((p) => score(p) > 0);
+  inboundPosts = picked.length;
 
-  const inbound: EngagementEvent[] = [];
   const seen = new Set<string>();
   const jobs: { subject: string; kind: EngagementKind; source: string; fallback: number }[] = [];
   for (const p of picked) {

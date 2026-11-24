@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  backAndForth,
   breakdown,
   buildThread,
+  dailyReach,
+  exchangeTotals,
+  kindReach,
   defaultFolds,
   didOfUri,
   flattenThread,
@@ -72,6 +76,59 @@ test('breakdown sums to the total', () => {
     person('d'),
   ]);
   assert.deepEqual(b, { mutual: 1, following: 1, follower: 0, second: 1, further: 1, total: 4 });
+});
+
+test('exchange totals count each account once per side, and both inside each', () => {
+  const t = exchangeTotals([
+    person('a', { in: 3 }),
+    person('b', { in: 1, out: 2 }),
+    person('c', { out: 5 }),
+    person('d', { following: true }),
+  ]);
+  assert.deepEqual(t, { in: 2, out: 2, both: 1, reach: 3 });
+  assert.deepEqual(exchangeTotals([]), { in: 0, out: 0, both: 0, reach: 0 });
+});
+
+test('kind reach counts accounts, not acts', () => {
+  const k = kindReach([
+    person('a', { inKinds: { like: 9, reply: 1 }, outKinds: { like: 2 } }),
+    person('b', { inKinds: { like: 1 }, outKinds: { quote: 1, mention: 0 } }),
+  ]);
+  assert.deepEqual(k.in, { like: 2, repost: 0, reply: 1, quote: 0, mention: 0 });
+  assert.deepEqual(k.out, { like: 1, repost: 0, reply: 0, quote: 1, mention: 0 });
+});
+
+test('back and forth ranks by the smaller side, then the total', () => {
+  const ranked = backAndForth([
+    person('lopsided', { in: 40, out: 1 }),
+    person('even', { in: 10, out: 10 }),
+    person('close', { in: 12, out: 9 }),
+    person('one-way', { in: 50 }),
+    person('tie-b', { in: 2, out: 3 }),
+    person('tie-a', { in: 3, out: 2 }),
+  ]);
+  assert.deepEqual(
+    ranked.map((p) => p.did),
+    ['even', 'close', 'tie-a', 'tie-b', 'lopsided'],
+  );
+  assert.equal(backAndForth(ranked, 2).length, 2);
+});
+
+test('daily reach counts distinct accounts per 24 hours and drops the rest', () => {
+  const day = 86_400_000;
+  const d = dailyReach(
+    [
+      { did: 'did:a', kind: 'like', at: 10 },
+      { did: 'did:a', kind: 'reply', at: 20 },
+      { did: 'did:b', kind: 'like', at: day + 5 },
+      { did: 'did:me', kind: 'like', at: 30 },
+      { did: 'did:c', kind: 'like', at: -1 },
+      { did: 'did:c', kind: 'like', at: 3 * day },
+    ],
+    [{ did: 'did:a', kind: 'quote', at: 2 * day + 1 }],
+    { t0: 0, days: 3, exclude: 'did:me' },
+  );
+  assert.deepEqual(d, { in: [1, 1, 0], out: [0, 0, 1] });
 });
 
 test('orbit puts closer relations nearer the centre', () => {

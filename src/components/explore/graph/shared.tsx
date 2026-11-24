@@ -315,7 +315,7 @@ function Fact({ k, v }: { k: string; v: ReactNode }) {
   );
 }
 
-function Avatar({ src, name }: { src?: string; name: string }) {
+export function Avatar({ src, name }: { src?: string; name: string }) {
   return src ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img className="fx-graph-avatar" src={thumb(src)} alt="" loading="lazy" />

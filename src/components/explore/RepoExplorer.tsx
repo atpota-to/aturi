@@ -28,6 +28,7 @@ import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import PeekableBacklinks from './tabs/PeekableBacklinks';
 import GraphTab from './graph/GraphTab';
+import ExchangeCard from './graph/ExchangeCard';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { useFadeOnChange } from '@/components/useFadeOnChange';
@@ -177,10 +178,10 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
 
 /**
  * The account card: the AppView profile (unless the visitor hid the rich
- * preview) with the repo's identity rows under it, then its label and
- * visibility checks. Shared by the repo page and the collection page's
- * sidebar, and drawn by the Workbench and Files rails too, so the checks are
- * on every layout's card.
+ * preview), its relationships once read (ExchangeCard), the repo's identity
+ * rows, then its label and visibility checks. Shared by the repo page and
+ * the collection page's sidebar, and drawn by the Workbench and Files rails
+ * too, so the checks are on every layout's card.
  */
 export function AccountCard({
   identity,
@@ -199,6 +200,7 @@ export function AccountCard({
       // the WaypointPicker on aturi.to handles client selection.
       shareUrl={`/profile/${identity.handle || identity.did}`}
     >
+      <ExchangeCard identity={identity} />
       {!identityHidden && <IdentityRow identity={identity} />}
       <AccountChecks identity={identity} />
     </ProfileHeader>

@@ -107,6 +107,79 @@ export function breakdown(people: Iterable<GraphPerson>): Record<Relation, numbe
   return counts;
 }
 
+/* ------------------------------------------------------------------ */
+/* Exchange: engagement in and out, as relationships                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Accounts that engaged with the subject (in), that the subject engaged with
+ * (out), and both. `in` and `out` each include the accounts counted in
+ * `both`; `reach` is everyone on either side, counted once.
+ */
+export type ExchangeTotals = { in: number; out: number; both: number; reach: number };
+
+export function exchangeTotals(people: Iterable<Pick<GraphPerson, 'in' | 'out'>>): ExchangeTotals {
+  const t = { in: 0, out: 0, both: 0, reach: 0 };
+  for (const p of people) {
+    if (p.in > 0) t.in += 1;
+    if (p.out > 0) t.out += 1;
+    if (p.in > 0 && p.out > 0) t.both += 1;
+    if (p.in > 0 || p.out > 0) t.reach += 1;
+  }
+  return t;
+}
+
+/** How many accounts took part in each kind of engagement, each way. */
+export function kindReach(
+  people: Iterable<Pick<GraphPerson, 'inKinds' | 'outKinds'>>,
+): { in: Record<EngagementKind, number>; out: Record<EngagementKind, number> } {
+  const zero = () => Object.fromEntries(ENGAGEMENT_KINDS.map((k) => [k, 0])) as Record<EngagementKind, number>;
+  const out = { in: zero(), out: zero() };
+  for (const p of people) {
+    for (const k of ENGAGEMENT_KINDS) {
+      if ((p.inKinds[k] ?? 0) > 0) out.in[k] += 1;
+      if ((p.outKinds[k] ?? 0) > 0) out.out[k] += 1;
+    }
+  }
+  return out;
+}
+
+/**
+ * Accounts with engagement both ways, the most mutual first: ranked by the
+ * smaller side, so forty likes one way and one back sits below ten each way,
+ * then by the total.
+ */
+export function backAndForth<P extends Pick<GraphPerson, 'did' | 'in' | 'out'>>(people: Iterable<P>, limit = Infinity): P[] {
+  return [...people]
+    .filter((p) => p.in > 0 && p.out > 0)
+    .sort(
+      (a, b) =>
+        Math.min(b.in, b.out) - Math.min(a.in, a.out) || b.in + b.out - (a.in + a.out) || (a.did < b.did ? -1 : 1),
+    )
+    .slice(0, limit);
+}
+
+/**
+ * Distinct accounts engaging each way per day: `days` buckets of 24 hours
+ * from `t0`. Events outside them and events from `exclude` are dropped.
+ */
+export function dailyReach(
+  inbound: readonly EngagementEvent[],
+  outbound: readonly EngagementEvent[],
+  { t0, days = WINDOW_DAYS, exclude = null }: { t0: number; days?: number; exclude?: string | null },
+): { in: number[]; out: number[] } {
+  const bucket = (events: readonly EngagementEvent[]) => {
+    const sets = Array.from({ length: days }, () => new Set<string>());
+    for (const ev of events) {
+      if (!ev?.did || ev.did === exclude || !Number.isFinite(ev.at)) continue;
+      const i = Math.floor((ev.at - t0) / DAY_MS);
+      if (i >= 0 && i < days) sets[i].add(ev.did);
+    }
+    return sets.map((s) => s.size);
+  };
+  return { in: bucket(inbound), out: bucket(outbound) };
+}
+
 /**
  * Orbit radius in [0, 1], 0 being the subject.
  *
