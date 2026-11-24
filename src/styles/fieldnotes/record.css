@@ -69,6 +69,21 @@
 
 /* --- title bar ----------------------------------------------------------- */
 
+/* Newer and older in the collection (RecordSteps), ahead of the actions. */
+.fn-rec-steps {
+  display: inline-flex;
+  gap: 4px;
+}
+.fn-rec-step {
+  width: 36px;
+  padding: 0;
+}
+.fn-rec-step[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
 .fn-rec-titlebar {
   display: flex;
   flex-wrap: wrap;

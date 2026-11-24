@@ -106,7 +106,8 @@ function ClassicFrame({ repo, children }: { repo: string; children: ReactNode })
   // page's own Collections tab, which is the same tree at full size.
   const tree = !(level === 'repo' && tab === 'collections');
   // The condensed breadcrumb drops out of the site header once the page's
-  // own has scrolled away; the sidebar moves down out from under it.
+  // own has scrolled away; what sticks under the header (the sidebar, an
+  // open record beside a list) moves down out from under it.
   const { scrolledPast } = useBreadcrumbTrail();
   // Stacked (below 960px) the page comes first, so the trail stays the top
   // of the screen, and on the repo page the account card is the page's own
@@ -120,13 +121,8 @@ function ClassicFrame({ repo, children }: { repo: string; children: ReactNode })
 
   return (
     <FrameContext.Provider value={value}>
-      <div className="fx-frame" data-level={level}>
-        <aside
-          className="fx-rail fx-side"
-          aria-label="Account"
-          data-tree={tree || undefined}
-          data-crumbs={scrolledPast || undefined}
-        >
+      <div className="fx-frame" data-level={level} data-crumbs={scrolledPast || undefined}>
+        <aside className="fx-rail fx-side" aria-label="Account" data-tree={tree || undefined}>
           {value.identity ? (
             <AccountRail
               identity={value.identity}

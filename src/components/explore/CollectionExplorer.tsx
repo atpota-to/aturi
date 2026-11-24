@@ -26,6 +26,7 @@ import CollectionRecordRow from './CollectionRecordRow';
 import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
 import { useCollectionsDisplay } from './workbench/useExplorerView';
 import { CollectionsDisplaySwitch } from './tabs/CollectionFolders';
+import { RecordInspector, useRecordInspector } from './CollectionInspector';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { replay } from '@/lib/motion';
@@ -352,13 +353,23 @@ function CollectionList({
     paneRef.current?.onVisibleRecords?.(visibleRecords);
   }, [visibleRecords]);
 
-  // Stepping can land on a row outside the pane's scroller: bring it in.
+  // On the page, a record opens beside the list on a wide screen
+  // (CollectionInspector.tsx); a pane's host has its own inspector.
+  const inspector = useRecordInspector({ enabled: !pane, collection, rkeys: visibleRkeys });
+  const inspectedSeed = useMemo(
+    () => (inspector.open ? visibleRecords[inspector.at] ?? null : null),
+    [inspector.open, inspector.at, visibleRecords],
+  );
+
+  // Stepping can land on a row outside the pane's scroller, or below the
+  // page's fold: bring it in.
   const paneScrollRef = useRef<HTMLDivElement>(null);
-  const currentRkey = pane?.currentRkey ?? null;
+  const currentRkey = pane?.currentRkey ?? inspector.open;
   useEffect(() => {
     if (!currentRkey) return;
-    paneScrollRef.current?.querySelector('[data-current]')?.scrollIntoView({ block: 'nearest' });
-  }, [currentRkey]);
+    const scope = pane ? paneScrollRef.current : document.getElementById(CHROME_RESULTS_ID);
+    scope?.querySelector('[data-current]')?.scrollIntoView({ block: 'nearest' });
+  }, [currentRkey, pane]);
 
   // Show the row skeleton only while the collection could still turn out to
   // have records: an empty set with pages left is the initial load, or the gap
@@ -958,15 +969,32 @@ function CollectionList({
         {editBlock}
       </div>
 
-      <div className="fx-main">
+      <div className="fx-main" data-inspect={inspector.open ? '' : undefined}>
         <AppearIn delay={0.05} id={CHROME_RESULTS_ID}>
-          <section aria-label="Records" className="fx-card fx-records">
+          <section aria-label="Records" className="fx-card fx-records" onClickCapture={inspector.onClickCapture}>
             {tools}
             {messages}
             {list}
             {foot}
           </section>
         </AppearIn>
+        {inspector.open && (
+          <RecordInspector
+            identity={identity}
+            collection={collection}
+            rkey={inspector.open}
+            at={inspector.at}
+            count={inspector.count}
+            step={inspector.step}
+            close={inspector.close}
+            seed={inspectedSeed}
+            onDeleted={() => {
+              const uri = `at://${identity.did}/${collection}/${inspector.open}`;
+              setRecords((prev) => prev.filter((r) => r.uri !== uri));
+              inspector.close();
+            }}
+          />
+        )}
       </div>
     </div>
   );

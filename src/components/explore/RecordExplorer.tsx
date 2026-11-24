@@ -32,6 +32,7 @@ import LinkButton from './LinkButton';
 import { useChromeBarAction } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
 import { useRepoIdentity } from './useRepoIdentity';
+import RecordSteps from './RecordSteps';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import {
@@ -275,6 +276,9 @@ function RecordView({
   );
   const titleActions = (
     <div className="fn-rec-actions">
+      {/* On the page, the way to the records beside this one. A pane's host
+          steps through its own list instead. */}
+      {!pane && <RecordSteps identity={identity} collection={collection} rkey={decodedRkey} />}
       {isPost && <ThreadExplorer uri={atUri} rkey={decodedRkey} />}
       <CopyTextButton value={atUri} label="Copy at:// URI" />
       {/* The Edit button stays watched (setEditChipEl) so the chrome bar

@@ -180,12 +180,21 @@
   }
 }
 
+/* Where what sticks under the site header stops: the header's 57px and the
+   page's own top margin, or the condensed breadcrumb's 32px strip as well
+   once it has dropped out of the header (`data-crumbs`). */
+.fx-frame {
+  --fx-sticky-top: calc(57px + 1.5rem);
+}
+.fx-frame[data-crumbs] {
+  --fx-sticky-top: calc(57px + 32px + 16px);
+}
+
 /* Beside the page, the sidebar holds still under the site header while the
    page scrolls, and scrolls on its own if it runs longer than the window.
    With the tree in it, it fills the window's height and the tree takes
    what the rows above leave, scrolling there with its filter held above it,
-   as in the workbench. `data-crumbs`: the condensed breadcrumb has dropped
-   out of the header, and the sidebar moves down out from under it. */
+   as in the workbench. */
 @media (min-width: 960px) {
   .fx-frame {
     grid-template-columns: 300px minmax(0, 1fr);
@@ -193,10 +202,9 @@
     gap: 24px;
   }
   .fx-rail {
-    --fx-rail-top: calc(57px + 1.5rem);
     position: sticky;
-    top: var(--fx-rail-top);
-    max-height: calc(100dvh - var(--fx-rail-top) - 16px);
+    top: var(--fx-sticky-top);
+    max-height: calc(100dvh - var(--fx-sticky-top) - 16px);
     overflow-y: auto;
     overscroll-behavior: contain;
     transition:
@@ -204,11 +212,8 @@
       max-height 0.2s ease-out,
       height 0.2s ease-out;
   }
-  .fx-rail[data-crumbs] {
-    --fx-rail-top: calc(57px + 32px + 16px);
-  }
   .fx-rail[data-tree] {
-    height: calc(100dvh - var(--fx-rail-top) - 16px);
+    height: calc(100dvh - var(--fx-sticky-top) - 16px);
   }
   .fx-rail > .fx-wb-tree {
     min-height: 240px;
@@ -223,6 +228,44 @@
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
     mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
   }
+}
+
+/* A record open beside the collection's list (CollectionInspector), from
+   1200px: the list keeps the larger share, and the record holds still under
+   the site header as the sidebar does, its sections scrolling inside it. The
+   workbench's record pane (workbench.css) draws what's in it, under the same
+   container name, so its narrow rules apply here too. */
+.fx-main[data-inspect] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 44%);
+  align-items: start;
+  gap: 16px;
+}
+.fx-insp {
+  position: sticky;
+  top: var(--fx-sticky-top, 80px);
+  height: calc(100dvh - var(--fx-sticky-top, 80px) - 16px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container: fx-wb-insp / inline-size;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: top 0.2s ease-out, height 0.2s ease-out;
+}
+.fx-insp > .fx-wb-rec {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  padding-top: 0;
+}
+/* Stepping brings the open row into view: clear of the header above and of
+   the phone toolbar's height below. */
+.fx-records [data-current] {
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 24px;
 }
 
 .fx-head {
