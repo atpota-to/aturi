@@ -369,7 +369,7 @@ public struct RepoStatusNotice: Hashable, Sendable {
 
     /// The paragraph every state shares: a dead repo is not a dead identity.
     public static let reassurance =
-        "Its identity is untouched. The DID document, the PLC audit log and every record elsewhere in the Atmosphere that points at this DID live outside the PDS, so the Identity, Log and Backlinks tabs below all still work."
+        "Its identity lives outside the PDS, so the Identity, Log and Backlinks tabs still work."
 
     public init(status: String?) {
         let status = status.flatMap { $0.isEmpty ? nil : $0 } ?? "inactive"
@@ -377,19 +377,19 @@ public struct RepoStatusNotice: Hashable, Sendable {
         switch status {
         case "takendown":
             headline = "This repo has been taken down."
-            detail = "Its host refuses every record read. A takedown is the host’s own action and carries no public reason with it."
+            detail = "Its host refuses record reads. No public reason is given."
         case "suspended":
             headline = "This repo is suspended."
-            detail = "Its host refuses every record read. The status is all the PDS reports — there is no duration or reason attached to it."
+            detail = "Its host refuses record reads. No reason or duration is given."
         case "deactivated":
             headline = "This account is deactivated."
-            detail = "Deactivation is usually the account holder’s own switch: it is how you step away from a host, and how a repo looks part-way through migrating between two. Records return if it is reactivated."
+            detail = "Usually the account holder’s own choice, or a move between hosts in progress. Records return if it is reactivated."
         case "deleted":
             headline = "This repo has been deleted."
-            detail = "Its host reports the repo gone, so there are no records left to read from it."
+            detail = "Its host reports no records left to read."
         default:
             headline = "This repo is marked \(status)."
-            detail = "Its host refuses record reads while the repo is in this state."
+            detail = "Its host refuses record reads in this state."
         }
     }
 
@@ -1122,7 +1122,7 @@ public final class RepoModel {
         case "inactive": clause = "is inactive"
         default: clause = "is marked \(s)"
         }
-        return "No collections to list: this repo \(clause) and its PDS refuses record reads."
+        return "No collections: this repo \(clause)."
     }
 
     /// Placeholder copy when the tab has nothing to list.

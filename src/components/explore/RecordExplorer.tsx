@@ -883,28 +883,25 @@ function RecordErrorPanel({
     headline = 'No schema published for this lexicon';
     body = (
       <>
-        <code>{rkey}</code> is used across the network, but{' '}
         <strong>@{handle}</strong> hasn&rsquo;t published a{' '}
-        <code>com.atproto.lexicon.schema</code> record defining it. That&rsquo;s
-        common: a lexicon can be widely adopted without a formal schema record
-        in its owner&rsquo;s repository.
+        <code>com.atproto.lexicon.schema</code> record for <code>{rkey}</code>. Many
+        lexicons are used without one.
       </>
     );
   } else if (notFound) {
     headline = 'This record doesn’t exist';
     body = (
       <>
-        We couldn&rsquo;t find a <code>{collection}</code> record with key{' '}
-        <code>{rkey}</code> in <strong>@{handle}</strong>&rsquo;s repository. It
-        may have been deleted, or the link may be incorrect.
+        No <code>{collection}</code> record with key <code>{rkey}</code> in{' '}
+        <strong>@{handle}</strong>&rsquo;s repo. It may have been deleted, or the link
+        may be wrong.
       </>
     );
   } else {
     headline = 'Couldn’t load this record';
     body = (
       <>
-        The PDS returned an error{status ? ` (HTTP ${status})` : ''} while
-        fetching this record. It might be a temporary problem. Try again in a
+        The PDS returned an error{status ? ` (HTTP ${status})` : ''}. Try again in a
         moment.
       </>
     );

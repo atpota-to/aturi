@@ -56,8 +56,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
 
       <div className="fx-sp-body">
         <p className="fx-sp-note">
-          Records you keep outside your public repo. Only you can see this list
-          when logged in.
+          Records outside your public repo. Only you can see this list.
         </p>
 
         {grant === 'unknown' && <p className="fx-sp-msg">Checking your access…</p>}
@@ -77,8 +76,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
             )}
             {!tree.error && !tree.loading && tree.uris.length === 0 && (
               <p className="fx-sp-msg">
-                You haven’t written to any spaces yet. Anything you write in a
-                space app will show up here.
+                You haven’t written to any spaces yet.
               </p>
             )}
 

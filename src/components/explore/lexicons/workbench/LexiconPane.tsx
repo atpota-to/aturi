@@ -391,7 +391,7 @@ function RecentRecords({ nsid, recordsHref }: { nsid: string; recordsHref: strin
       ) : !shown ? (
         <RecordRowsSkeleton rows={5} />
       ) : shown.length === 0 ? (
-        <p className="fx-lx-schema-note">UFOs hasn’t sampled any records of this lexicon recently.</p>
+        <p className="fx-lx-schema-note">No records sampled recently.</p>
       ) : (
         <ul className="fx-lx-recs" data-compact>
           {shown.map((r) => (

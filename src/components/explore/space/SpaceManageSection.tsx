@@ -120,7 +120,7 @@ export function ManageSpaceButton({
         onClose={close}
         busy={busy}
         title="Manage space"
-        description="Both rules are consulted when your server is asked for a credential. Changing them governs future requests; a credential already issued stays valid until it expires."
+        description="Changes apply to future credential requests. A credential already issued stays valid until it expires."
         error={error}
         footer={
           <>
@@ -211,7 +211,7 @@ export function AdoptSpaceButton({
         onClose={close}
         busy={busy}
         title="Configure this space"
-        description="This address holds data but has no simplespace configuration, so there are no rules to enforce and no member list to keep. Giving it one leaves what has already been written where it is."
+        description="This address has data but no simplespace configuration. Adding one leaves existing data where it is."
         error={error}
         footer={
           <>
@@ -318,9 +318,9 @@ export function DeleteSpaceButton({
           it.
         </p>
         <p className="fx-sp-dialog-note">
-          Your own records in the space are deleted with it, because your server
-          is both the space’s host and yours. Other members’ records stay on
-          their own servers, marked as belonging to a deleted space.
+          Your own records in the space are deleted with it. Other members’
+          records stay on their own servers, marked as belonging to a deleted
+          space.
         </p>
       </SpaceDialog>
     </>

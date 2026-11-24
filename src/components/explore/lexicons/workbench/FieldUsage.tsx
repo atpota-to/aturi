@@ -103,11 +103,11 @@ export function UsageNote({ state }: { state: UsageState }) {
 
 function SampleText({ state }: { state: Exclude<UsageState, { status: 'loading' }> }) {
   if (state.status === 'failed') {
-    return <>Field usage needs records, and the UFOs API didn’t answer ({state.error}). Jetstream can still catch new ones.</>;
+    return <>Couldn’t reach the UFOs API ({state.error}). Jetstream can still catch new records.</>;
   }
   const { sample, sources, live } = state;
   if (sample.records === 0) {
-    return <>UFOs hasn’t sampled any records of this lexicon recently. Jetstream can catch new ones as they’re written.</>;
+    return <>No records sampled recently. Jetstream can catch new ones.</>;
   }
   const tail = (
     <>
@@ -118,13 +118,13 @@ function SampleText({ state }: { state: Exclude<UsageState, { status: 'loading' 
   if (sources.jetstream === 0) {
     return (
       <>
-        Usage is the share of the {plural(sample.records, 'newest record')} UFOs sampled that set each field{tail}
+        Share of the {plural(sample.records, 'newest record')} UFOs sampled that set each field{tail}
       </>
     );
   }
   return (
     <>
-      Usage is the share of {plural(sample.records, 'record')} that set each field:{' '}
+      Share of {plural(sample.records, 'record')} that set each field:{' '}
       {sources.ufos > 0 ? `${sources.ufos.toLocaleString('en-US')} UFOs sampled and ` : ''}
       {sources.jetstream.toLocaleString('en-US')} from Jetstream over {secondsText(live.seconds)}
       {state.ufosError ? ' (UFOs didn’t answer)' : ''}
@@ -319,7 +319,7 @@ export function UndeclaredFields({
       <h4 className="fx-lx-section-title">
         Not in the schema <span className="fx-lx-h-count">{extra.length}</span>
       </h4>
-      <p className="fx-lx-use-note">Sampled records set these, but the published schema doesn’t declare them.</p>
+      <p className="fx-lx-use-note">Sampled records set these anyway.</p>
       <ObservedTable fields={extra} state={state} nsid={nsid} addressFor={addressFor} />
     </div>
   );

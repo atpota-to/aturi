@@ -378,7 +378,7 @@ private struct RecordScreen: View {
                     OutboundLinkRow(
                         title: RecordModel.viewOnPdsLabel,
                         url: url.absoluteString,
-                        detail: "The raw record JSON from the PDS"
+                        detail: "Raw JSON"
                     )
                 }
                 /* Any tool with something to say about this kind of record

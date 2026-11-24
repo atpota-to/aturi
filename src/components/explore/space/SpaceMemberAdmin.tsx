@@ -101,7 +101,7 @@ export function AddMemberButton({
         onClose={close}
         busy={busy}
         title="Add member"
-        description="Membership is permission to read the space, not an invitation: nobody is notified, and their repository appears the first time they write."
+        description="Adding grants read access. Nobody is notified, and their repository appears once they write."
         error={error}
         onSubmit={submit}
         hasPopover
@@ -142,9 +142,8 @@ export function AddMemberButton({
 
         {advisory && (
           <p className="fx-sp-dialog-note fx-sp-dialog-warn">
-            This space’s user access isn’t set to the member list, so the list is
-            kept but never consulted. Adding someone here grants them nothing
-            until you switch the space to “Member list”.
+            User access isn’t set to the member list, so adding someone grants
+            nothing until you switch the space to “Member list”.
           </p>
         )}
       </SpaceDialog>
@@ -219,10 +218,8 @@ export function RemoveMemberButton({
         }
       >
         <p className="fx-sp-dialog-note">
-          They stop qualifying for a credential from now on. One already in their
-          hands keeps working until it expires, and anything they have written
-          stays in their own repository — this ends their access, it doesn’t
-          retract their records.
+          They can’t get a new credential. One already issued keeps working until
+          it expires, and their records stay in their own repository.
         </p>
         <p className="fx-sp-dialog-note fx-sp-mono">
           {did}

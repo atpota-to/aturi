@@ -283,7 +283,7 @@ final class BacklinksModelTests: XCTestCase {
         XCTAssertEqual(follow.sources.map(\.source), [Self.bskyFollowSource, Self.tangledFollowSource])
         XCTAssertEqual(follow.apps.map(\.app.name), ["Bluesky", "Tangled"])
         XCTAssertEqual(follow.subtitle, "\(UFOsFormat.formatCount(1010)) accounts \u{00B7} 2 apps")
-        XCTAssertEqual(follow.hint, "1,020 links through 2 sources. Accounts are counted per source, so one account linking through two counts twice.")
+        XCTAssertEqual(follow.hint, "1,020 links through 2 sources. Accounts count once per source.")
         XCTAssertEqual(follow.sourcesTitle, "2 sources behind followers")
         XCTAssertTrue(model.showsAppFilter)
         XCTAssertTrue(model.showsAppOnRows)

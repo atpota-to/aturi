@@ -82,7 +82,7 @@ export default function NewLexicons() {
             <span className="fn-list-card-via">via UFOs</span>
           </div>
           <p className="fn-list-card-sub">
-            Record types seen for the first time in this window, with three or more accounts using them.
+            First seen in this window, by 3+ accounts.
           </p>
           <div className="fn-list-card-controls">
             <Segmented
@@ -101,7 +101,7 @@ export default function NewLexicons() {
           ) : visible ? (
             visible.length === 0 ? (
               <p className="explore-placeholder fn-list-card-msg">
-                Nothing new with three or more accounts in this window.
+                Nothing new with 3+ accounts in this window.
               </p>
             ) : (
               <>
@@ -130,9 +130,8 @@ export default function NewLexicons() {
         </div>
         {answer && (
           <p className="fn-list-card-note">
-            First seen means no activity UFOs recorded between {answer.historyBegins}, when its history begins,
-            and the start of the window. Account counts are estimates, and a few accounts can still be one
-            developer testing.
+            First seen: no activity from {answer.historyBegins}, when UFOs&rsquo; history begins, to the
+            window&rsquo;s start. Account counts are estimates; a few may be one developer testing.
           </p>
         )}
         <Credit />

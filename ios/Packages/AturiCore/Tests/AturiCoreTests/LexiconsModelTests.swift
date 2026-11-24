@@ -790,19 +790,19 @@ final class LexiconsModelTests: XCTestCase {
         func label(_ secondsAgo: Double) -> String {
             LexiconsModel.freshnessLabel(cursorUs: (Self.now.timeIntervalSince1970 - secondsAgo) * 1_000_000, now: Self.now)
         }
-        XCTAssertEqual(label(12), "Firehose data current as of 12s ago")
-        XCTAssertEqual(label(89), "Firehose data current as of 89s ago")
-        XCTAssertEqual(label(90), "Firehose data current as of 2m ago")
-        XCTAssertEqual(label(5399), "Firehose data current as of 90m ago")
-        XCTAssertEqual(label(5400), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(7200), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(-30), "Firehose data current as of just now", "a cursor ahead of the clock clamps to zero")
-        XCTAssertEqual(label(0.4), "Firehose data current as of just now")
-        XCTAssertEqual(label(0.5), "Firehose data current as of just now")
-        XCTAssertEqual(label(5), "Firehose data current as of 5s ago")
+        XCTAssertEqual(label(12), "Updated 12s ago")
+        XCTAssertEqual(label(89), "Updated 89s ago")
+        XCTAssertEqual(label(90), "Updated 2m ago")
+        XCTAssertEqual(label(5399), "Updated 90m ago")
+        XCTAssertEqual(label(5400), "Updated 2h ago")
+        XCTAssertEqual(label(7200), "Updated 2h ago")
+        XCTAssertEqual(label(-30), "Updated just now", "a cursor ahead of the clock clamps to zero")
+        XCTAssertEqual(label(0.4), "Updated just now")
+        XCTAssertEqual(label(0.5), "Updated just now")
+        XCTAssertEqual(label(5), "Updated 5s ago")
         XCTAssertEqual(
             LexiconsModel.freshnessLabel(cursorDate: Self.now.addingTimeInterval(-12), now: Self.now),
-            "Firehose data current as of 12s ago"
+            "Updated 12s ago"
         )
     }
 
@@ -816,7 +816,7 @@ final class LexiconsModelTests: XCTestCase {
         await model.loadFreshness().value
         let date = try XCTUnwrap(model.freshnessCursorDate)
         XCTAssertEqual(date.timeIntervalSince1970, Self.now.timeIntervalSince1970 - 42, accuracy: 0.001)
-        XCTAssertEqual(LexiconsModel.freshnessLabel(cursorDate: date, now: Self.now), "Firehose data current as of 42s ago")
+        XCTAssertEqual(LexiconsModel.freshnessLabel(cursorDate: date, now: Self.now), "Updated 42s ago")
 
         let missing = makeModel(LexiconsFakeTransport([
             (["/meta"], .init(status: 200, body: #"{"consumer":{"jetstream":{"latest_cursor":"soon"}},"storage_name":"x"}"#)),

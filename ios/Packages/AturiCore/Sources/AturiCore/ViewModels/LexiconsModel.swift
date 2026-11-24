@@ -810,7 +810,7 @@ public final class LexiconsModel {
         return task
     }
 
-    /// Port of `Freshness`: "Firehose data current as of 12s ago", with the
+    /// Port of `Freshness`: "Updated 12s ago", with the
     /// lag in seconds under 90 s, minutes under 90 min, hours beyond. A lag
     /// under 5 s reads "just now": a cursor a second or two behind is as
     /// current as the firehose gets, and "0s ago" reads like a glitch.
@@ -818,7 +818,7 @@ public final class LexiconsModel {
         let lagSeconds = now.timeIntervalSince(cursorDate)
         let agoSec = max(0, Int(lagSeconds.rounded(.toNearestOrAwayFromZero)))
         if agoSec < 5 {
-            return "Firehose data current as of just now"
+            return "Updated just now"
         }
         let rel: String
         if agoSec < 90 {
@@ -828,7 +828,7 @@ public final class LexiconsModel {
         } else {
             rel = "\(Int((Double(agoSec) / 3600).rounded(.toNearestOrAwayFromZero)))h"
         }
-        return "Firehose data current as of \(rel) ago"
+        return "Updated \(rel) ago"
     }
 
     /// `freshnessLabel(cursorDate:now:)` for the raw jetstream cursor, in

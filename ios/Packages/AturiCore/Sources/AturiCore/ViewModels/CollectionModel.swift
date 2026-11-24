@@ -421,7 +421,7 @@ public final class CollectionModel {
         let count = selection.count
         var text = "Delete \(count) record\(count == 1 ? "" : "s")? This cannot be undone."
         if willPace {
-            text += " Aturi will pace this under Bluesky\u{2019}s ~\(JetstreamModel.grouped(WriteThrottle.hourlyPointBudget))/hour write limit, so it may pause partway."
+            text += " It may pause partway to stay under Bluesky\u{2019}s ~\(JetstreamModel.grouped(WriteThrottle.hourlyPointBudget))/hour write limit."
         }
         return text
     }
@@ -430,7 +430,7 @@ public final class CollectionModel {
     public var deleteStatusLabel: String? {
         guard isDeleting else { return nil }
         if let wait = deleteWaitSeconds {
-            return "Paced under the rate limit, resuming in \(wait)s"
+            return "Rate limited, resuming in \(wait)s"
         }
         return "Deleting\u{2026}"
     }

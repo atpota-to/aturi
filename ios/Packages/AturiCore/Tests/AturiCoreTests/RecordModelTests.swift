@@ -352,7 +352,7 @@ final class RecordModelTests: XCTestCase {
         XCTAssertEqual(failure.code, "RecordNotFound")
         XCTAssertEqual(failure.eyebrow, "Not found")
         XCTAssertEqual(failure.headline, "This record doesn\u{2019}t exist")
-        XCTAssertEqual(failure.body, "We couldn\u{2019}t find a app.bsky.feed.post record with key 3kabc in @alice.test\u{2019}s repository. It may have been deleted, or the link may be incorrect.")
+        XCTAssertEqual(failure.body, "No app.bsky.feed.post record with key 3kabc in @alice.test\u{2019}s repo. It may have been deleted, or the link may be wrong.")
         XCTAssertNil(failure.lexiconPath)
         XCTAssertTrue(failure.raw.hasPrefix("HTTP 400 "), failure.raw)
         XCTAssertTrue(failure.raw.contains(" for https://pds.example/xrpc/com.atproto.repo.getRecord?"), failure.raw)
@@ -380,7 +380,7 @@ final class RecordModelTests: XCTestCase {
         XCTAssertEqual(failure.status, 404)
         XCTAssertNil(failure.code)
         XCTAssertEqual(failure.headline, "No schema published for this lexicon")
-        XCTAssertTrue(failure.body.hasPrefix("app.example.thing is used across the network, but @alice.test hasn\u{2019}t published a com.atproto.lexicon.schema record"), failure.body)
+        XCTAssertTrue(failure.body.hasPrefix("@alice.test hasn\u{2019}t published a com.atproto.lexicon.schema record for app.example.thing"), failure.body)
         XCTAssertEqual(failure.lexiconPath, NSID.lexiconPathFor("app.example.thing"))
         XCTAssertEqual(failure.lexiconLinkLabel, "See how app.example.thing is used across the atmosphere")
     }
@@ -395,7 +395,7 @@ final class RecordModelTests: XCTestCase {
         XCTAssertNil(failure.code)
         XCTAssertEqual(failure.eyebrow, "Error")
         XCTAssertEqual(failure.headline, "Couldn\u{2019}t load this record")
-        XCTAssertEqual(failure.body, "The PDS returned an error (HTTP 502) while fetching this record. It might be a temporary problem. Try again in a moment.")
+        XCTAssertEqual(failure.body, "The PDS returned an error (HTTP 502). Try again in a moment.")
         XCTAssertNil(failure.lexiconPath)
     }
 
@@ -406,7 +406,7 @@ final class RecordModelTests: XCTestCase {
         guard let failure = model.failure else { return XCTFail("expected a failure") }
         XCTAssertFalse(failure.isNotFound)
         XCTAssertNil(failure.status)
-        XCTAssertEqual(failure.body, "The PDS returned an error while fetching this record. It might be a temporary problem. Try again in a moment.")
+        XCTAssertEqual(failure.body, "The PDS returned an error. Try again in a moment.")
         XCTAssertFalse(failure.raw.isEmpty)
     }
 

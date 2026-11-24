@@ -311,7 +311,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertEqual(RepoStatusNotice(status: "deleted").headline, "This repo has been deleted.")
         let unknown = RepoStatusNotice(status: "frozen")
         XCTAssertEqual(unknown.headline, "This repo is marked frozen.")
-        XCTAssertEqual(unknown.detail, "Its host refuses record reads while the repo is in this state.")
+        XCTAssertEqual(unknown.detail, "Its host refuses record reads in this state.")
         let missing = RepoStatusNotice(status: nil)
         XCTAssertEqual(missing.status, "inactive")
         XCTAssertEqual(missing.accessibilityLabel, "Repo status: inactive")
@@ -498,7 +498,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertEqual(facts?.handleVerified, true)
 
         XCTAssertTrue(model.collections.errorMessage?.contains("RepoTakendown") ?? false)
-        XCTAssertEqual(model.collectionsInactiveNotice, "No collections to list: this repo has been taken down and its PDS refuses record reads.")
+        XCTAssertEqual(model.collectionsInactiveNotice, "No collections: this repo has been taken down.")
         XCTAssertTrue(model.groups.isEmpty)
         XCTAssertNil(model.collectionsStatusLabel)
 
@@ -529,7 +529,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertNil(model.statusFacts?.rev, "the relay answered 404")
         XCTAssertEqual(model.statusFacts?.revNote(), "no rev available")
         XCTAssertNil(model.headRev.value ?? nil)
-        XCTAssertEqual(model.collectionsInactiveNotice, "No collections to list: this repo is deactivated and its PDS refuses record reads.")
+        XCTAssertEqual(model.collectionsInactiveNotice, "No collections: this repo is deactivated.")
     }
 
     func testUnresolvableInputFailsIdentityOnly() async {

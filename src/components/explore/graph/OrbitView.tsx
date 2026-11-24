@@ -122,9 +122,8 @@ export function OrbitAccount({ data, focus, onFocus, onSelect }: { data: Neighbo
         </svg>
       </ZoomBox>
       <p className="fx-graph-caption">
-        Mutuals on the inner ring, then accounts followed one way, then followers one way. 2nd degree sits across
-        the middle, closer the more follows in common, and the rest on the rim. Dot size is engagement either way
-        over 30 days.
+        Mutuals inside, then one-way follows, then one-way followers. 2nd degree sits closer the more follows in
+        common, the rest on the rim. Dot size is 30-day engagement.
         {hidden > 0 &&
           ` ${fmt(hidden)} ${hidden === 1 ? 'account' : 'accounts'} with no link and a single interaction aren’t drawn.`}
       </p>

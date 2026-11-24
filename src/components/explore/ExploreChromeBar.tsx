@@ -462,7 +462,7 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
         <>
           <span className="explore-chrome-prompt">
             {bar.waitingSec != null
-              ? `Paced under the rate limit, resuming in ${bar.waitingSec}s`
+              ? `Rate limited, resuming in ${bar.waitingSec}s`
               : 'Deleting…'}
           </span>
           <div className="explore-chrome-panel-split">
@@ -860,7 +860,7 @@ function DeleteSteps({ bar }: { bar: EditBarSnapshot }) {
       <>
         <span className="explore-chrome-prompt">
           {bar.waitingSec != null
-            ? `Paced under the rate limit, resuming in ${bar.waitingSec}s`
+            ? `Rate limited, resuming in ${bar.waitingSec}s`
             : 'Deleting…'}
         </span>
         <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />

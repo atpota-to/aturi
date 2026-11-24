@@ -315,8 +315,8 @@ struct JetstreamView: View {
         } label: {
             VStack(spacing: 6) {
                 Text(compact
-                     ? "Watch new records appear across the network as they are created."
-                     : "Watch records being created, updated and deleted across the network as they happen.")
+                     ? "New records as they\u{2019}re created."
+                     : "Every create, update and delete, as it happens.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .multilineTextAlignment(.center)
