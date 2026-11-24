@@ -2114,3 +2114,129 @@ html[data-reduce-motion='true'][data-phone-search] body {
 [data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .fn-menu-tiles > *, .compact-nav-grid > *, .fn-menu-session) {
   transition-delay: 0s !important;
 }
+
+/* ─── A page's own toolbar (PageToolbar.tsx) ─────────────────────────────
+
+   A page or full-screen view that wants its own controls under the thumb
+   (the thread explorer's zoom, fit and close) draws this in place of the
+   site's toolbar: the same strip as .fn-phone-bar, with the page's chips in
+   it. Phone only; wider, the page keeps its controls where they are.
+
+   --fn-page-toolbar-h is its height, for the view to stand its content and
+   its sheets on: a 44px chip, 10px above and below, the 1px top rule and
+   the home indicator's inset. Fixed, since the row never wraps. */
+
+:root {
+  --fn-page-toolbar-h: calc(65px + env(safe-area-inset-bottom, 0px));
+}
+
+.fn-page-toolbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* While one is up the site's own toolbar steps aside. */
+  body:has(.fn-page-toolbar) :is(.fn-phone-bar, .explore-chrome-bar) {
+    display: none;
+  }
+
+  .fn-page-toolbar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-medium);
+  }
+
+  .fn-page-toolbar-inner {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding:
+      10px max(12px, env(safe-area-inset-right, 0px))
+      calc(10px + env(safe-area-inset-bottom, 0px))
+      max(12px, env(safe-area-inset-left, 0px));
+  }
+
+  /* Between the two ends. Takes the slack, unless a wide tool already does. */
+  .fn-page-toolbar-gap {
+    flex: 1 1 0;
+    margin-left: -8px;
+  }
+
+  .fn-page-toolbar-inner:has(.fn-page-tool[data-wide]) .fn-page-toolbar-gap {
+    flex: 0 0 0;
+  }
+
+  .fn-page-tool {
+    position: relative;
+    color: var(--text-primary);
+  }
+
+  /* Specific enough to outlast the chips' hover fill (explorer.css), which
+     on a touch screen sticks to the button after a tap. */
+  .fn-page-toolbar .explore-chrome-button.fn-page-tool[data-on] {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent-soft-fg);
+  }
+
+  /* The search field's room on the site's toolbar, and its shape: the page's
+     way into its own search and filters. */
+  .fn-page-toolbar .fn-page-tool[data-wide] {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 0 12px 0 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  .fn-page-tool[data-wide] > svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+
+  .fn-page-tool[data-placeholder] .fn-page-tool-text {
+    color: var(--text-tertiary);
+  }
+
+  .fn-page-tool-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+
+  .fn-page-tool-status {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
+  }
+
+  /* Joined, as the stream monitor's Pause and Stop are. */
+  .fn-page-tool-group {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .fn-page-tool-group > :not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .fn-page-tool-group > :not(:first-child) {
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}

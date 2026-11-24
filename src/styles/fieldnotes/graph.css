@@ -1346,6 +1346,41 @@ g[data-moving] .fx-graph-mark,
   background: var(--bg-primary);
   padding-top: env(safe-area-inset-top, 0px);
   outline: none;
+  /* Opening, it grows out of the "Explore thread" button it was opened
+     from, and closing, it shrinks back into it: ThreadExplorer sets this to
+     the button's box. Opened any other way, it grows from a little inside
+     the screen's edges. A clip rather than a transform, so the toolbar and
+     sheet pinned inside it stay pinned to the screen. Reduced motion makes
+     both instant (globals.css). */
+  --fx-tx-from: inset(4% 4% 4% 4% round 16px);
+  animation: fx-tx-open 340ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+.fx-tx[data-leaving] {
+  pointer-events: none;
+  animation: fx-tx-close 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes fx-tx-open {
+  from {
+    clip-path: var(--fx-tx-from);
+    opacity: 0.4;
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+    opacity: 1;
+  }
+}
+
+@keyframes fx-tx-close {
+  from {
+    clip-path: inset(0 0 0 0 round 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: var(--fx-tx-from);
+    opacity: 0;
+  }
 }
 
 .fx-tx-head {
@@ -2252,4 +2287,148 @@ button.fx-tx-stat:disabled {
     width: 100%;
     margin-left: 0;
   }
+}
+
+/* ─── The thread explorer on a phone ─────────────────────────────────────
+
+   The header's zoom, fit and close move to a toolbar at the bottom of the
+   screen (PageToolbar, chrome.css), where a thumb reaches them, and the
+   search and filters (ThreadToolbar) leave the top for a sheet that rises
+   out of that toolbar from its "Search and filters" button. The header keeps
+   only the thread's title. Same width as the toolbar (`max-width: 640px`). */
+
+@media (max-width: 640px) {
+  .fx-tx {
+    padding-bottom: var(--fn-page-toolbar-h);
+  }
+
+  .fx-tx-head .fx-tx-tools {
+    display: none;
+  }
+
+  /* The toolbar now stands under the details, and keeps clear of the home
+     indicator itself. */
+  .fx-tx-side {
+    padding-bottom: 16px;
+  }
+
+  /* The sheet: out of the page's flow, standing on the toolbar, and hidden
+     (to touch and to a screen reader as well as to the eye) until it's
+     opened. It lifts 12px as it fades in, the way the site menu's sheet
+     rises out of the site's toolbar. */
+  .fx-tx-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--fn-page-toolbar-h);
+    z-index: 3;
+    gap: 10px 8px;
+    padding: 14px max(12px, env(safe-area-inset-right, 0px)) 14px max(12px, env(safe-area-inset-left, 0px));
+    border: 1px solid var(--border-medium);
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    background: var(--bg-secondary);
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 140ms ease-in,
+      transform 200ms cubic-bezier(0.4, 0, 1, 1),
+      visibility 0s linear 200ms;
+  }
+
+  .fx-tx[data-sheet] .fx-tx-bar {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 180ms ease-out,
+      transform 300ms var(--ease-soft),
+      visibility 0s;
+  }
+
+  /* One row each: the search; the people and anyone pinned; the order and
+     the folds; what the drawing shows; the counts. The tools keep their
+     names here, where there's room for them (the 760px block hides them). */
+  .fx-tx-bar .fx-tx-tool-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .fx-tx-bar-group {
+    flex: 1 1 100%;
+  }
+
+  .fx-tx-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .fx-tx-select select {
+    width: 100%;
+  }
+
+  .fx-tx-bar-group[role='group'] > .fx-tx-toggle {
+    flex: 1 1 0;
+  }
+
+  .fx-tx-pins {
+    flex: 1 1 auto;
+  }
+
+  /* 44px touch targets, and 16px text in the fields so iOS doesn't zoom the
+     page when one takes focus. */
+  .fx-tx-bar .fx-graph-tool,
+  .fx-tx-select select {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .fx-tx-search {
+    min-height: 44px;
+    padding-right: 0;
+  }
+
+  .fx-tx-search input,
+  .fx-tx-pop-filter {
+    font-size: 16px;
+  }
+
+  .fx-tx-pop-filter {
+    min-height: 44px;
+  }
+
+  .fx-tx-bar .fx-tx-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .fx-tx-pin-go {
+    min-height: 40px;
+    padding: 4px 8px 4px 6px;
+  }
+
+  button.fx-tx-stat {
+    min-height: 44px;
+  }
+
+  .fx-tx-person {
+    min-height: 48px;
+  }
+
+  /* People opens upward: the sheet is at the bottom of the screen. */
+  .fx-tx-pop {
+    top: auto;
+    bottom: calc(100% + 6px);
+    max-height: min(50dvh, 420px);
+  }
+}
+
+[data-reduce-motion='true'] .fx-tx-bar {
+  transition: none;
 }
