@@ -71,10 +71,20 @@ export const LIMITS = {
   likes: 1000,
   reposts: 300,
   posts: 500,
-  /** Author-feed pages scanned to choose whose engagement to read. */
-  feedPages: 3,
-  /** Own posts whose likes, reposts, replies and quotes are read. */
-  inboundPosts: 40,
+  /**
+   * Author-feed pages scanned, at 100 a page, to choose whose engagement to
+   * read. The scan stops on its own at the start of the window, so this only
+   * bounds it for accounts that post far more than most. It was 3, which on
+   * a busy account reached back about 12 of the 30 days and left the rest of
+   * the window unread.
+   */
+  feedPages: 20,
+  /**
+   * Own posts whose likes, reposts, replies and quotes are read, the most
+   * engaged first. Sized for the whole window: it was 40 when the scan above
+   * stopped at 12 days or so.
+   */
+  inboundPosts: 100,
   /** Constellation answers at most 100 per page; one page per post and kind. */
   perList: 100,
   /** Engaged accounts outside the follow graph counted for follows in common. */
@@ -609,10 +619,14 @@ async function readNeighbourhood(
   enqueue();
 
   // 4. Inbound: who engaged with the subject's most-engaged recent posts.
+  // Finding them is the feed scan, then reading them is the backlinks; the
+  // scan gets the first quarter of the stage's progress.
   emit('inbound');
+  const SCAN_SHARE = 0.25;
   const feed: FeedItem['post'][] = [];
   let cursor: string | undefined;
   let scannedAll = false;
+  let reached = windowEnd;
   for (let i = 0; i < LIMITS.feedPages; i++) {
     const params = new URLSearchParams({ actor: subject.did, filter: 'posts_with_replies', limit: '100' });
     if (cursor) params.set('cursor', cursor);
@@ -633,8 +647,11 @@ async function readNeighbourhood(
         old = true;
         continue;
       }
+      if (at < reached) reached = at;
       feed.push(item.post);
     }
+    // The scan is the first part of the stage: how far back it has got.
+    tick((SCAN_SHARE * (windowEnd - reached)) / (windowEnd - windowStart));
     if (old || !page.cursor) {
       scannedAll = true;
       break;
@@ -679,7 +696,7 @@ async function readNeighbourhood(
     }
     applyTally(inbound);
     enqueue();
-    tick(finished / jobs.length);
+    tick(SCAN_SHARE + ((1 - SCAN_SHARE) * finished) / jobs.length);
   });
   applyTally(inbound);
   enqueue(true);
