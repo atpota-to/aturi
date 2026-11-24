@@ -92,10 +92,7 @@ struct SafariExtensionSettingsView: View {
             }
 
             if #available(iOS 26.2, *) {
-                SettingsSection("Status") {
-                    statusRow
-                }
-                openSettingsSection
+                statusSection
             }
 
             SettingsSection(
@@ -168,22 +165,33 @@ struct SafariExtensionSettingsView: View {
         .padding(.vertical, 2)
     }
 
+    /// The status card with the button to Settings beneath it. The button
+    /// sits in the section's footer, not in a row of its own: inset grouped
+    /// rows clip their content to the section's rounded corners, which are
+    /// far larger than the button's, so a row the button fills edge to edge
+    /// cuts its corners off.
     @available(iOS 26.2, *)
-    private var openSettingsSection: some View {
+    private var statusSection: some View {
         Section {
-            Button("Open Safari Extension Settings", action: openSettings)
-                .buttonStyle(.aturiPrimary)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
+            statusRow
+                .listRowBackground(theme.bgSecondary)
+        } header: {
+            Text("Status")
+                .foregroundStyle(theme.textTertiary)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Open Safari Extension Settings", action: openSettings)
+                    .buttonStyle(.aturiPrimary)
 
-            if openFailed {
-                Text("Settings did not open. Use the steps below instead.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                if openFailed {
+                    Text("Settings did not open. Use the steps below instead.")
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .textCase(nil)
+            .padding(.top, 12)
         }
     }
 

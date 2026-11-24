@@ -62,13 +62,7 @@ struct MutualsToolView: View {
     }
 
     private func depth(of tab: Tab) -> Int {
-        switch tab {
-        case .explore: return router.explorePath.count
-        case .links: return router.linksPath.count
-        case .lexicons: return router.lexiconsPath.count
-        case .tools: return router.toolsPath.count
-        case .settings: return router.settingsPath.count
-        }
+        router.depth(of: tab)
     }
 
     // MARK: Form

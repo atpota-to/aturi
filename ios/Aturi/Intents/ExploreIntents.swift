@@ -1,7 +1,7 @@
 import AppIntents
 import AturiCore
 
-/* The Atmosphere Explorer and the Lexicons tab as Shortcuts actions. The
+/* The Atmosphere Explorer and its lexicon pages as Shortcuts actions. The
    "Open" and "Explore" actions bring the app forward on the page; "Get
    Record" runs without opening the app. */
 
@@ -79,7 +79,7 @@ struct GetRecordIntent: AppIntent {
 struct OpenLexiconIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Lexicon in Aturi"
     static let description = IntentDescription(
-        "Opens a lexicon's page in Aturi's Lexicons tab: its schema, where it is used and the records published under it. Give an NSID such as app.bsky.feed.post, or a namespace such as app.bsky to browse its group.",
+        "Opens a lexicon's page in Aturi's explorer: its schema, where it is used and the records published under it. Give an NSID such as app.bsky.feed.post, or a namespace such as app.bsky to browse its group.",
         categoryName: "Explore",
         searchKeywords: ["lexicon", "nsid", "schema", "collection", "atproto"]
     )
@@ -105,9 +105,9 @@ struct OpenLexiconIntent: AppIntent {
         let router = AppEnvironment.shared.router
         switch target {
         case .lexicon(let nsid):
-            router.open(.lexicon(nsid: nsid), in: .lexicons)
+            router.open(.lexicon(nsid: nsid), in: .explore)
         case .group(let prefix):
-            router.open(.lexiconGroup(prefix: prefix), in: .lexicons)
+            router.open(.lexiconGroup(prefix: prefix), in: .explore)
         }
         return .result()
     }

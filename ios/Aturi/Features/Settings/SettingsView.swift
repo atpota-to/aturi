@@ -36,6 +36,8 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .waypoints: return "Which clients the picker shows, and in what groups"
         case .redirects: return "Open links straight in a preferred client"
         case .custom: return "Your own destinations, built from URL templates"
+        /* Not listed in Settings any more: the account page is its own tab,
+           and `AppRouter.openSettings(.account)` sends links there. */
         case .account: return "Sign in to sync settings to your PDS"
         case .safari: return "Turn on Aturi in Safari on this device"
         case .about: return "Version, links, licence and privacy"
@@ -60,32 +62,37 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 /// turned into a list of pages. Anyone can change every preference; the
 /// banner at the top says where those changes live until they sign in.
 struct SettingsView: View {
+    @Environment(AppRouter.self) private var router
     @Environment(\.sessionStore) private var sessionStore
     @Environment(\.aturiTheme) private var theme
 
-    private var accountDetail: String {
-        if let identifier = sessionStore.state.displayIdentifier {
-            return "Signed in as \(identifier)"
-        }
-        return SettingsPage.account.detail
-    }
-
     var body: some View {
         List {
+            /* Signing in lives on the Account tab; the banner points there. */
             if !sessionStore.state.isSignedIn {
                 SettingsSection {
-                    NavigationLink(value: SettingsPage.account) {
+                    Button {
+                        router.show(.account)
+                    } label: {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "icloud.slash")
                                 .foregroundStyle(theme.textAccent)
                                 .accessibilityHidden(true)
-                            Text("Settings are saved on this device only. Sign in to sync them to your PDS and carry them across devices.")
+                            Text("Settings are saved on this device only. Sign in on the Account tab to sync them to your PDS and carry them across devices.")
                                 .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(AturiFont.footnote)
+                                .foregroundStyle(theme.textTertiary)
+                                .accessibilityHidden(true)
                         }
                         .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens the Account tab")
                 }
             }
 
@@ -95,12 +102,6 @@ struct SettingsView: View {
                 pageLink(.waypoints)
                 pageLink(.redirects)
                 pageLink(.custom)
-            }
-
-            SettingsSection("Account") {
-                NavigationLink(value: SettingsPage.account) {
-                    SettingsRowLabel(SettingsPage.account.title, detail: accountDetail, systemImage: SettingsPage.account.systemImage)
-                }
             }
 
             SettingsSection {

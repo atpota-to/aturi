@@ -1,5 +1,7 @@
 import SwiftUI
+import UIKit
 import Observation
+import AppIntents
 import AturiCore
 
 /// The Explore tab's root. Reads the app's stores here and hands them to
@@ -30,6 +32,7 @@ private struct ExploreLandingScreen: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     init(history: SearchHistoryStore, sessionState: SessionState) {
         self.sessionState = sessionState
@@ -42,6 +45,7 @@ private struct ExploreLandingScreen: View {
                 header
                 searchArea
                 exampleChips
+                RecentLinksSection()
                 AtmosphericConditionsCard(model: conditions)
                 AtmospherePulseSection(model: pulse)
                 /* The explorer dashboard variant, as `ExploreLanding.tsx`
@@ -91,6 +95,17 @@ private struct ExploreLandingScreen: View {
         .task(id: model.showsRecommendations) {
             guard model.showsRecommendations else { return }
             await model.enrichRecommendationAvatars()
+        }
+        /* The "Open Copied Link" shortcut lands here. A cold launch shows
+           this screen before the app is active, so every one of the three
+           moments that could be the first with both (appearing, the
+           request, the scene becoming active) gets to try. */
+        .onAppear(perform: openRequestedClipboardLink)
+        .onChange(of: router.clipboardLinkRequested) { _, _ in
+            openRequestedClipboardLink()
+        }
+        .onChange(of: scenePhase) { _, _ in
+            openRequestedClipboardLink()
         }
     }
 
@@ -321,6 +336,12 @@ private struct ExploreLandingScreen: View {
             guard let text = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return }
             Task { @MainActor in
                 model.query = text
+                if LinkInput.previewComponents(for: text) != nil {
+                    /* Tells Siri this is something the person does, so it
+                       can offer the "Open Copied Link" shortcut at the
+                       moments they tend to. */
+                    IntentDonationManager.shared.donate(intent: OpenCopiedLinkIntent())
+                }
                 if !text.contains(where: \.isWhitespace) {
                     submit()
                 }
@@ -332,11 +353,36 @@ private struct ExploreLandingScreen: View {
         .accessibilityLabel("Paste and go")
     }
 
+    /* A web link (bsky.app, an aturi.to universal link, any catalog
+       client) opens its preview and client list, the page the Links tab
+       used to give it. Handles, DIDs, at:// URIs and free text search the
+       explorer as before. */
     private func submit() {
         fieldFocused = false
+        if let components = LinkInput.previewComponents(for: model.query) {
+            model.dismissSuggestions()
+            LinkInput.openPreview(components, router: router)
+            return
+        }
         Task { @MainActor in
             guard let destination = await model.submit() else { return }
             ExploreNavigator.open(destination, router: router, openURL: openURL)
+        }
+    }
+
+    /* The shortcut's half of paste-and-go: the clipboard read, opened as a
+       link from outside the app (an auto-redirect preference applies, as
+       it does to the share sheet), and only once the app is active, since
+       iOS asks before the read. A clipboard the router cannot place is
+       left in the search box to be looked up or edited. */
+    private func openRequestedClipboardLink() {
+        guard scenePhase == .active, router.consumeClipboardLinkRequest() else { return }
+        let board = UIPasteboard.general
+        let text = (board.url?.absoluteString ?? board.string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return }
+        fieldFocused = false
+        if !router.openLink(text) {
+            model.query = text
         }
     }
 
@@ -692,8 +738,8 @@ private struct AtmospherePulseSection: View {
         }
     }
 
-    /// `opensNewLexicons` is the web's `/explore/lexicons#new`: the Lexicons
-    /// tab at its root with the New section showing.
+    /// `opensNewLexicons` is the web's `/explore/lexicons#new`: the lexicon
+    /// browser with the New section showing.
     private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String, opensNewLexicons: Bool = false) -> some View {
         HStack(spacing: 12) {
             if let toggle {
@@ -707,7 +753,7 @@ private struct AtmospherePulseSection: View {
                 if opensNewLexicons {
                     router.showNewLexicons()
                 } else {
-                    router.select(.lexicons)
+                    router.open(.lexicons, in: .explore)
                 }
             } label: {
                 Text(linkLabel)
@@ -715,7 +761,7 @@ private struct AtmospherePulseSection: View {
                     .foregroundStyle(theme.textAccent)
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Opens the Lexicons tab")
+            .accessibilityHint("Opens the lexicon browser")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

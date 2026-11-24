@@ -54,7 +54,7 @@ struct LexiconDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             /* Pin, as the web's lexicon pane has it: kept at the top of the
-               Lexicons tab, synced with the rest of the preferences, and
+               lexicon browser, synced with the rest of the preferences, and
                apart from the account explorer's pinned collections. */
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

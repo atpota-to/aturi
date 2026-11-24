@@ -347,15 +347,16 @@ private struct PreviewScreen: View {
         model.cancelAutoRedirect()
     }
 
-    /* Only a preview that reached the Links tab without an in-app note was
-       opened from outside: the router lands universal links there, while
-       cards on the other tabs push onto their own stacks. */
+    /* Only a preview the router noted as incoming, and that nothing in the
+       app noted as its own push, was opened from outside. Both notes are
+       consumed here, so neither outlives this page. */
     private func decideOrigin() {
         guard !originDecided else { return }
         originDecided = true
         let pushedInApp = LinkNavigation.consumeInAppPreview(components)
+        let incoming = LinkNavigation.consumeIncomingPreview(components)
         stayRequested = LinkNavigation.consumeStay(components)
-        openedFromLink = !pushedInApp && router?.selectedTab == .links
+        openedFromLink = incoming && !pushedInApp
     }
 }
 

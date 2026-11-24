@@ -284,35 +284,38 @@ private struct AccountSignInView: View {
                 }
             }
 
+            /* The button lives in a footer, not a row: inset grouped rows clip
+               their content to the section's rounded corners, which are far
+               larger than the button's, and cut its corners off. */
             Section {
-                Button(action: submit) {
-                    HStack(spacing: 8) {
-                        if busy {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(theme.textOnAccent)
-                        }
-                        Text(busy ? "Waiting for your PDS" : "Sign in")
-                    }
-                }
-                .buttonStyle(.aturiPrimary)
-                .disabled(!canSubmit)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(AturiFont.footnote)
-                        .foregroundStyle(theme.danger)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets())
-                }
             } footer: {
-                Text("You will be sent to your PDS to authorize Aturi and brought back here. Reads always work because your repo is public.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
+                VStack(alignment: .leading, spacing: 12) {
+                    Button(action: submit) {
+                        HStack(spacing: 8) {
+                            if busy {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(theme.textOnAccent)
+                            }
+                            Text(busy ? "Waiting for your PDS" : "Sign in")
+                        }
+                    }
+                    .buttonStyle(.aturiPrimary)
+                    .disabled(!canSubmit)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(AturiFont.footnote)
+                            .foregroundStyle(theme.danger)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Text("You will be sent to your PDS to authorize Aturi and brought back here. Reads always work because your repo is public.")
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .textCase(nil)
             }
         }
         .settingsList()
