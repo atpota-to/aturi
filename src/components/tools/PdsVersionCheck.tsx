@@ -119,7 +119,7 @@ export default function PdsVersionCheck() {
             </ToolVerdict>
           ) : listFailed ? (
             <ToolError onRetry={releases.rerun}>
-              {releases.error} {target.host} reports {probe?.version}, which is left uncompared.
+              {releases.error} {target.host} reports {probe?.version}.
             </ToolError>
           ) : (
             <ToolVerdict
@@ -127,9 +127,7 @@ export default function PdsVersionCheck() {
               title={probe ? 'Reading the release list' : `Asking ${target.host} what it runs`}
               icon={VERDICT_ICON.pending}
             >
-              {probe
-                ? `It reports ${probe.version}. Looking that up among the releases of the reference PDS.`
-                : 'A PDS reports its version at /xrpc/_health.'}
+              {probe ? `It reports ${probe.version}.` : 'A PDS reports its version at /xrpc/_health.'}
             </ToolVerdict>
           )}
 
@@ -159,18 +157,16 @@ export default function PdsVersionCheck() {
                 <p className="fn-tool-note fn-tool-pds-note">
                   {reading.via === 'distribution' ? (
                     <>
-                      The host reports <code>{reading.reported}</code>, which is how the{' '}
+                      Reported as <code>{reading.reported}</code>, which is how the{' '}
                       <a href={DISTRIBUTION_URL} target="_blank" rel="noreferrer noopener">
                         self-host distribution
                       </a>{' '}
-                      numbers release {reading.version} of <code>{PDS_PACKAGE}</code>: the minor and patch run
-                      together after its own <code>0.4</code>.
+                      numbers release {reading.version}.
                     </>
                   ) : (
                     <>
-                      Read from the number alone: <code>{reading.reported}</code> is a release of{' '}
-                      <code>{PDS_PACKAGE}</code>. A fork or other software that reports the same number would be read
-                      the same way.
+                      Matched by number alone. A fork or other software reporting <code>{reading.reported}</code>{' '}
+                      would read the same.
                     </>
                   )}
                 </p>
@@ -195,11 +191,8 @@ export default function PdsVersionCheck() {
                     ))}
                 </ToolFacts>
                 <p className="fn-tool-note fn-tool-pds-note">
-                  {behind.missed.length > MISSED_SHOWN &&
-                    `And ${behind.missed.length - MISSED_SHOWN} earlier ${
-                      behind.missed.length - MISSED_SHOWN === 1 ? 'release' : 'releases'
-                    }. `}
-                  What changed in each is in the package&rsquo;s{' '}
+                  {behind.missed.length > MISSED_SHOWN && `And ${behind.missed.length - MISSED_SHOWN} earlier. `}
+                  What changed is in the{' '}
                   <a href={CHANGELOG_URL} target="_blank" rel="noreferrer noopener">
                     changelog
                   </a>
@@ -213,24 +206,18 @@ export default function PdsVersionCheck() {
             <ToolSection title="Updating">
               <ToolCard>
                 {reading.via === 'distribution' ? (
-                  <p>
-                    The self-host distribution updates itself: its compose file runs Watchtower, which pulls the newest
-                    image each night. To update now, run this on the server:
-                  </p>
+                  <p>The self-host distribution updates itself nightly with Watchtower. To update now, on the server:</p>
                 ) : (
-                  <p>
-                    This host reports the package&rsquo;s own version number. If it was set up with the self-host
-                    distribution&rsquo;s installer, run this on the server to update it:
-                  </p>
+                  <p>If it was installed with the self-host distribution, run this on the server:</p>
                 )}
                 <ToolCode copy={DISTRIBUTION_UPDATE_COMMAND} label="command">
                   {DISTRIBUTION_UPDATE_COMMAND}
                 </ToolCode>
                 <p className="fn-tool-note fn-tool-pds-note">
                   {reading.via === 'distribution'
-                    ? 'A host that stays behind for days is not getting those nightly updates, so check that its Watchtower container is still running.'
-                    : `A custom build updates its ${PDS_PACKAGE} dependency and deploys again.`}{' '}
-                  This page does not change anything on the host.
+                    ? 'If it stays behind, check that its Watchtower container is running.'
+                    : `A custom build updates its ${PDS_PACKAGE} dependency and redeploys.`}{' '}
+                  This page changes nothing on the host.
                 </p>
               </ToolCard>
             </ToolSection>
@@ -295,8 +282,7 @@ export default function PdsVersionCheck() {
               term: 'The host says what it runs',
               text: (
                 <>
-                  A PDS reports a version at <code>/xrpc/_health</code>. The reference PDS answers with its package
-                  version unless its operator has set another.
+                  A PDS reports its version at <code>/xrpc/_health</code>.
                 </>
               ),
             },
@@ -305,18 +291,17 @@ export default function PdsVersionCheck() {
               text: (
                 <>
                   Releases are the stable versions of <code>{PDS_PACKAGE}</code> on npm. The self-host distribution
-                  that most self-hosted PDSs run numbers them its own way, so <code>0.4.5065</code> is read as release
-                  0.5.65.
+                  numbers them its own way: <code>0.4.5065</code> is release 0.5.65.
                 </>
               ),
             },
             {
-              term: 'It is compared with the latest',
-              text: 'Up to date, or how many releases behind and since when. A release from the last two days is not counted against a host, since most update themselves overnight.',
+              term: 'It’s compared with the latest',
+              text: 'Up to date, or how many releases behind and since when. A release under two days old isn’t counted against a host, since most update overnight.',
             },
             {
-              term: 'It says when it cannot compare',
-              text: 'Bluesky’s own hosts report a commit hash, and other PDS software has releases of its own. Neither is guessed at.',
+              term: 'It says when it can’t compare',
+              text: 'Bluesky’s own hosts report a commit hash, and other PDS software has its own releases.',
             },
           ]}
         />

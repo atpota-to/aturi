@@ -77,8 +77,8 @@ public enum ToolCatalog {
         ToolEntry(
             slug: "pds",
             title: "PDS version check",
-            desc: "See whether a PDS runs the latest release of the reference PDS, how many releases behind it is, and since when.",
-            lead: "A PDS reports the version it runs. This reads it, by hostname or from an account’s handle or DID, and compares it with the releases of the reference PDS.",
+            desc: "Check whether a PDS runs the latest release.",
+            lead: "Compared with releases of the reference PDS. Other PDS software can’t be compared.",
             group: .network,
             keywords: ["pds", "version", "update", "up to date", "outdated", "release", "self-host", "pdsadmin", "health"]
         ),

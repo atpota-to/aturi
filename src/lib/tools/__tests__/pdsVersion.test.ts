@@ -210,12 +210,12 @@ test('the verdict says up to date, how far behind, or that it cannot tell', () =
   const behind = verdictFor('0.5.61');
   assert.equal(behind.tone, 'warn');
   assert.equal(behind.title, `${HOST} is 4 releases behind`);
-  assert.match(behind.text, /behind since Nov 19, 2026, when 0\.5\.63 came out \(5 days ago\)/);
+  assert.match(behind.text, /Behind since Nov 19, 2026, when 0\.5\.63 came out \(5 days ago\)/);
 
   const recent = verdictFor('0.5.64');
   assert.equal(recent.tone, 'info');
   assert.equal(recent.title, `${HOST} is 1 release behind, as of 18 hours ago`);
-  assert.match(recent.text, /may not have it yet/);
+  assert.match(recent.text, /The latest is 0\.5\.65, and a host that updates overnight may not have it yet/);
 });
 
 test('the verdict does not compare what cannot be compared', () => {
@@ -226,16 +226,16 @@ test('the verdict does not compare what cannot be compared', () => {
 
   const other = verdictFor('tranquil 0.9.0');
   assert.equal(other.tone, 'info');
-  assert.match(other.title, /cannot tell/);
+  assert.match(other.title, /Can’t tell/);
   assert.match(other.text, /“tranquil 0\.9\.0”/);
 
   // A number other software uses is not measured against these releases.
-  assert.match(verdictFor('1.14.19').title, /cannot tell/);
+  assert.match(verdictFor('1.14.19').title, /Can’t tell/);
 
   assert.equal(verdictFor(undefined).tone, 'info');
-  assert.match(verdictFor(undefined).title, /does not say what version/);
+  assert.match(verdictFor(undefined).title, /doesn’t report a version/);
   assert.equal(verdictFor(undefined, false).tone, 'fail');
-  assert.match(verdictFor(undefined, false).title, /did not answer as a PDS/);
+  assert.match(verdictFor(undefined, false).title, /didn’t answer as a PDS/);
 });
 
 test('the badge appears only when there is something definite to say', () => {

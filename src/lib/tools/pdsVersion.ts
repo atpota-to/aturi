@@ -294,20 +294,20 @@ export function pdsVersionVerdict(
     return probe.reachable
       ? {
           tone: 'info',
-          title: `${host} does not say what version it runs`,
-          text: 'A PDS reports its version at /xrpc/_health. This one did not answer there, or answered without one, so there is nothing to compare.',
+          title: `${host} doesn’t report a version`,
+          text: 'A PDS reports one at /xrpc/_health. This one didn’t, so there is nothing to compare.',
         }
       : {
           tone: 'fail',
-          title: `${host} did not answer as a PDS`,
-          text: 'Neither describeServer nor its health endpoint answered. Check the hostname, or try again if the host may be down.',
+          title: `${host} didn’t answer as a PDS`,
+          text: 'Neither describeServer nor /xrpc/_health answered. Check the hostname, or try again if it may be down.',
         };
   }
   if (COMMIT.test(reported)) {
     return {
       tone: 'info',
       title: `${host} reports a build, not a release`,
-      text: `Its version is a commit hash (${reported.slice(0, 7)}), which is what Bluesky’s own hosts report. A hash is not a release number, so this cannot say how current it is.`,
+      text: `Its version is a commit hash (${reported.slice(0, 7)}), as Bluesky’s own hosts report. That isn’t a release number, so it can’t be compared.`,
     };
   }
   if (reading?.kind === 'release' && standing) {
@@ -325,7 +325,7 @@ export function pdsVersionVerdict(
       return {
         tone: 'pass',
         title: `${host} is ahead of the latest release`,
-        text: `It runs ${running.version}. The registry tags ${latest.version} as the latest.`,
+        text: `It runs ${running.version}. npm tags ${latest.version} as the latest.`,
       };
     }
     const n = standing.missed.length;
@@ -333,7 +333,7 @@ export function pdsVersionVerdict(
       return {
         tone: 'info',
         title: `${host} is ${releasesBehind(n)}, as of ${formatSpan(now - standing.since)} ago`,
-        text: `It runs ${running.version}, and ${latest.version} is the latest. A host that updates itself overnight may not have ${n === 1 ? 'it' : 'them'} yet.`,
+        text: `It runs ${running.version}. The latest is ${latest.version}, and a host that updates overnight may not have it yet.`,
       };
     }
     // The release that put it behind, which is not always the lowest-numbered.
@@ -344,14 +344,14 @@ export function pdsVersionVerdict(
       text:
         `It runs ${running.version}${published(running)}. The latest is ${latest.version}.` +
         (standing.since !== null
-          ? ` It has been behind since ${formatReleaseDay(standing.since)}, when ${first.version} came out (${formatSpan(now - standing.since)} ago).`
+          ? ` Behind since ${formatReleaseDay(standing.since)}, when ${first.version} came out (${formatSpan(now - standing.since)} ago).`
           : ''),
     };
   }
   return {
     tone: 'info',
-    title: `This cannot tell whether ${host} is up to date`,
-    text: `It reports “${shown(reported)}”, which does not match a stable release of the reference PDS. It may be other PDS software, a fork, or a build that sets its own version. Only the reference PDS’s releases are known here.`,
+    title: `Can’t tell whether ${host} is up to date`,
+    text: `It reports “${shown(reported)}”, which isn’t a stable release of the reference PDS. It may be other PDS software, a fork, or a build with its own version number.`,
   };
 }
 
@@ -385,14 +385,14 @@ export function pdsVersionBadge(standing: VersionStanding | null, now: number): 
     return {
       tone: 'quiet',
       label: `${latest.version} is out`,
-      title: `It runs ${running.version} and has been behind for ${formatSpan(now - standing.since)}. A host that updates itself overnight may not have ${n === 1 ? 'the new release' : 'the new releases'} yet.`,
+      title: `Runs ${running.version}, behind for ${formatSpan(now - standing.since)}. A host that updates overnight may not have ${latest.version} yet.`,
     };
   }
   return {
     tone: 'warn',
     label: releasesBehind(n),
     title:
-      `It runs ${running.version}, and the latest release is ${latest.version}.` +
+      `Runs ${running.version}. The latest is ${latest.version}.` +
       (standing.since !== null ? ` Behind since ${formatReleaseDay(standing.since)}.` : ''),
   };
 }
