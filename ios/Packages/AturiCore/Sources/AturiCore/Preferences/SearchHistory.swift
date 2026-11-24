@@ -169,11 +169,27 @@ public enum SearchHistory {
         return keyOrder.compactMap { byKey[$0] }
     }
 
+    /// Whether a destination is worth remembering. The search box routes any
+    /// text it does not recognise to `/explore/<text>`, so a typo or a
+    /// sentence would otherwise sit in "Recent" forever as a dead link. A
+    /// repo-shaped destination must name a real handle or DID; PDS, lexicon
+    /// and verbatim explorer paths come from parsers that already checked
+    /// their shape.
+    public static func isRememberable(path: String) -> Bool {
+        let destination = SearchDestination(explorePath: path.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard var repo = destination.repo else { return true }
+        if repo.hasPrefix("@") { repo.removeFirst() }
+        return isValidHandle(repo) || isValidDid(repo)
+    }
+
     /// Parse the stored JSON array, dropping malformed rows and folding
     /// duplicates. Anything that is not an array is an empty history.
+    /// Junk destinations stored before `isRememberable` existed are dropped
+    /// here too, so devices clean themselves up on the next read.
     public static func parse(_ data: Data) -> [SearchHistoryEntry] {
         guard let json = try? JSONValue.parse(data), let rows = json.arrayValue else { return [] }
-        return dedupe(rows.compactMap(SearchHistoryEntry.init(json:)))
+        let entries = rows.compactMap(SearchHistoryEntry.init(json:)).filter { isRememberable(path: $0.path) }
+        return dedupe(entries)
     }
 
     public static func serialize(_ entries: [SearchHistoryEntry]) -> Data {
@@ -260,6 +276,14 @@ public final class SearchHistoryStore {
         defaults.removeObject(forKey: storageKey)
     }
 
+    /// Forget one destination. Matching by canonical path also drops any
+    /// stored variant of it (`@Dame.is` next to `dame.is`) that predates
+    /// canonical storage, so the row cannot come back on the next read.
+    public func remove(_ entry: SearchHistoryEntry) {
+        let key = SearchHistory.normalizePathKey(entry.path)
+        write(entries.filter { SearchHistory.normalizePathKey($0.path) != key })
+    }
+
     /// Record one navigation. An existing entry for the destination (matched
     /// by canonical path, or by DID for actor-level paths) has its count
     /// bumped and metadata refreshed: new non-nil values win, a previously
@@ -273,6 +297,15 @@ public final class SearchHistoryStore {
         let path = SearchHistory.normalizePathKey(trimmedPath)
         var next = entries
         let stamp = now().timeIntervalSince1970 * 1000
+        // A search for a DID carries no DID of its own, but its path is one:
+        // reading it from there lets the visit bump the account's existing
+        // handle entry instead of adding a second row for the same person,
+        // and storing it lets a later actor visit or backfill fold into it.
+        var did = did
+        if did == nil, SearchHistory.isActorLevelPath(path) {
+            let segment = String(path.dropFirst(SearchHistory.explorePrefix.count))
+            if segment.hasPrefix("did:") { did = segment }
+        }
         let inDid = did?.lowercased()
         let existing = next.firstIndex { entry in
             let key = SearchHistory.normalizePathKey(entry.path)
@@ -315,6 +348,7 @@ public final class SearchHistoryStore {
 
     /// Record a free-text search whose resolved destination is known.
     public func recordQueryVisit(_ rawQuery: String, path: String) {
+        guard SearchHistory.isRememberable(path: path) else { return }
         recordVisit(path: path, label: rawQuery.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
@@ -332,7 +366,10 @@ public final class SearchHistoryStore {
         if let did = patch.did { entry.did = did }
         if let handle = patch.handle { entry.handle = handle }
         next[index] = entry
-        write(next)
+        // A backfilled DID can make this entry the same account as another
+        // actor-level row; folding now keeps the two from showing side by
+        // side until the next launch re-reads and dedupes.
+        write(SearchHistory.dedupe(next))
         return true
     }
 

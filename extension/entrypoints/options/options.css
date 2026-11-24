@@ -528,6 +528,24 @@
   background: var(--danger-soft);
 }
 
+/* On a phone the text, Clear history and the switch can't share one line
+   without squeezing the description to a word a line. The button drops under
+   the text and the switch keeps its place at the top right. */
+@media (max-width: 560px) {
+  .options-toggle-row:has(> .defaults-clear-recents) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
+    row-gap: 10px;
+  }
+
+  .options-toggle-row > .defaults-clear-recents {
+    grid-row: 2;
+    grid-column: 1;
+    justify-self: start;
+  }
+}
+
 /* Favorites per compatibility group. */
 .defaults-family-row {
   padding: 10px 18px;

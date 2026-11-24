@@ -35,7 +35,7 @@ struct PostToolView: View {
         ToolFrame(slug: "post", shareQuery: model.shareQuery) {
             VStack(alignment: .leading, spacing: 10) {
                 ToolInputBar(
-                    placeholder: "bsky.app/profile/\u{2026}/post/\u{2026} or at://\u{2026}",
+                    placeholder: "Post link or at:// URI",
                     text: $text,
                     buttonTitle: "Inspect",
                     isRunning: model.isRunning

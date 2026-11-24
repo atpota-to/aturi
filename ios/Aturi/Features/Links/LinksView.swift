@@ -1,197 +1,134 @@
 import SwiftUI
 import UIKit
-import AppIntents
 import AturiCore
 
-/// The Links tab root: paste anything that names an Atmosphere page and
-/// get the preview and the waypoint picker. This is the input half of the
-/// universal-link experience; a link that arrives from outside the app
-/// skips this screen and lands straight on `PreviewView`.
-struct LinksView: View {
+/* Links used to be a tab of its own: a box to paste a link into and the
+   links opened lately. Both now live on the Explore landing, whose search
+   box already took links. What the two screens share is here. */
+
+/// How a typed or pasted string becomes the universal-link page. Only a
+/// web link does, typed with or without its `https://`: a handle, a DID
+/// or an `at://` URI typed into Explore still opens the explorer page for
+/// it, as it always has.
+enum LinkInput {
+    /// The preview for `value` when it is a link to a page this app can
+    /// preview: an aturi.to universal link, or a link from any client in
+    /// the catalog (bsky.app, deer.social, tangled.org...), with or without
+    /// its `https://`. Nil for anything else, including aturi.to explorer
+    /// pages, which the router opens as explorer pages.
+    static func previewComponents(for value: String) -> AtUriComponents? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+        guard lower.hasPrefix("https://") || lower.hasPrefix("http://") else {
+            return schemelessPreviewComponents(for: trimmed)
+        }
+        if let target = DeepLinks.target(for: trimmed) {
+            if case .route(.preview(let components), _) = target {
+                return components
+            }
+            return nil
+        }
+        guard var components = extractAtUriComponents(trimmed) else { return nil }
+        if components.identifier.hasPrefix("@") {
+            components.identifier.removeFirst()
+        }
+        return components
+    }
+
+    /* People type "bsky.app/profile/dame.is" without the scheme, and
+       Explore used to read the host as a handle. The input is retried as a
+       link only when it looks like a host followed by a path whose first
+       segment has no dot: explorer shorthand such as
+       "dame.is/app.bsky.feed.post/xyz" puts an NSID there and must still
+       reach the explorer. Only the router's own preview mapping counts, not
+       the loose extractAtUriComponents fallback, which would read nearly
+       any "host/path" as a handle. */
+    private static func schemelessPreviewComponents(for trimmed: String) -> AtUriComponents? {
+        let lower = trimmed.lowercased()
+        guard !trimmed.contains("://"), !lower.hasPrefix("at:"), !lower.hasPrefix("did:") else { return nil }
+        let segments = trimmed.split(separator: "/", omittingEmptySubsequences: true)
+        guard segments.count >= 2 else { return nil }
+        let host = segments[0]
+        guard host.contains("."), !host.contains(where: \.isWhitespace) else { return nil }
+        guard !segments[1].contains(".") else { return nil }
+        let candidate = "https://" + trimmed
+        if case .route(.preview(let components), _) = DeepLinks.target(for: candidate) {
+            return components
+        }
+        return nil
+    }
+
+    /// Push the preview for a link the person entered in the app. It is
+    /// noted as in-app, so an auto-redirect preference never fires for it.
+    @MainActor
+    static func openPreview(_ components: AtUriComponents, router: AppRouter) {
+        LinkNavigation.noteInAppPreview(components)
+        router.open(.preview(components), in: .explore)
+    }
+}
+
+/// "Recent links" on the Explore landing: the universal-link pages opened
+/// lately, newest first, with Clear. Tapping one opens it again as an
+/// in-app link.
+struct RecentLinksSection: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.aturiTheme) private var theme
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var input = ""
-    @State private var showsInvalidHint = false
-    @FocusState private var inputFocused: Bool
-
-    /// Inputs offered as a starting point: public accounts the web app
-    /// already uses as examples.
-    private static let examples = ["dame.is", "https://bsky.app/profile/aturi.to"]
 
     private var recents: RecentLinksStore {
         RecentLinksStore.shared
     }
 
-    private var trimmed: String {
-        input.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var isValid: Bool {
-        !trimmed.isEmpty && isValidInput(trimmed)
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                intro
-                inputCard
-                if !recents.entries.isEmpty {
-                    recentsSection
+        Group {
+            if !recents.entries.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        SectionHeader("Recent links")
+                        Button("Clear") {
+                            recents.clear()
+                            /* The pages this app put in Spotlight and Siri
+                               Suggestions (PageActivity.swift) are history too. */
+                            NSUserActivity.deleteAllSavedUserActivities {}
+                        }
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textSecondary)
+                    }
+                    VStack(spacing: 0) {
+                        ForEach(recents.entries) { entry in
+                            Button {
+                                open(entry.input)
+                            } label: {
+                                row(entry)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = entry.input
+                                } label: {
+                                    Label("Copy link", systemImage: "doc.on.doc")
+                                }
+                                Button(role: .destructive) {
+                                    recents.remove(entry)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                            }
+                            if entry.id != recents.entries.last?.id {
+                                Divider()
+                                    .overlay(theme.borderSubtle)
+                            }
+                        }
+                    }
+                    .cardBackground()
                 }
-                explanation
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
-        .scrollDismissesKeyboard(.interactively)
-        .background(theme.bgPrimary)
-        .navigationTitle("Links")
         .task {
             recents.reload()
         }
-        /* The "Open Copied Link" shortcut lands here. A cold launch shows
-           this screen before the app is active, so every one of the three
-           moments that could be the first with both (appearing, the
-           request, the scene becoming active) gets to try. */
-        .onAppear(perform: openRequestedClipboardLink)
-        .onChange(of: router.clipboardLinkRequested) { _, _ in
-            openRequestedClipboardLink()
-        }
-        .onChange(of: scenePhase) { _, _ in
-            openRequestedClipboardLink()
-        }
     }
 
-    private var intro: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Tour the Atmosphere.")
-                .font(AturiFont.display)
-                .tracking(AturiFont.displayTracking)
-                .foregroundStyle(theme.textPrimary)
-            Text("See every app that can open a link.")
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var inputCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader("Open a link")
-            HStack(spacing: 8) {
-                TextField("Link, AT URI, handle or DID", text: $input)
-                    .font(AturiFont.mono)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .submitLabel(.go)
-                    .focused($inputFocused)
-                    .onSubmit(open)
-                    .padding(10)
-                    .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
-                if !input.isEmpty {
-                    Button {
-                        input = ""
-                        showsInvalidHint = false
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(theme.textTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear")
-                }
-            }
-            if showsInvalidHint && !trimmed.isEmpty && !isValid {
-                Text("Not a link Aturi can open. Try an at:// URI, a handle, a DID or a link from a supported app.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            HStack(spacing: 10) {
-                Button(action: paste) {
-                    Label("Paste", systemImage: "doc.on.clipboard")
-                }
-                .buttonStyle(.aturiSecondary)
-                Button(action: open) {
-                    Label("Open", systemImage: "arrow.right")
-                }
-                .buttonStyle(.aturiPrimary)
-                .disabled(trimmed.isEmpty)
-            }
-            examplesRow
-        }
-        .padding(14)
-        .cardBackground()
-    }
-
-    private var examplesRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Try")
-                .aturiLabel()
-                .foregroundStyle(theme.textTertiary)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Self.examples, id: \.self) { example in
-                        Button {
-                            input = example
-                            open()
-                        } label: {
-                            Chip(example, systemImage: "arrow.up.right")
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Open \(example)")
-                    }
-                }
-            }
-        }
-    }
-
-    private var recentsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                SectionHeader("Recent")
-                Button("Clear") {
-                    recents.clear()
-                    /* The pages this app put in Spotlight and Siri
-                       Suggestions (PageActivity.swift) are history too. */
-                    NSUserActivity.deleteAllSavedUserActivities {}
-                }
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-            }
-            VStack(spacing: 0) {
-                ForEach(recents.entries) { entry in
-                    Button {
-                        input = entry.input
-                        open()
-                    } label: {
-                        recentRow(entry)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button {
-                            UIPasteboard.general.string = entry.input
-                        } label: {
-                            Label("Copy link", systemImage: "doc.on.doc")
-                        }
-                        Button(role: .destructive) {
-                            recents.remove(entry)
-                        } label: {
-                            Label("Remove", systemImage: "trash")
-                        }
-                    }
-                    if entry.id != recents.entries.last?.id {
-                        Divider()
-                            .overlay(theme.borderSubtle)
-                    }
-                }
-            }
-            .cardBackground()
-        }
-    }
-
-    private func recentRow(_ entry: RecentLinksStore.Entry) -> some View {
+    private func row(_ entry: RecentLinksStore.Entry) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -216,83 +153,13 @@ struct LinksView: View {
         .contentShape(Rectangle())
     }
 
-    private var explanation: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("What is a universal link?")
-                .font(AturiFont.subtitle)
-                .foregroundStyle(theme.textPrimary)
-            Text("An aturi.to link points to an account or record, not one app. Whoever opens it picks their own client.")
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    /* Entries are aturi.to links, so this is almost always the preview;
+       anything else goes where the router sends it. */
+    private func open(_ input: String) {
+        if let components = LinkInput.previewComponents(for: input) {
+            LinkInput.openPreview(components, router: router)
+        } else {
+            router.handle(string: input)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardBackground()
-    }
-
-    /* The pasteboard's URL is preferred over its string because a copied
-       link may carry surrounding text; a valid paste opens straight away
-       since that is the whole point of the button. */
-    private func paste() {
-        let board = UIPasteboard.general
-        let text = board.url?.absoluteString ?? board.string
-        guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        input = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        showsInvalidHint = false
-        if isValid {
-            /* Tells Siri this is something the person does, so it can offer
-               the "Open Copied Link" shortcut at the moments they tend to. */
-            IntentDonationManager.shared.donate(intent: OpenCopiedLinkIntent())
-            open()
-        }
-    }
-
-    /* The shortcut's half of `paste()`: the same clipboard read, opened as
-       a link from outside the app (an auto-redirect preference applies, as
-       it does to the share sheet), and only once the app is active, since
-       iOS asks before the read. A clipboard with no link leaves the text in
-       the field with the hint, and an empty one leaves this screen as is. */
-    private func openRequestedClipboardLink() {
-        guard scenePhase == .active, router.consumeClipboardLinkRequest() else { return }
-        let board = UIPasteboard.general
-        let text = (board.url?.absoluteString ?? board.string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !text.isEmpty else { return }
-        input = text
-        showsInvalidHint = false
-        inputFocused = false
-        if !router.openLink(text) {
-            showsInvalidHint = true
-        }
-    }
-
-    /* Anything `extractAtUriComponents` understands becomes a preview page
-       on this tab. Other links the router knows (an aturi.to explorer page)
-       go where the router sends them; everything else is refused with the
-       hint rather than handed to Safari. A preview pushed from here is
-       noted as in-app first, so it never reads as an incoming link. */
-    private func open() {
-        let value = trimmed
-        guard !value.isEmpty else { return }
-        if var components = extractAtUriComponents(value) {
-            if components.identifier.hasPrefix("@") {
-                components.identifier.removeFirst()
-            }
-            inputFocused = false
-            showsInvalidHint = false
-            LinkNavigation.noteInAppPreview(components)
-            router.open(.preview(components), in: .links)
-            return
-        }
-        if let target = DeepLinks.target(for: value) {
-            if case .route(let route, _) = target, case .preview(let components) = route {
-                LinkNavigation.noteInAppPreview(components)
-            }
-            inputFocused = false
-            showsInvalidHint = false
-            router.handle(string: value)
-            return
-        }
-        showsInvalidHint = true
     }
 }

@@ -42,6 +42,28 @@ enum LinkNavigation {
         return pendingInAppPreview == components
     }
 
+    /* The other half: the router leaves this note when it places a preview
+       for a link from outside (a universal link, the share sheet, a
+       Shortcuts action). A preview with neither note was pushed by a card
+       on some page, which is in-app too. Only a preview with this note and
+       no in-app one may count down to an auto-redirect. */
+    @MainActor private static var pendingIncomingPreview: AtUriComponents?
+
+    /// Record that the router is about to push the preview for
+    /// `components` for a link that came from outside the app.
+    @MainActor
+    static func noteIncomingPreview(_ components: AtUriComponents) {
+        pendingIncomingPreview = components
+    }
+
+    /// Whether the preview for `components` is for a link from outside the
+    /// app. Clears the note either way.
+    @MainActor
+    static func consumeIncomingPreview(_ components: AtUriComponents) -> Bool {
+        defer { pendingIncomingPreview = nil }
+        return pendingIncomingPreview == components
+    }
+
     /// Open a waypoint's link. The `aturi` and `aturiExplore` waypoints
     /// point back at aturi.to, and iOS hands an app's own universal links
     /// to Safari when the app opens them itself, so those two used to leave

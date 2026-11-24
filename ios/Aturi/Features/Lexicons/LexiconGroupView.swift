@@ -39,7 +39,11 @@ struct LexiconGroupView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 headerCard
-                filterBar
+                /* Nothing to filter in an empty listing, and a field over
+                   "Nothing is published" reads as if the filter caused it. */
+                if model.emptyMessage == nil {
+                    filterBar
+                }
                 listCard
                 MicrocosmCredit()
             }

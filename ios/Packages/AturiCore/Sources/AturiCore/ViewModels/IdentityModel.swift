@@ -88,7 +88,7 @@ public final class IdentityModel {
     ]
 
     /// The banner's second paragraph: a dead repo is not a dead identity.
-    public nonisolated static let identityUntouchedNote = "Its identity is untouched. The DID document, the PLC audit log and every record elsewhere in the Atmosphere that points at this DID live outside the PDS, so the ID, LOG and BACKLINKS tabs below all still work."
+    public nonisolated static let identityUntouchedNote = "Its identity is untouched. The DID document, the PLC audit log and every record elsewhere in the Atmosphere that points at this DID live outside the PDS, so the Identity, Log and Backlinks tabs below all still work."
     /// AuditTab's placeholder for a non-PLC DID.
     public nonisolated static let auditNotPlcMessage = "Audit log only available for did:plc: DIDs."
     public nonisolated static let noOperationsMessage = "No PLC operations recorded."

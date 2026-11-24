@@ -77,7 +77,7 @@ struct SignInSheet: View {
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HandleTypeaheadField(text: $input, onSubmit: proceedToScopes)
-            Button("Sign in", action: proceedToScopes)
+            Button("Next", action: proceedToScopes)
                 .buttonStyle(.aturiPrimary)
                 .disabled(trimmedInput.isEmpty)
             Text("You will be sent to your own server to approve the sign in. This app never sees your password.")
@@ -119,7 +119,7 @@ struct SignInSheet: View {
                         ProgressView()
                             .tint(theme.textOnAccent)
                     }
-                    Text(busy ? progressLabel : "Continue")
+                    Text(busy ? progressLabel : "Sign in")
                 }
             }
             .buttonStyle(.aturiPrimary)

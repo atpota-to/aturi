@@ -2,35 +2,57 @@ import SwiftUI
 import Observation
 import AturiCore
 
-/// The top-level destinations, in tab-bar order. `Sendable` is spelled
-/// out because the App Intents conformance (Intents/NavigationIntents.swift)
-/// requires it, and Swift wants it declared in this file.
+/// The tab bar, in order. Links and Lexicons are not tabs: a pasted or
+/// incoming link opens its preview on Explore, and the lexicon browser is a
+/// page pushed from Explore, as `/explore/lexicons` is on the web.
 enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
     case explore
-    case links
-    case lexicons
     case tools
     case settings
+    case account
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .explore: return "Explore"
-        case .links: return "Links"
-        case .lexicons: return "Lexicons"
         case .tools: return "Tools"
         case .settings: return "Settings"
+        case .account: return "Account"
         }
     }
 
     var systemImage: String {
         switch self {
         case .explore: return "magnifyingglass"
-        case .links: return "link"
-        case .lexicons: return "book.closed"
         case .tools: return "wrench.and.screwdriver"
         case .settings: return "gearshape"
+        case .account: return "person.crop.circle"
+        }
+    }
+}
+
+/// The app's sections as a link or a shortcut can name them. Wider than
+/// `Tab`: Links and Lexicons were tabs once, and `/links`, `/explore/lexicons`
+/// and "Open Lexicons in Aturi" still name them, so they stay addressable
+/// and land inside Explore (`AppRouter.show`). `Sendable` is spelled out
+/// because the App Intents conformance (Intents/NavigationIntents.swift)
+/// requires it, and Swift wants it declared in this file.
+enum AppSection: String, CaseIterable, Hashable, Sendable {
+    case explore
+    case links
+    case lexicons
+    case tools
+    case settings
+    case account
+
+    init(_ section: LinkSection) {
+        switch section {
+        case .explore: self = .explore
+        case .links: self = .links
+        case .lexicons: self = .lexicons
+        case .tools: self = .tools
+        case .settings: self = .settings
         }
     }
 }
@@ -48,6 +70,8 @@ enum Route: Hashable {
     case pds(host: String, query: [String: String] = [:])
     case lexicon(nsid: String)
     case lexiconGroup(prefix: String)
+    /// The lexicon browser (`/explore/lexicons`), pushed from Explore.
+    case lexicons
     /// The universal-link page: preview card plus waypoint picker.
     case preview(AtUriComponents)
     /// Free-text search results from the explore landing.
@@ -117,6 +141,8 @@ extension Route {
             return .lexicon(nsid: nsid)
         case .lexiconGroup(let prefix):
             return .lexiconGroup(prefix: prefix)
+        case .lexicons:
+            return .explorer(path: "/explore/lexicons")
         case .preview, .search, .tool:
             return nil
         }
@@ -165,31 +191,27 @@ extension Route {
         return "?" + pairs.joined(separator: "&")
     }
 
-    /// The tab a route belongs to when nothing else decides: universal
-    /// links land on Links, lexicon pages on Lexicons, tools on Tools, the
-    /// rest on Explore.
+    /// The tab a route belongs to when nothing else decides: tools on
+    /// Tools, everything else (universal links and lexicons included) on
+    /// Explore.
     var defaultTab: Tab {
         switch self {
-        case .preview:
-            return .links
-        case .lexicon, .lexiconGroup:
-            return .lexicons
         case .tool:
             return .tools
-        case .repo, .collection, .record, .pds, .search:
+        case .repo, .collection, .record, .pds, .search, .preview, .lexicon, .lexiconGroup, .lexicons:
             return .explore
         }
     }
 }
 
-/// What a URL maps to: a route pushed on a tab, a tab's root, or the
-/// Lexicons tab's New section.
+/// What a URL maps to: a route pushed on a tab, a section's root, or the
+/// lexicon browser on one of its lists.
 enum DeepLinkTarget: Hashable {
     case route(Route, tab: Tab)
-    case tabRoot(Tab)
-    /// The Lexicons tab at its root on the New section
-    /// (`AppRouter.showNewLexicons`).
-    case newLexicons
+    case section(AppSection)
+    /// The lexicon browser on the list a link names, one of
+    /// `DeepLinkRouting.lexiconLists` (`AppRouter.showLexicons(list:)`).
+    case lexiconList(String)
 }
 
 /// URL-to-target mapping, kept separate from the router so it can be
@@ -206,19 +228,14 @@ enum DeepLinks {
         guard let destination = DeepLinkRouting.destination(for: string) else { return nil }
         switch destination {
         case .preview(let components):
-            return .route(.preview(components), tab: .links)
+            return .route(.preview(components), tab: .explore)
         case .explore(let explorer, let repoTab, let pdsQuery):
             guard let route = Route(destination: explorer, repoTab: repoTab, pdsQuery: pdsQuery) else { return nil }
             return .route(route, tab: route.defaultTab)
         case .lexiconList(let list):
-            /* New is the one list the Lexicons tab can be sent to from
-               outside; any other opens the tab as it stands. */
-            if list == "new" {
-                return .newLexicons
-            }
-            return .tabRoot(.lexicons)
+            return .lexiconList(list)
         case .section(let section):
-            return .tabRoot(Tab(section))
+            return .section(AppSection(section))
         case .tool(let slug, let query):
             return .route(.tool(slug: slug, query: query), tab: .tools)
         }
@@ -237,19 +254,6 @@ enum DeepLinks {
     }
 }
 
-extension Tab {
-    /// The tab for a section a link names.
-    init(_ section: LinkSection) {
-        switch section {
-        case .explore: self = .explore
-        case .links: self = .links
-        case .lexicons: self = .lexicons
-        case .tools: self = .tools
-        case .settings: self = .settings
-        }
-    }
-}
-
 /// Navigation state for the whole app: one path per tab plus the selected
 /// tab. Screens push by value (`open`), incoming URLs are mapped by
 /// `DeepLinks` and applied here.
@@ -258,20 +262,29 @@ extension Tab {
 final class AppRouter {
     var selectedTab: Tab = .explore
     var explorePath = NavigationPath()
-    var linksPath = NavigationPath()
-    var lexiconsPath = NavigationPath()
     var toolsPath = NavigationPath()
     var settingsPath = NavigationPath()
-    /// Set by the "Open Copied Link" shortcut, cleared by the Links tab when
-    /// it reads the clipboard. The read waits for the Links tab because iOS
-    /// asks before an app reads what another app copied, and only an app
-    /// that is on screen can be asked.
+    var accountPath = NavigationPath()
+    /// Set by the "Open Copied Link" shortcut, cleared by the Explore
+    /// landing when it reads the clipboard. The read waits for the landing
+    /// because iOS asks before an app reads what another app copied, and
+    /// only an app that is on screen can be asked.
     private(set) var clipboardLinkRequested = false
-    /// Set by the Explore landing's "All new lexicons", cleared by the
-    /// Lexicons tab when it turns to its New section: the web's link to
-    /// `/explore/lexicons#new`, which lands on that card. An incoming link
-    /// to that address, or to `?list=new`, sets it too.
-    private(set) var newLexiconsRequested = false
+    /// The lexicon list the browser should turn to, one of
+    /// `DeepLinkRouting.lexiconLists`. Set by the Explore landing's card
+    /// links ("All new lexicons" is the web's `/explore/lexicons#new`) and
+    /// by an incoming `?list=` or `#new` link; cleared by the lexicon
+    /// browser once it has shown that list.
+    private(set) var requestedLexiconList: String?
+    /// Counts every time `show(.lexicons)` pushes a fresh browser. The
+    /// browser's view is keyed on it, so a link lands on a new page with
+    /// its default list and an empty search rather than one SwiftUI kept
+    /// from the last visit at the same stack position.
+    private(set) var lexiconsVisit = 0
+    /// One counter per tab, bumped when that tab's root should scroll back
+    /// to its top: a section link landing on it, or the tab reselected
+    /// while already at its root. Each root watches its own entry.
+    private(set) var scrollToTopRequest: [Tab: Int] = [:]
 
     init() {}
 
@@ -284,10 +297,19 @@ final class AppRouter {
         }
         switch target {
         case .explore: explorePath.append(route)
-        case .links: linksPath.append(route)
-        case .lexicons: lexiconsPath.append(route)
         case .tools: toolsPath.append(route)
         case .settings: settingsPath.append(route)
+        case .account: accountPath.append(route)
+        }
+    }
+
+    /// How many pages sit on a tab's stack.
+    func depth(of tab: Tab) -> Int {
+        switch tab {
+        case .explore: return explorePath.count
+        case .tools: return toolsPath.count
+        case .settings: return settingsPath.count
+        case .account: return accountPath.count
         }
     }
 
@@ -309,15 +331,61 @@ final class AppRouter {
     func popToRoot(_ tab: Tab? = nil) {
         switch tab ?? selectedTab {
         case .explore: explorePath = NavigationPath()
-        case .links: linksPath = NavigationPath()
-        case .lexicons: lexiconsPath = NavigationPath()
         case .tools: toolsPath = NavigationPath()
         case .settings: settingsPath = NavigationPath()
+        case .account: accountPath = NavigationPath()
         }
     }
 
     func select(_ tab: Tab) {
         selectedTab = tab
+    }
+
+    /// Ask a tab's root to scroll to its top (see `scrollToTopRequest`).
+    func requestTop(_ tab: Tab) {
+        scrollToTopRequest[tab, default: 0] += 1
+    }
+
+    /// A tap on the tab that is already selected, as UIKit's tab bar
+    /// handles it: back to the root when a page is pushed, and to the top
+    /// of the root when it is already showing.
+    func reselect(_ tab: Tab) {
+        if depth(of: tab) == 0 {
+            requestTop(tab)
+        } else {
+            popToRoot(tab)
+        }
+    }
+
+    /// Go to a section at its top, as a link or a shortcut names it. Links
+    /// is the Explore landing, where links are pasted; Lexicons is the
+    /// lexicon browser pushed once on a fresh Explore stack. Popping alone
+    /// leaves a root wherever it was scrolled, so each root is also asked
+    /// to scroll up; the lexicon browser is a new page and starts there.
+    func show(_ section: AppSection) {
+        switch section {
+        case .explore, .links:
+            popToRoot(.explore)
+            requestTop(.explore)
+            selectedTab = .explore
+        case .lexicons:
+            popToRoot(.explore)
+            lexiconsVisit += 1
+            explorePath.append(Route.lexicons)
+            selectedTab = .explore
+        case .tools:
+            popToRoot(.tools)
+            requestTop(.tools)
+            selectedTab = .tools
+        case .settings:
+            popToRoot(.settings)
+            requestTop(.settings)
+            selectedTab = .settings
+        case .account:
+            popToRoot(.account)
+            requestTop(.account)
+            selectedTab = .account
+        }
     }
 
     /// Route an incoming URL. False for links the app has no page for, so
@@ -332,33 +400,42 @@ final class AppRouter {
     @discardableResult
     func handle(string: String) -> Bool {
         guard let target = DeepLinks.target(for: string) else { return false }
-        if case .tabRoot(.settings) = target, let page = DeepLinks.settingsPage(for: string) {
+        if case .section(.settings) = target, let page = DeepLinks.settingsPage(for: string) {
             openSettings(page)
             return true
         }
-        if case .route(.preview(let components), _) = target, DeepLinks.asksToStay(string) {
-            LinkNavigation.noteStay(components)
+        if case .route(.preview(let components), _) = target {
+            /* Every preview the router places for a URL came from outside
+               the app; an in-app push leaves its own note first, which
+               the preview page checks before this one. */
+            LinkNavigation.noteIncomingPreview(components)
+            if DeepLinks.asksToStay(string) {
+                LinkNavigation.noteStay(components)
+            }
         }
         apply(target)
         return true
     }
 
     /// Show one settings screen over the Settings root, as a link to
-    /// `/account#redirects` does on the web.
+    /// `/account#redirects` does on the web. The account page is its own
+    /// tab, so a link to `/account#account` lands there.
     func openSettings(_ page: SettingsPage) {
+        if page == .account {
+            show(.account)
+            return
+        }
         settingsPath = NavigationPath()
         settingsPath.append(page)
         selectedTab = .settings
     }
 
     /// Open a link that came from outside the app (a Shortcuts action, the
-    /// clipboard) the way the Links tab opens a pasted one: anything
-    /// `extractAtUriComponents` reads becomes its preview on the Links tab,
-    /// and anything else the deep-link grammar places goes where that sends
-    /// it. Unlike the Links tab's own input it leaves no in-app note, so the
-    /// preview treats it as the incoming link it is and an auto-redirect
-    /// preference applies. False when the input names nothing the app has a
-    /// page for.
+    /// clipboard): anything `extractAtUriComponents` reads becomes its
+    /// preview on Explore, and anything else the deep-link grammar places
+    /// goes where that sends it. The preview is noted as incoming, so an
+    /// auto-redirect preference applies. False when the input names nothing
+    /// the app has a page for.
     @discardableResult
     func openLink(_ input: String) -> Bool {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -367,53 +444,59 @@ final class AppRouter {
             if components.identifier.hasPrefix("@") {
                 components.identifier.removeFirst()
             }
-            open(.preview(components), in: .links)
+            LinkNavigation.noteIncomingPreview(components)
+            open(.preview(components), in: .explore)
             return true
         }
         return handle(string: value)
     }
 
-    /// Show the Links tab and have it open whatever link is on the
+    /// Show the Explore landing and have it open whatever link is on the
     /// clipboard (see `clipboardLinkRequested`).
     func requestClipboardLink() {
-        popToRoot(.links)
-        selectedTab = .links
+        popToRoot(.explore)
+        selectedTab = .explore
         clipboardLinkRequested = true
     }
 
-    /// True once per request: the Links tab calls this when it is on screen
-    /// and the app is active, then reads the clipboard.
+    /// True once per request: the Explore landing calls this when it is on
+    /// screen and the app is active, then reads the clipboard.
     func consumeClipboardLinkRequest() -> Bool {
         guard clipboardLinkRequested else { return false }
         clipboardLinkRequested = false
         return true
     }
 
-    /// Show the Lexicons tab at its root with the New section selected
-    /// (see `newLexiconsRequested`).
-    func showNewLexicons() {
-        popToRoot(.lexicons)
-        selectedTab = .lexicons
-        newLexiconsRequested = true
+    /// Show the lexicon browser on one of its lists (see
+    /// `requestedLexiconList`), on a fresh Explore stack.
+    func showLexicons(list: String) {
+        show(.lexicons)
+        requestedLexiconList = list
     }
 
-    /// True once per request: the Lexicons tab calls this when it appears
-    /// and when the request changes, then shows its New section.
-    func consumeNewLexiconsRequest() -> Bool {
-        guard newLexiconsRequested else { return false }
-        newLexiconsRequested = false
-        return true
+    /// `showLexicons(list:)` on the New section, the Explore landing's
+    /// "All new lexicons".
+    func showNewLexicons() {
+        showLexicons(list: "new")
+    }
+
+    /// The requested list, once per request: the lexicon browser calls
+    /// this when it appears and when the request changes, then shows that
+    /// list. Nil when nothing is waiting.
+    func consumeLexiconListRequest() -> String? {
+        let list = requestedLexiconList
+        requestedLexiconList = nil
+        return list
     }
 
     private func apply(_ target: DeepLinkTarget) {
         switch target {
-        case .tabRoot(let tab):
-            popToRoot(tab)
-            selectedTab = tab
+        case .section(let section):
+            show(section)
         case .route(let route, let tab):
             open(route, in: tab)
-        case .newLexicons:
-            showNewLexicons()
+        case .lexiconList(let list):
+            showLexicons(list: list)
         }
     }
 }

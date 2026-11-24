@@ -32,6 +32,7 @@ import {
   type Prefs,
 } from '../../lib/prefs';
 import { debugLog } from '../../lib/debugLog';
+import { redirectEdges } from '../../lib/rules';
 import { applyAppearance } from '../../lib/appearance';
 import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
@@ -227,9 +228,11 @@ function cardEntry({
     match,
     who,
     tabLabel: pinned ? 'This page' : who,
+    // The record key goes in a reference's hover title: a run of tabs that
+    // all read the same handle is otherwise told apart by nothing.
     tabTitle: pinned
       ? `The page's own record · ${title}`
-      : `${title}${provenance ? ` · ${provenance}` : ''}`,
+      : `${title}${parsed.rkey ? ` · ${parsed.rkey}` : ''}${provenance ? ` · ${provenance}` : ''}`,
     title,
     kind,
     collectionLabel: parsed.collection ?? kind.toLowerCase(),
@@ -720,7 +723,9 @@ export default function App() {
             onOpen={selectRecord}
             drawerOpen={drawerOpen}
             band={
-              prefs.autoRedirect ? <PageBand tabId={ready.tabId} /> : null
+              prefs.autoRedirect ? (
+                <PageBand tabId={ready.tabId} tabUrl={ready.tabUrl} prefs={prefs} />
+              ) : null
             }
             lookup={
               <>
@@ -867,10 +872,35 @@ type RedirectScope = { supported: boolean; paused: boolean };
  * the narrow escape hatch: it exempts only the tab you're looking at, lasts
  * until you resume it or close the tab, and never touches your settings.
  * Paused, the band turns amber and offers Resume.
+ *
+ * Auto-redirect does nothing until a favorite is chosen for some family, so
+ * with no live redirect the band says so and links to the setting instead of
+ * offering a pause that would pause nothing. On a page whose links do
+ * redirect, it names where they go.
  */
-function PageBand({ tabId }: { tabId: number | null }) {
+function PageBand({
+  tabId,
+  tabUrl,
+  prefs,
+}: {
+  tabId: number | null;
+  tabUrl: string | null;
+  prefs: Prefs;
+}) {
   const [scope, setScope] = useState<RedirectScope | null>(null);
   const [busy, setBusy] = useState(false);
+  const edges = useMemo(() => redirectEdges(prefs), [prefs]);
+  const destinationHere = useMemo(() => {
+    if (!tabUrl) return null;
+    let host: string;
+    try {
+      host = new URL(tabUrl).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
+    const edge = edges.find(e => host === e.sourceHost || host === `www.${e.sourceHost}`);
+    return edge ? (findWaypoint(prefs, edge.destinationId)?.name ?? edge.destinationHost) : null;
+  }, [edges, tabUrl, prefs]);
 
   useEffect(() => {
     if (tabId == null) {
@@ -917,6 +947,23 @@ function PageBand({ tabId }: { tabId: number | null }) {
     }
   }
 
+  if (!paused && edges.length === 0) {
+    return (
+      <div className="popup-band">
+        <Shuffle size={14} aria-hidden />
+        <span className="popup-band-text">Auto-redirect is on, but no favorite is set</span>
+        <button
+          type="button"
+          className="popup-band-action"
+          onClick={() => void openOptionsPage('general')}
+          title="Pick the app each kind of link should open in"
+        >
+          Choose favorites
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={`popup-band${paused ? ' is-paused' : ''}`}>
       {paused ? <Pause size={14} aria-hidden /> : <Shuffle size={14} aria-hidden />}
@@ -924,7 +971,11 @@ function PageBand({ tabId }: { tabId: number | null }) {
         className="popup-band-text"
         title={paused ? 'Auto-redirect still works in your other tabs' : undefined}
       >
-        {paused ? 'Paused for this page' : 'Auto-redirect is on'}
+        {paused
+          ? 'Paused for this page'
+          : destinationHere
+            ? `Links here open in ${destinationHere}`
+            : 'Auto-redirect is on'}
       </span>
       {canPause && (
         <button

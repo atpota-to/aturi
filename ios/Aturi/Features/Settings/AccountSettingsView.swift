@@ -234,7 +234,6 @@ private struct AccountSignInView: View {
     @State private var selected: Set<ScopeId> = Scopes.defaultScopeIds
     @State private var busy = false
     @State private var errorMessage: String?
-    @FocusState private var handleFocused: Bool
 
     private var trimmedHandle: String {
         handle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -244,23 +243,28 @@ private struct AccountSignInView: View {
         !trimmedHandle.isEmpty && !busy
     }
 
+    /// Finer progress copy when the store reports it, as in the sheet.
+    private var progressLabel: String {
+        (sessionStore as? SessionStore)?.phase.label ?? "Signing in"
+    }
+
     var body: some View {
         List {
-            SettingsSection(
-                "Sign in to sync",
-                footer: "Optional. Without it, settings stay on this device."
-            ) {
-                TextField("handle.bsky.social or did:plc:...", text: $handle)
-                    .font(AturiFont.mono)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .textContentType(.username)
-                    .submitLabel(.go)
-                    .focused($handleFocused)
-                    .onSubmit(submit)
-                    .disabled(busy)
-                    .accessibilityLabel("Handle or DID")
+            /* A plain section rather than SettingsSection: the shared field
+               draws its own rounded background and suggestion card, so the
+               row gives up its cell chrome instead of nesting one rounded
+               box inside another. */
+            Section {
+                HandleTypeaheadField(text: $handle, disabled: busy, onSubmit: submit)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            } header: {
+                Text("Sign in to sync")
+                    .foregroundStyle(theme.textTertiary)
+            } footer: {
+                Text("Optional. Without it, settings stay on this device.")
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textSecondary)
             }
 
             SettingsSection(
@@ -281,45 +285,58 @@ private struct AccountSignInView: View {
                 }
             }
 
+            /* The button lives in a footer, not a row: inset grouped rows clip
+               their content to the section's rounded corners, which are far
+               larger than the button's, and cut its corners off. */
             Section {
-                Button(action: submit) {
-                    HStack(spacing: 8) {
-                        if busy {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(theme.textOnAccent)
-                        }
-                        Text(busy ? "Waiting for your PDS" : "Sign in")
-                    }
-                }
-                .buttonStyle(.aturiPrimary)
-                .disabled(!canSubmit)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(AturiFont.footnote)
-                        .foregroundStyle(theme.danger)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets())
-                }
             } footer: {
-                Text("You\u{2019}ll be sent to your PDS to authorize Aturi.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
+                VStack(alignment: .leading, spacing: 12) {
+                    Button(action: submit) {
+                        HStack(spacing: 8) {
+                            if busy {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(theme.textOnAccent)
+                            }
+                            Text(busy ? progressLabel : "Sign in")
+                        }
+                    }
+                    .buttonStyle(.aturiPrimary)
+                    .disabled(!canSubmit)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(AturiFont.footnote)
+                            .foregroundStyle(theme.danger)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityLabel("Error: \(errorMessage)")
+                    }
+
+                    Text("You\u{2019}ll be sent to your PDS to authorize Aturi.")
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .textCase(nil)
             }
         }
         .settingsList()
         .navigationTitle("Account")
+        .onChange(of: handle) { _, _ in
+            /* An error names the handle that failed; once the field says
+               something else it no longer describes anything on screen. */
+            errorMessage = nil
+        }
     }
 
     private func scopeBinding(_ id: ScopeId) -> Binding<Bool> {
         Binding(
             get: { selected.contains(id) },
             set: { on in
+                /* The keyboard would otherwise stay up over the rest of the
+                   form; the field's focus is its own, so it is dropped
+                   through the responder chain. */
+                dismissKeyboard()
                 if on {
                     selected.insert(id)
                 } else {
@@ -329,33 +346,28 @@ private struct AccountSignInView: View {
         )
     }
 
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    /// A dismissed browser is the person changing their mind, so it clears
+    /// the busy state without an error, as the sheet does.
     private func submit() {
         guard canSubmit else { return }
         let account = trimmedHandle
         let scope = selected
-        handleFocused = false
+        dismissKeyboard()
         busy = true
         errorMessage = nil
         Task { @MainActor in
             do {
                 try await sessionStore.signIn(handle: account, scope: scope)
             } catch {
-                errorMessage = Self.describe(error)
+                if !SignInErrorText.isCancellation(error) {
+                    errorMessage = SignInErrorText.describe(error)
+                }
             }
             busy = false
         }
-    }
-
-    /// The store's own wording when it has some; the bare case name of an
-    /// enum error otherwise, which is still more useful than the generic
-    /// "operation could not be completed".
-    private static func describe(_ error: Error) -> String {
-        if let localized = error as? LocalizedError, let description = localized.errorDescription, !description.isEmpty {
-            return description
-        }
-        if error is CancellationError {
-            return "Sign-in was cancelled."
-        }
-        return String(describing: error)
     }
 }

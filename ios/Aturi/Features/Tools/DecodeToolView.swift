@@ -42,7 +42,7 @@ struct DecodeToolView: View {
         ToolFrame(slug: Self.slug, shareQuery: shareQuery) {
             VStack(alignment: .leading, spacing: 10) {
                 ToolInputBar(
-                    placeholder: "A TID, CID, at:// URI, DID, NSID or token",
+                    placeholder: "TID, CID, URI, DID or NSID",
                     text: $text,
                     buttonTitle: "Decode",
                     keyboard: .asciiCapable
@@ -131,28 +131,24 @@ struct DecodeToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it reads") {
-            DecodeIntroStep(
-                number: 1,
-                term: "Record keys and revisions",
-                text: "A TID holds the microsecond it was made and a clock ID. A timestamp converts back to the TID for that instant."
-            )
-            DecodeIntroStep(
-                number: 2,
-                term: "Content identifiers",
-                text: "A CID’s version, codec and hash: whether it addresses a record or a blob, and the digest itself."
-            )
-            DecodeIntroStep(
-                number: 3,
-                term: "Addresses",
-                text: "An at:// URI split into its authority, collection and record key, each decoded in turn. DIDs by method, and NSIDs with the domain that publishes them."
-            )
-            DecodeIntroStep(
-                number: 4,
-                term: "Keys and tokens",
-                text: "The curve behind a did:key or a DID document’s signing key, and the claims inside a session, OAuth or service token."
-            )
-        }
+        ToolIntro("What it reads", items: [
+            (
+                "Record keys and revisions",
+                "A TID holds the microsecond it was made and a clock ID. A timestamp converts back to the TID for that instant."
+            ),
+            (
+                "Content identifiers",
+                "A CID’s version, codec and hash: whether it addresses a record or a blob, and the digest itself."
+            ),
+            (
+                "Addresses",
+                "An at:// URI split into its authority, collection and record key, each decoded in turn. DIDs by method, and NSIDs with the domain that publishes them."
+            ),
+            (
+                "Keys and tokens",
+                "The curve behind a did:key or a DID document’s signing key, and the claims inside a session, OAuth or service token."
+            ),
+        ])
     }
 }
 
@@ -332,36 +328,5 @@ private struct DecodeFactRow: View {
             guard !Task.isCancelled else { return }
             copied = false
         }
-    }
-}
-
-/// One numbered line of "What it reads", the web's `ToolIntro`.
-private struct DecodeIntroStep: View {
-    let number: Int
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(number)")
-                .font(AturiFont.sans(.caption, weight: .bold))
-                .foregroundStyle(theme.accentSoftFg)
-                .frame(width: 22, height: 22)
-                .background(theme.accentSoft, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(term)
-                    .font(AturiFont.sans(.subheadline, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(text)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
     }
 }

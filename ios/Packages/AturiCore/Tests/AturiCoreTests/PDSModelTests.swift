@@ -263,9 +263,12 @@ final class PDSModelTests: XCTestCase {
 
     func testLoadFetchesServerHealthAndTheFirstPageThenHydratesHandles() async {
         var routes = serverRoutes()
+        // The first page is short, so the one after it is asked for too;
+        // that one is short as well but isn't followed again.
+        routes.append(("cursor=c1", .init(status: 200, body: reposBody(6..<8, cursor: "c2"))))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<6, cursor: "c1"))))
         // Later DIDs answer first, so completion order is the reverse of page order.
-        routes.append(contentsOf: lookupRoutes(0..<6) { UInt64(6 - $0) * 4_000_000 })
+        routes.append(contentsOf: lookupRoutes(0..<8) { UInt64(8 - $0) * 4_000_000 })
         let transport = PDSRoutedTransport(routes)
         let model = makeModel(transport)
         XCTAssertEqual(model.pdsBase, "https://pds.example")
@@ -286,34 +289,37 @@ final class PDSModelTests: XCTestCase {
         XCTAssertNil(model.authServers, "a PDS that says nothing of OAuth")
         XCTAssertTrue(model.signIn.isEmpty)
 
-        XCTAssertEqual(model.repos.count, 6)
-        XCTAssertEqual(model.cursor, "c1")
+        XCTAssertEqual(model.repos.count, 8)
+        XCTAssertEqual(model.cursor, "c2")
         XCTAssertFalse(model.done)
+        XCTAssertFalse(model.isLoadingRepos)
         XCTAssertTrue(model.canLoadMore)
         XCTAssertFalse(model.showsSkeleton)
         XCTAssertNil(model.emptyMessage)
         XCTAssertFalse(model.firstPageFailed)
-        XCTAssertEqual(model.loadedLabel, "6+ listed")
-        XCTAssertEqual(model.footerLabel, "6 listed, more on the host")
-        XCTAssertEqual(model.searchStatusLabel, "6")
-        XCTAssertEqual(model.rows.map(\.did), (0..<6).map(did), "page order is kept while names are pending")
-        XCTAssertEqual(model.rows.map(\.index), Array(0..<6))
+        XCTAssertEqual(model.loadedLabel, "8+ listed")
+        XCTAssertEqual(model.footerLabel, "8 listed, more on the host")
+        XCTAssertEqual(model.searchStatusLabel, "8")
+        XCTAssertEqual(model.rows.map(\.did), (0..<8).map(did), "page order is kept while names are pending")
+        XCTAssertEqual(model.rows.map(\.index), Array(0..<8))
         XCTAssertEqual(model.rows[2].statusBadge, "takendown")
 
         await model.finishHandleLookups()
-        XCTAssertEqual(model.handles.count, 6)
-        for i in 0..<6 {
+        XCTAssertEqual(model.handles.count, 8)
+        for i in 0..<8 {
             XCTAssertEqual(model.rows[i].handle, handle(i), "row \(i) got its own handle despite out-of-order answers")
             XCTAssertEqual(model.rows[i].explorePath, "/explore/\(handle(i))")
             XCTAssertTrue(model.rows[i].nameSettled)
         }
-        XCTAssertEqual(model.rows.map(\.did), (0..<6).map(did))
-        XCTAssertEqual(transport.count(containing: "app.bsky.actor.getProfiles"), 1)
-        XCTAssertEqual(transport.count(containing: "describeRepo"), 6)
+        XCTAssertEqual(model.rows.map(\.did), (0..<8).map(did))
+        XCTAssertEqual(transport.count(containing: "app.bsky.actor.getProfiles"), 2, "one round a page")
+        XCTAssertEqual(transport.count(containing: "describeRepo"), 8)
         XCTAssertLessThanOrEqual(transport.maxInFlightLookups, PDSModel.handleLookupConcurrency)
-        let first = transport.urls.first { $0.contains("listRepos") }!
-        XCTAssertTrue(first.contains("limit=1000"))
-        XCTAssertFalse(first.contains("cursor="))
+        let pages = transport.urls.filter { $0.contains("listRepos") }
+        XCTAssertEqual(pages.count, 2, "a short page is followed once, not again")
+        XCTAssertTrue(pages[0].contains("limit=1000"))
+        XCTAssertFalse(pages[0].contains("cursor="))
+        XCTAssertTrue(pages[1].contains("cursor=c1"))
     }
 
     func testHandleLookupsAreCappedAndHandedOutInPageOrder() async {
@@ -343,56 +349,73 @@ final class PDSModelTests: XCTestCase {
 
     func testLoadMoreAppendsAndOnlyHydratesNewRows() async {
         var routes = serverRoutes()
-        routes.append(("cursor=c1", .init(status: 200, body: reposBody(6..<8))))
+        routes.append(("cursor=c1", .init(status: 200, body: reposBody(6..<8, cursor: "c2"))))
+        routes.append(("cursor=c2", .init(status: 200, body: reposBody(8..<10))))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<6, cursor: "c1"))))
-        routes.append(contentsOf: lookupRoutes(0..<8))
+        routes.append(contentsOf: lookupRoutes(0..<10))
         let transport = PDSRoutedTransport(routes)
         let model = makeModel(transport)
         await model.load().value
         await model.finishHandleLookups()
-        XCTAssertEqual(transport.count(containing: "describeRepo"), 6)
+        XCTAssertEqual(model.cursor, "c2")
+        XCTAssertEqual(transport.count(containing: "describeRepo"), 8)
+        XCTAssertEqual(transport.count(containing: "app.bsky.actor.getProfiles"), 2)
 
         await model.loadMore()?.value
-        XCTAssertEqual(model.repos.count, 8)
-        XCTAssertEqual(model.rows.map(\.did), (0..<8).map(did))
-        XCTAssertEqual(model.rows.map(\.index), Array(0..<8))
+        XCTAssertEqual(model.repos.count, 10)
+        XCTAssertEqual(model.rows.map(\.did), (0..<10).map(did))
+        XCTAssertEqual(model.rows.map(\.index), Array(0..<10))
         XCTAssertTrue(model.done, "no cursor on the last page")
         XCTAssertNil(model.cursor)
         XCTAssertFalse(model.canLoadMore)
         XCTAssertNil(model.loadMore())
-        XCTAssertTrue(transport.urls.contains { $0.contains("listRepos") && $0.contains("cursor=c1") })
+        XCTAssertTrue(transport.urls.contains { $0.contains("listRepos") && $0.contains("cursor=c2") })
 
         await model.finishHandleLookups()
-        XCTAssertEqual(model.handles.count, 8)
-        XCTAssertEqual(transport.count(containing: "describeRepo"), 8, "already-resolved rows are not looked up again")
-        XCTAssertEqual(transport.count(containing: "app.bsky.actor.getProfiles"), 2, "the AppView is asked only about the new page")
-        XCTAssertEqual(model.loadedLabel, "8 listed")
-        XCTAssertEqual(model.searchStatusLabel, "8")
+        XCTAssertEqual(model.handles.count, 10)
+        XCTAssertEqual(transport.count(containing: "describeRepo"), 10, "already-resolved rows are not looked up again")
+        XCTAssertEqual(transport.count(containing: "app.bsky.actor.getProfiles"), 3, "the AppView is asked only about the new page")
+        XCTAssertEqual(model.loadedLabel, "10 listed")
+        XCTAssertEqual(model.searchStatusLabel, "10")
     }
 
     func testOverlappingPagesListAnAccountOnceAndAStuckCursorEndsPaging() async {
         var routes = serverRoutes()
         routes.append(("cursor=c1", .init(status: 200, body: reposBody(2..<5, cursor: "c1"))))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<3, cursor: "c1"))))
-        let model = makeModel(PDSRoutedTransport(routes))
+        let transport = PDSRoutedTransport(routes)
+        let model = makeModel(transport)
+        // The short first page is followed by the overlapping one.
         await model.load().value
-        await model.loadMore()?.value
         XCTAssertEqual(model.repos.map(\.did), (0..<5).map(did))
         XCTAssertEqual(model.rows.map(\.index), Array(0..<5))
         XCTAssertTrue(model.done, "a cursor that does not move would page forever")
         XCTAssertFalse(model.canLoadMore)
+        XCTAssertNil(model.loadMore())
+        XCTAssertEqual(transport.count(containing: "listRepos"), 2)
     }
 
     func testLoadMoreWhileAPageIsInFlightIsANoOp() async {
         var routes = serverRoutes()
+        routes.append(("cursor=c1", .init(status: 200, body: reposBody(3..<5, cursor: "c2"), delayNanoseconds: 100_000_000)))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<3, cursor: "c1"), delayNanoseconds: 30_000_000)))
         let model = makeModel(PDSRoutedTransport(routes))
         let task = model.load()
         XCTAssertTrue(model.isLoadingRepos)
         XCTAssertTrue(model.showsSkeleton)
         XCTAssertNil(model.loadMore())
+
+        // The short first page is in and the page after it is on its way.
+        let firstIn = await waitUntil { model.repos.count == 3 }
+        XCTAssertTrue(firstIn)
+        XCTAssertTrue(model.isLoadingRepos, "still loading between a short page and the one after it")
+        XCTAssertFalse(model.showsSkeleton)
+        XCTAssertNil(model.loadMore())
+
         await task.value
-        XCTAssertEqual(model.repos.count, 3)
+        XCTAssertEqual(model.repos.count, 5)
+        XCTAssertFalse(model.isLoadingRepos)
+        XCTAssertTrue(model.canLoadMore)
     }
 
     func testAnEmptyBatchWithACursorEndsPagination() async {
@@ -466,8 +489,9 @@ final class PDSModelTests: XCTestCase {
 
     func testFilterMatchesDidsAndResolvedHandles() async {
         var routes = serverRoutes()
+        routes.append(("cursor=c1", .init(status: 200, body: reposBody(6..<8, cursor: "c2"))))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<6, cursor: "c1"))))
-        routes.append(contentsOf: lookupRoutes(0..<6))
+        routes.append(contentsOf: lookupRoutes(0..<8))
         let transport = PDSRoutedTransport(routes, gated: true)
         let model = makeModel(transport)
         await model.load().value
@@ -478,21 +502,21 @@ final class PDSModelTests: XCTestCase {
         model.filter = " USER3 "
         XCTAssertTrue(model.visibleRows.isEmpty, "handles are not searchable before they resolve")
         XCTAssertEqual(model.noMatchMessage, "No listed account matches USER3. Load more to look further.")
-        XCTAssertEqual(model.loadedLabel, "0 of 6 shown")
-        XCTAssertEqual(model.searchStatusLabel, "0/6")
+        XCTAssertEqual(model.loadedLabel, "0 of 8 shown")
+        XCTAssertEqual(model.searchStatusLabel, "0/8")
 
         transport.openGate()
         await model.finishHandleLookups()
         XCTAssertEqual(model.visibleRows.map(\.did), [did(3)])
         XCTAssertNil(model.noMatchMessage)
-        XCTAssertEqual(model.loadedLabel, "1 of 6 shown")
-        XCTAssertEqual(model.searchStatusLabel, "1/6")
+        XCTAssertEqual(model.loadedLabel, "1 of 8 shown")
+        XCTAssertEqual(model.searchStatusLabel, "1/8")
 
         model.filter = "PDSREPOTEST0000005"
         XCTAssertEqual(model.visibleRows.map(\.did), [did(5)])
 
         model.filter = ""
-        XCTAssertEqual(model.visibleRows.count, 6)
+        XCTAssertEqual(model.visibleRows.count, 8)
     }
 
     // MARK: Filters, counts and orders
@@ -702,15 +726,37 @@ final class PDSModelTests: XCTestCase {
 
     func testALaterPageFailingKeepsTheListAndSaysSo() async {
         var routes = serverRoutes()
-        routes.append(("cursor=c1", .init(status: 502, body: "bad gateway")))
+        routes.append(("cursor=c1", .init(status: 200, body: reposBody(2..<4, cursor: "c2"))))
+        routes.append(("cursor=c2", .init(status: 502, body: "bad gateway")))
         routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<2, cursor: "c1"))))
         let model = makeModel(PDSRoutedTransport(routes))
         await model.load().value
+        XCTAssertNil(model.reposError)
+        XCTAssertEqual(model.footerLabel, "4 listed, more on the host")
+
         await model.loadMore()?.value
-        XCTAssertEqual(model.repos.count, 2)
+        XCTAssertEqual(model.repos.count, 4)
         XCTAssertFalse(model.firstPageFailed)
         XCTAssertTrue(model.canLoadMore, "the next page can be tried again")
-        XCTAssertEqual(model.footerLabel, "2 listed, more on the host. The last page didn’t load.")
+        XCTAssertEqual(model.footerLabel, "4 listed, more on the host. The last page didn’t load.")
+    }
+
+    func testAShortPageWhoseNextPageIsEmptyListsEverything() async {
+        var routes = serverRoutes()
+        routes.append(("cursor=c1", .init(status: 200, body: #"{"repos":[]}"#)))
+        routes.append(("com.atproto.sync.listRepos", .init(status: 200, body: reposBody(0..<3, cursor: "c1"))))
+        let transport = PDSRoutedTransport(routes)
+        let model = makeModel(transport)
+        await model.load().value
+        XCTAssertEqual(model.repos.count, 3)
+        XCTAssertTrue(model.done, "the cursor led to nothing more")
+        XCTAssertFalse(model.isLoadingRepos)
+        XCTAssertFalse(model.canLoadMore)
+        XCTAssertNil(model.loadMore())
+        XCTAssertNil(model.emptyMessage)
+        XCTAssertEqual(model.footerLabel, "All 3 listed")
+        XCTAssertEqual(model.loadedLabel, "3 listed")
+        XCTAssertEqual(transport.count(containing: "listRepos"), 2)
     }
 
     func testAHostThatIsNotAHostFailsBeforeAnyRequest() async {

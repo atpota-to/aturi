@@ -1,7 +1,7 @@
 import AppIntents
 import AturiCore
 
-/* The Links tab as Shortcuts actions. The two "Open" actions bring the app
+/* The universal-link page as Shortcuts actions. The two "Open" actions bring the app
    forward and land on the same preview a universal link lands on; the
    "Get" actions run without opening the app and hand their result to the
    next action in the shortcut. */
@@ -43,13 +43,13 @@ struct OpenLinkIntent: AppIntent {
 struct OpenCopiedLinkIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Copied Link in Aturi"
     static let description = IntentDescription(
-        "Opens the copied link in the Links tab. iOS asks before Aturi reads what another app copied; allow pasting from other apps in Aturi's settings to skip the question.",
+        "Opens the copied link in Aturi. iOS asks before Aturi reads what another app copied; allow pasting from other apps in Aturi's settings to skip the question.",
         categoryName: "Links",
         searchKeywords: ["clipboard", "paste", "copied", "atproto", "bluesky"]
     )
     static let openAppWhenRun = true
 
-    /* The clipboard is read by the Links tab once the app is in front (see
+    /* The clipboard is read by the Explore landing once the app is in front (see
        `AppRouter.requestClipboardLink`), not here: this can run while the
        app is still coming forward, when iOS cannot ask about the paste. */
     @MainActor

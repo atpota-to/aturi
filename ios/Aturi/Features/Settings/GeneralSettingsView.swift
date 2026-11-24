@@ -79,7 +79,7 @@ struct GeneralSettingsView: View {
 
             SettingsSection(
                 "Pinned lexicons",
-                footer: "Pinned lexicons and groups (app.bsky.feed.*) sit at the top of a repo\u{2019}s Lexicons tab."
+                footer: "Pinned lexicons and groups (app.bsky.feed.*) sit at the top of a repo\u{2019}s Collections tab. Pins in the Explore lexicon browser are a separate list."
             ) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Show pinned section on")
@@ -161,8 +161,10 @@ struct GeneralSettingsView: View {
 }
 
 /// The web's two-tone chip: the dark variant on the left, the light one on
-/// the right, each showing its background with a dot of its accent, so
-/// both are visible whichever one is active.
+/// the right, each showing its background with a dot of its text accent, so
+/// both are visible whichever one is active. Trans is the exception, as in
+/// globals.css: its light half takes the pink accent instead of the deep
+/// blue text accent, so the chip shows the flag's sky blue and pink.
 private struct SchemeSwatch: View {
     let scheme: AturiColorScheme
 
@@ -172,8 +174,8 @@ private struct SchemeSwatch: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         HStack(spacing: 0) {
-            half(scheme.darkPalette)
-            half(scheme.lightPalette)
+            half(scheme.darkPalette, dot: scheme.darkPalette.textAccent)
+            half(scheme.lightPalette, dot: scheme == .trans ? scheme.lightPalette.accentMoss : scheme.lightPalette.textAccent)
         }
         .frame(width: 48, height: 30)
         .clipShape(shape)
@@ -181,11 +183,11 @@ private struct SchemeSwatch: View {
         .accessibilityHidden(true)
     }
 
-    private func half(_ palette: Palette) -> some View {
+    private func half(_ palette: Palette, dot: String) -> some View {
         ZStack {
             Color(hex: palette.bgPrimary)
             Circle()
-                .fill(Color(hex: palette.accentMoss))
+                .fill(Color(hex: dot))
                 .frame(width: 10, height: 10)
         }
     }
@@ -259,7 +261,7 @@ private struct PinnedListSection: View {
         SettingsSection(
             "\(title) (\(list.count))",
             footer: list.isEmpty
-                ? "Nothing pinned yet. Add one above or pin from a repo\u{2019}s Lexicons tab."
+                ? "Nothing pinned yet. Add one above or pin from a repo\u{2019}s Collections tab."
                 : nil
         ) {
             HStack(spacing: 8) {
