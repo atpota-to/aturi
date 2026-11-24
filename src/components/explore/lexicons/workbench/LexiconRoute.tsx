@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { DEFAULT_EXPLORER_VIEW, EXPLORER_VIEW_SWITCH } from '@/lib/explorerView';
 import { parseLexiconLocation, type LexiconLocation } from '@/lib/lexiconExplorer';
 import { SkeletonBar, SkeletonTreePane } from '../../skeletons/primitives';
 import { useExplorerView } from '../../workbench/useExplorerView';
@@ -45,20 +46,22 @@ export default function LexiconRoute(props: { nsid?: string; group?: string }) {
   if (view !== 'classic') return <LexiconShell mode={view} fallback={fallback} />;
 
   const loc = parseLexiconLocation(pathname, searchParams) ?? fallback;
+  const page = loc.nsid ? (
+    <LexiconDetail nsid={loc.nsid} />
+  ) : loc.scope.kind === 'namespace' ? (
+    <LexiconGroup prefix={loc.scope.prefix} />
+  ) : loc.scope.kind === 'search' ? (
+    <LexiconGroup prefix={loc.scope.term} />
+  ) : (
+    <LexiconsExplorer />
+  );
+  if (!EXPLORER_VIEW_SWITCH) return page;
   return (
     <>
       <div className="fx-viewbar">
         <ViewSwitch />
       </div>
-      {loc.nsid ? (
-        <LexiconDetail nsid={loc.nsid} />
-      ) : loc.scope.kind === 'namespace' ? (
-        <LexiconGroup prefix={loc.scope.prefix} />
-      ) : loc.scope.kind === 'search' ? (
-        <LexiconGroup prefix={loc.scope.term} />
-      ) : (
-        <LexiconsExplorer />
-      )}
+      {page}
     </>
   );
 }
@@ -67,8 +70,12 @@ export default function LexiconRoute(props: { nsid?: string; group?: string }) {
  * The frame before the address has been read: the workbench's toolbar, rail
  * and a list's rows, in their own shapes. What the server sends, so a first
  * paint is the layout it settles into for most visitors.
+ *
+ * Nothing when the default is Classic: its three pages draw their own
+ * loading states, and a workbench frame would only jump to one of them.
  */
 export function LexiconRouteSkeleton() {
+  if (DEFAULT_EXPLORER_VIEW === 'classic') return null;
   const widths = ['62%', '48%', '74%', '56%', '42%', '68%', '52%', '60%', '46%', '70%'];
   return (
     <div className="fx-wb fx-lx" data-mode="workbench" aria-hidden>

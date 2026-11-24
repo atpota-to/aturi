@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { parseExplorerPath, type ExplorerLocation } from '@/lib/explorerView';
+import { EXPLORER_VIEW_SWITCH, parseExplorerPath, type ExplorerLocation } from '@/lib/explorerView';
 import { BreadcrumbBarProvider } from '../BreadcrumbContext';
 import CollectionExplorer from '../CollectionExplorer';
 import RecordExplorer from '../RecordExplorer';
@@ -52,18 +52,22 @@ export default function ExplorerRoute({
     return <ExplorerShell mode={view} repo={at.repo} collection={at.collection} rkey={at.rkey} />;
   }
 
+  const page =
+    at.collection && at.rkey ? (
+      <RecordExplorer repo={at.repo} collection={at.collection} rkey={at.rkey} />
+    ) : at.collection ? (
+      <CollectionExplorer repo={at.repo} collection={at.collection} />
+    ) : (
+      <RepoExplorer repo={at.repo} />
+    );
+  if (!EXPLORER_VIEW_SWITCH) return page;
+
   return (
     <BreadcrumbBarProvider value={CRUMB_BAR}>
       <div className="fx-viewbar">
         <ViewSwitch />
       </div>
-      {at.collection && at.rkey ? (
-        <RecordExplorer repo={at.repo} collection={at.collection} rkey={at.rkey} />
-      ) : at.collection ? (
-        <CollectionExplorer repo={at.repo} collection={at.collection} />
-      ) : (
-        <RepoExplorer repo={at.repo} />
-      )}
+      {page}
     </BreadcrumbBarProvider>
   );
 }

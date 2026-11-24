@@ -28,7 +28,15 @@ export const EXPLORER_VIEWS = ['workbench', 'files', 'classic'] as const;
 export type ExplorerView = (typeof EXPLORER_VIEWS)[number];
 
 /** What a visitor who has never chosen sees, and what the server renders. */
-export const DEFAULT_EXPLORER_VIEW: ExplorerView = 'workbench';
+export const DEFAULT_EXPLORER_VIEW: ExplorerView = 'classic';
+
+/**
+ * Whether the view switch is drawn. Off while Classic is tried as the only
+ * layout: every visitor gets the default, whatever they chose before, so
+ * nobody is left in Workbench or Files with no switch to leave by. A stored
+ * choice is ignored rather than cleared, so turning this back on restores it.
+ */
+export const EXPLORER_VIEW_SWITCH = false;
 
 export const EXPLORER_VIEW_LABELS: Record<ExplorerView, string> = {
   workbench: 'Workbench',
@@ -85,6 +93,7 @@ export function subscribeExplorerView(onChange: () => void): () => void {
 }
 
 export function getExplorerView(): ExplorerView {
+  if (!EXPLORER_VIEW_SWITCH) return DEFAULT_EXPLORER_VIEW;
   if (view === null) view = read(VIEW_KEY, EXPLORER_VIEWS, DEFAULT_EXPLORER_VIEW);
   return view;
 }
