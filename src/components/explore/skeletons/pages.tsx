@@ -14,7 +14,6 @@ import {
   SkeletonRecordRows,
   SkeletonRepoCard,
   SkeletonRowList,
-  SkeletonStatTiles,
   SkeletonTreePane,
   SkeletonViewSwitch,
 } from './primitives';
@@ -45,7 +44,7 @@ const RKEY_CRUMB = '7rem';
 const SPACE_CRUMB = '3.25rem';
 
 /**
- * `/explore/{repo}` — breadcrumb, glance, repository card. The account's
+ * `/explore/{repo}` — breadcrumb, repository card. The account's
  * sidebar is the frame's, beside this (AccountFrame), with its own skeleton.
  */
 export function RepoSkeleton() {
@@ -62,11 +61,7 @@ export function RepoSkeleton() {
         <div className="fx-stacked-only">
           <SkeletonAccountCard />
         </div>
-        <div style={column('10px')}>
-          <SkeletonHeading width="9rem" />
-          <SkeletonStatTiles />
-        </div>
-        <SkeletonRepoCard tabWidths={['5rem', '3.5rem', '1.75rem', '4.25rem']} />
+        <SkeletonRepoCard tabWidths={['5rem', '2.25rem', '3.5rem', '3.75rem', '3.5rem', '1.75rem']} />
       </div>
     </div>
   );

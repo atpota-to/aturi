@@ -24,6 +24,8 @@ import { useRepoIdentity } from './useRepoIdentity';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
 import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
+import { useCollectionsDisplay } from './workbench/useExplorerView';
+import { CollectionsDisplaySwitch } from './tabs/CollectionFolders';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { replay } from '@/lib/motion';
@@ -134,6 +136,10 @@ function CollectionList({
   // callbacks.
   const paneRef = useRef(pane);
   paneRef.current = pane;
+  // The page draws its records as the visitor chose on the Collections tab:
+  // rows, or files in Files. A pane is told by its host.
+  const pageDisplay = useCollectionsDisplay() === 'files' ? 'icons' : 'rows';
+  const display = pane?.display ?? pageDisplay;
   const { agent, did: signedInDid, session, loading: sessionLoading } = useAtprotoSession();
   const [records, setRecords] = useState<AtRecord[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -790,6 +796,7 @@ function CollectionList({
       <span className="fx-records-tools-meta" aria-live="polite">
         {countLabel}
       </span>
+      {!pane && <CollectionsDisplaySwitch />}
     </div>
   );
 
@@ -821,7 +828,7 @@ function CollectionList({
   );
 
   const list =
-    pane?.display === 'icons' ? (
+    display === 'icons' ? (
       // The Files view: each record a file, named by its key.
       <SkeletonSwap loading={awaitingFirstPage} skeleton={<RecordFileSkeleton />}>
         {visibleRecords.length > 0 && (
@@ -836,7 +843,7 @@ function CollectionList({
                 collection={collection}
                 onToggleSelect={toggleSelect}
                 current={currentRkey !== null && visibleRkeys[i] === currentRkey}
-                onOpenWide={pane.onOpenWide}
+                onOpenWide={pane?.onOpenWide}
               />
             ))}
           </ul>

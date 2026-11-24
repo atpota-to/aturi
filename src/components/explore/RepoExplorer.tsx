@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, type KeyboardEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import RepoStatusNotice from './RepoStatusNotice';
 import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import { setSectionHidden } from '@/utils/preferences';
 import Link from 'next/link';
-import { ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
@@ -35,6 +35,7 @@ import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
   { id: 'collections', label: 'Collections' },
+  { id: 'glance', label: 'Stats' },
   { id: 'labels', label: 'Labels' },
   { id: 'visibility', label: 'Visibility' },
   { id: 'identity', label: 'Identity' },
@@ -109,9 +110,7 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
 
   // Until prefs settle we use the defaults so first paint matches SSR and
   // avoids a hydration mismatch.
-  const settled = !loading;
-  const repoSections = settled ? prefs.repoSections : DEFAULT_REPO_SECTIONS;
-  const glanceSection = repoSections.find((s) => s.id === 'repoGlance');
+  const repoSections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
   const profileHidden = sectionHidden(repoSections, 'profile');
 
   return (
@@ -160,17 +159,10 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
             </div>
           </AppearIn>
         )}
-        {glanceSection && !glanceSection.hidden && (
-          <AppearIn delay={0.16}>
-            <RepoGlanceSection
-              identity={identity}
-              startCollapsed={settled && prefs.repoGlanceCollapsedByDefault}
-            />
-          </AppearIn>
-        )}
-        {/* Tabbed collections / identity / log / backlinks / graph — core content,
-            not configurable. */}
-        <AppearIn delay={0.2}>
+        {/* Tabbed collections / stats / identity / log / backlinks / graph —
+            core content. The collections lead the page: the glance stats
+            that used to sit above them are the Stats tab. */}
+        <AppearIn delay={0.16}>
           <TabbedView identity={identity} />
         </AppearIn>
         {/* Permissioned data sits below the public repo entirely, and only
@@ -210,44 +202,6 @@ export function AccountCard({
       {!identityHidden && <IdentityRow identity={identity} />}
       <AccountChecks identity={identity} />
     </ProfileHeader>
-  );
-}
-
-/**
- * "Repo at a glance" stats, collapsible in place. The initial open/closed
- * state comes from the user's `repoGlanceCollapsedByDefault` preference; once
- * the user clicks the header the session override (`collapsed`) wins. Mirrors
- * the per-group collapse pattern in the Collections tab.
- */
-function RepoGlanceSection({
-  identity,
-  startCollapsed,
-}: {
-  identity: IdentityBundle;
-  startCollapsed: boolean;
-}) {
-  const [collapsed, setCollapsed] = useState<boolean | null>(null);
-  const isCollapsed = collapsed ?? startCollapsed;
-
-  return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <h2 style={{ margin: 0 }}>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!isCollapsed)}
-          aria-expanded={!isCollapsed}
-          className="fx-glance-toggle"
-        >
-          <ChevronRight size={14} aria-hidden />
-          Repo at a glance
-        </button>
-      </h2>
-      {!isCollapsed && (
-        <>
-          <AccountStats did={identity.did} handle={identity.handle} />
-        </>
-      )}
-    </section>
   );
 }
 
@@ -320,13 +274,24 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
   );
 }
 
+/**
+ * The tabs a visitor sees: Stats goes with the "Repo at a glance" section
+ * when they hide it in Settings.
+ */
+export function useRepoTabs(): readonly { id: RepoTabId; label: string }[] {
+  const { prefs, loading } = usePreferences();
+  const glanceHidden = sectionHidden(loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections, 'repoGlance');
+  return glanceHidden ? TABS.filter((t) => t.id !== 'glance') : TABS;
+}
+
 function TabbedView({ identity }: { identity: IdentityBundle }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tabs = useRepoTabs();
   const tabParam = (searchParams.get('tab') || 'collections') as TabId;
   const openTool = TOOL_TABS.find((t) => t.id === tabParam);
-  const tab: TabId = TABS.find((t) => t.id === tabParam) || openTool ? tabParam : 'collections';
-  const strip: readonly { id: TabId; label: string }[] = openTool ? [...TABS, openTool] : TABS;
+  const tab: TabId = tabs.find((t) => t.id === tabParam) || openTool ? tabParam : 'collections';
+  const strip: readonly { id: TabId; label: string }[] = openTool ? [...tabs, openTool] : tabs;
   // The open folder's sheet fades its new contents in as the tab rises.
   const panelRef = useRef<HTMLDivElement>(null);
   useFadeOnChange(panelRef, tab);
@@ -399,6 +364,11 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         className="fx-tabpanel"
       >
         {tab === 'collections' && <CollectionsTab identity={identity} />}
+        {tab === 'glance' && (
+          <div className="fx-tabpanel-tool">
+            <AccountStats did={identity.did} handle={identity.handle} />
+          </div>
+        )}
         {tab === 'labels' && (
           <div className="fx-tabpanel-tool">
             <LabelChecker subject={identity.did} />

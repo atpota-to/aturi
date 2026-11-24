@@ -49,8 +49,19 @@ export const FILES_LAYOUTS = ['icons', 'list'] as const;
 export type FilesLayout = (typeof FILES_LAYOUTS)[number];
 export const DEFAULT_FILES_LAYOUT: FilesLayout = 'icons';
 
+/**
+ * How Classic draws a repository's collections: the tree (`list`), or as a
+ * file browser (`files`), with namespaces and collections as folders and a
+ * collection's records as files. Chosen on the repo page's Collections tab
+ * and kept for the collection page's records too.
+ */
+export const COLLECTIONS_DISPLAYS = ['list', 'files'] as const;
+export type CollectionsDisplay = (typeof COLLECTIONS_DISPLAYS)[number];
+export const DEFAULT_COLLECTIONS_DISPLAY: CollectionsDisplay = 'list';
+
 const VIEW_KEY = 'aturi.explorerView';
 const LAYOUT_KEY = 'aturi.explorerFilesLayout';
+const DISPLAY_KEY = 'aturi.explorerCollectionsDisplay';
 
 const listeners = new Set<() => void>();
 
@@ -75,14 +86,16 @@ function write(key: string, value: string): void {
 // Held in memory once read, so a browser that refuses storage still switches.
 let view: ExplorerView | null = null;
 let layout: FilesLayout | null = null;
+let display: CollectionsDisplay | null = null;
 
 export function subscribeExplorerView(onChange: () => void): () => void {
   listeners.add(onChange);
   // Another tab changing the view changes this one too.
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== VIEW_KEY && event.key !== LAYOUT_KEY) return;
+    if (event.key !== VIEW_KEY && event.key !== LAYOUT_KEY && event.key !== DISPLAY_KEY) return;
     view = null;
     layout = null;
+    display = null;
     onChange();
   };
   window.addEventListener('storage', onStorage);
@@ -122,6 +135,22 @@ export function setFilesLayout(next: FilesLayout): void {
   if (getFilesLayout() === next) return;
   layout = next;
   write(LAYOUT_KEY, next);
+  listeners.forEach((listener) => listener());
+}
+
+export function getCollectionsDisplay(): CollectionsDisplay {
+  if (display === null) display = read(DISPLAY_KEY, COLLECTIONS_DISPLAYS, DEFAULT_COLLECTIONS_DISPLAY);
+  return display;
+}
+
+export function getCollectionsDisplayOnServer(): CollectionsDisplay {
+  return DEFAULT_COLLECTIONS_DISPLAY;
+}
+
+export function setCollectionsDisplay(next: CollectionsDisplay): void {
+  if (getCollectionsDisplay() === next) return;
+  display = next;
+  write(DISPLAY_KEY, next);
   listeners.forEach((listener) => listener());
 }
 

@@ -88,6 +88,14 @@
      stripes it reads are set here too (see .fx-explorer below). */
   --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
   --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
+  /* The Files view's folder and file tones (workbench.css, .fx-wb), for the
+     collections and records drawn as folders and files here. */
+  --fx-fd-folder: color-mix(in srgb, var(--text-accent) 24%, var(--bg-secondary));
+  --fx-fd-folder-back: color-mix(in srgb, var(--text-accent) 52%, var(--bg-secondary));
+  --fx-fd-page: var(--bg-secondary);
+}
+:root:not([data-theme='light']) .fx-frame {
+  --fx-fd-page: color-mix(in srgb, var(--text-primary) 9%, var(--bg-secondary));
 }
 /* Stacked, the page comes first: the trail stays the top of the screen, as
    it is in every view on a phone, and a phone shouldn't scroll past a tree
@@ -1226,6 +1234,43 @@
 }
 
 /* --- collections tree ---------------------------------------------------- */
+
+/* The List / Files switch (CollectionsDisplaySwitch) at the end of the
+   tree's tools and of a collection's: the same deeper track the view switch
+   wears (workbench.css), so it reads as a control on the card's fill. */
+.fx-tree-tools > .fn-segmented,
+.fx-records-tools > .fn-segmented {
+  flex: none;
+  background: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 5%);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+.fx-tree-tools > .fn-segmented {
+  margin-left: auto;
+}
+.fx-tree-tools > .fn-segmented + .fx-btn-icon {
+  margin-left: 0;
+}
+
+/* The collections as folders (CollectionFolders): the path to the open
+   folder, then its folders as the Files view's tiles. */
+.fx-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fx-folders .fx-fd-path {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+}
+.fx-folders .fx-fd-grid {
+  padding: 0 0 8px;
+}
+.fx-explorer code.fx-fd-name {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
 
 .fx-tree-tools {
   display: flex;

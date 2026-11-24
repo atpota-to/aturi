@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronsDownUp, ChevronsUpDown, Pin, Search } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -24,6 +25,8 @@ import { CHROME_RESULTS_ID, useChromeBarField, type ChromeBarField } from '../Ch
 import GroupHeader from './GroupHeader';
 import { animate, MOTION, unfoldIn } from '@/lib/motion';
 import LeafRow from './LeafRow';
+import CollectionFolders, { CollectionsDisplaySwitch } from './CollectionFolders';
+import { useCollectionsDisplay } from '../workbench/useExplorerView';
 
 export default function CollectionsTab({
   identity,
@@ -47,6 +50,12 @@ export default function CollectionsTab({
   pinnable?: boolean;
 }) {
   const sidebar = variant === 'sidebar';
+  // The page's tab can draw the collections as folders instead of the tree
+  // (CollectionFolders); the sidebar's copy is always the tree.
+  const files = useCollectionsDisplay() === 'files' && !sidebar;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const folder = files ? searchParams.get('ns') : null;
   const [collections, setCollections] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
@@ -194,6 +203,16 @@ export default function CollectionsTab({
   );
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
+  // The folders move by rewriting the address, so they need it spelled as
+  // the address bar has it (a handle or a DID).
+  const base = (pathname ?? `/explore/${repoSeg}`).split('/').slice(0, 3).join('/');
+  // Folders show every collection, pinned ones included, under the same
+  // "in common" filter as the tree.
+  const folderSource = useMemo(() => {
+    if (!collections) return [] as string[];
+    if (commonFilter === 'all' || !myCollections) return collections;
+    return collections.filter((n) => (commonFilter === 'mutual' ? myCollections.has(n) : !myCollections.has(n)));
+  }, [collections, commonFilter, myCollections]);
 
   // On a phone the tree starts folded whatever the preference says: open,
   // 179 collections make a page some 12,000px tall with nothing to hold on
@@ -414,7 +433,8 @@ export default function CollectionsTab({
               })}
             </div>
           )}
-          {groups.length > 0 && (
+          {!sidebar && <CollectionsDisplaySwitch />}
+          {groups.length > 0 && !files && (
             <button
               type="button"
               onClick={() => setAllOpen(!anyOpen)}
@@ -431,173 +451,183 @@ export default function CollectionsTab({
           )}
         </div>
 
-        <div className="fx-tree-scroll" ref={scrollRef}>
-          {hasAnyPinned && (
-            <section className="fx-tree-pinned" aria-label="Pinned collections">
-              <div className="fx-tree-label">
-                <Pin size={12} aria-hidden />
-                Pinned
-                <span>{pinnedCount}</span>
+        {files ? (
+          <CollectionFolders
+            identity={identity}
+            base={base}
+            collections={folderSource}
+            filter={filter}
+            ns={folder}
+          />
+        ) : (
+          <div className="fx-tree-scroll" ref={scrollRef}>
+            {hasAnyPinned && (
+              <section className="fx-tree-pinned" aria-label="Pinned collections">
+                <div className="fx-tree-label">
+                  <Pin size={12} aria-hidden />
+                  Pinned
+                  <span>{pinnedCount}</span>
+                </div>
+
+                {/* Pinned NSID groups — collapsible, with a group-level unpin
+                    in the header. Their members are plain links; the group is
+                    the unit you pin/unpin. */}
+                {pinnedGroups.map((g) => {
+                  const open = isOpen(pinnedKey(g.entry), g.prefix);
+                  return (
+                    <div key={g.entry} className="fx-tree-block">
+                      <GroupHeader
+                        open={open}
+                        onToggle={() => toggle(pinnedKey(g.entry), g.prefix)}
+                        prefix={g.prefix}
+                        count={g.items.length}
+                        emphasize
+                        favicon
+                        stripe={pinnedStripe()}
+                        pinnable={canPin}
+                        pinned
+                        onTogglePin={() => toggleGroupPin(g.prefix)}
+                      />
+                      {open && (
+                        <ul ref={unfoldRef(pinnedKey(g.entry))} style={listStyle()}>
+                          {g.items.map((nsid) => (
+                            <LeafRow
+                              key={nsid}
+                              nsid={nsid}
+                              href={leafHref(nsid)}
+                              dimPrefix={`${g.prefix}.`}
+                              inCommon={myCollections?.has(nsid)}
+                              current={nsid === current}
+                              stripe={pinnedStripe()}
+                            />
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Individually-pinned lexicons. */}
+                {pinnedSingles.length > 0 && (
+                  <ul style={listStyle()}>
+                    {pinnedSingles.map((nsid) => (
+                      <LeafRow
+                        key={nsid}
+                        nsid={nsid}
+                        href={leafHref(nsid)}
+                        flat
+                        inCommon={myCollections?.has(nsid)}
+                        pinnable={canPin}
+                        pinned
+                        onTogglePin={() => togglePin(nsid)}
+                        current={nsid === current}
+                        stripe={pinnedStripe()}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {groups.length === 0 && !hasAnyPinned ? (
+              <p className="fx-empty">
+                {commonFilter === 'mutual' ? (
+                  'No collections in common with this repo.'
+                ) : commonFilter === 'notMine' ? (
+                  'You already have every collection this repo has.'
+                ) : (
+                  <>
+                    No collections match <code>{filter}</code>.
+                  </>
+                )}
+              </p>
+            ) : groups.length === 0 ? null : (
+              <div className="fx-tree">
+                {groups.map((g) => {
+                  const majorOpen = isOpen(g.key);
+                  return (
+                    <section key={g.key} className="fx-tree-block">
+                      <GroupHeader
+                        open={majorOpen}
+                        onToggle={() => toggle(g.key)}
+                        prefix={g.key}
+                        count={g.totalCount}
+                        emphasize
+                        favicon
+                        stripe={treeStripe()}
+                        pinnable={canPin}
+                        pinned={isGroupPinned(g.key)}
+                        onTogglePin={() => toggleGroupPin(g.key)}
+                      />
+                      {majorOpen && (
+                        <div ref={unfoldRef(g.key)}>
+                          {/* Direct leaves (3-segment NSIDs) come first. */}
+                          {g.directItems.length > 0 && (
+                            <ul style={listStyle()}>
+                              {g.directItems.map((nsid) => (
+                                <LeafRow
+                                  key={nsid}
+                                  nsid={nsid}
+                                  href={leafHref(nsid)}
+                                  dimPrefix={`${g.key}.`}
+                                  inCommon={myCollections?.has(nsid)}
+                                  pinnable={canPin}
+                                  pinned={activePinSet.has(nsid)}
+                                  onTogglePin={() => togglePin(nsid)}
+                                  current={nsid === current}
+                                  stripe={treeStripe()}
+                                />
+                              ))}
+                            </ul>
+                          )}
+                          {/* Then collapsible sub-groups. */}
+                          {g.subgroups.map((sub) => {
+                            const subOpen = isOpen(sub.fullKey);
+                            return (
+                              <div key={sub.fullKey}>
+                                <GroupHeader
+                                  open={subOpen}
+                                  onToggle={() => toggle(sub.fullKey)}
+                                  prefix={sub.fullKey}
+                                  dimPrefix={`${g.key}.`}
+                                  count={sub.items.length}
+                                  indent
+                                  stripe={treeStripe()}
+                                  pinnable={canPin}
+                                  pinned={isGroupPinned(sub.fullKey)}
+                                  onTogglePin={() => toggleGroupPin(sub.fullKey)}
+                                />
+                                {subOpen && (
+                                  <ul ref={unfoldRef(sub.fullKey)} style={listStyle()}>
+                                    {sub.items.map((nsid) => (
+                                      <LeafRow
+                                        key={nsid}
+                                        nsid={nsid}
+                                        href={leafHref(nsid)}
+                                        deepIndent
+                                        dimPrefix={`${sub.fullKey}.`}
+                                        inCommon={myCollections?.has(nsid)}
+                                        pinnable={canPin}
+                                        pinned={activePinSet.has(nsid)}
+                                        onTogglePin={() => togglePin(nsid)}
+                                        current={nsid === current}
+                                        stripe={treeStripe()}
+                                      />
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
-
-              {/* Pinned NSID groups — collapsible, with a group-level unpin
-                  in the header. Their members are plain links; the group is
-                  the unit you pin/unpin. */}
-              {pinnedGroups.map((g) => {
-                const open = isOpen(pinnedKey(g.entry), g.prefix);
-                return (
-                  <div key={g.entry} className="fx-tree-block">
-                    <GroupHeader
-                      open={open}
-                      onToggle={() => toggle(pinnedKey(g.entry), g.prefix)}
-                      prefix={g.prefix}
-                      count={g.items.length}
-                      emphasize
-                      favicon
-                      stripe={pinnedStripe()}
-                      pinnable={canPin}
-                      pinned
-                      onTogglePin={() => toggleGroupPin(g.prefix)}
-                    />
-                    {open && (
-                      <ul ref={unfoldRef(pinnedKey(g.entry))} style={listStyle()}>
-                        {g.items.map((nsid) => (
-                          <LeafRow
-                            key={nsid}
-                            nsid={nsid}
-                            href={leafHref(nsid)}
-                            dimPrefix={`${g.prefix}.`}
-                            inCommon={myCollections?.has(nsid)}
-                            current={nsid === current}
-                            stripe={pinnedStripe()}
-                          />
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Individually-pinned lexicons. */}
-              {pinnedSingles.length > 0 && (
-                <ul style={listStyle()}>
-                  {pinnedSingles.map((nsid) => (
-                    <LeafRow
-                      key={nsid}
-                      nsid={nsid}
-                      href={leafHref(nsid)}
-                      flat
-                      inCommon={myCollections?.has(nsid)}
-                      pinnable={canPin}
-                      pinned
-                      onTogglePin={() => togglePin(nsid)}
-                      current={nsid === current}
-                      stripe={pinnedStripe()}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {groups.length === 0 && !hasAnyPinned ? (
-            <p className="fx-empty">
-              {commonFilter === 'mutual' ? (
-                'No collections in common with this repo.'
-              ) : commonFilter === 'notMine' ? (
-                'You already have every collection this repo has.'
-              ) : (
-                <>
-                  No collections match <code>{filter}</code>.
-                </>
-              )}
-            </p>
-          ) : groups.length === 0 ? null : (
-            <div className="fx-tree">
-              {groups.map((g) => {
-                const majorOpen = isOpen(g.key);
-                return (
-                  <section key={g.key} className="fx-tree-block">
-                    <GroupHeader
-                      open={majorOpen}
-                      onToggle={() => toggle(g.key)}
-                      prefix={g.key}
-                      count={g.totalCount}
-                      emphasize
-                      favicon
-                      stripe={treeStripe()}
-                      pinnable={canPin}
-                      pinned={isGroupPinned(g.key)}
-                      onTogglePin={() => toggleGroupPin(g.key)}
-                    />
-                    {majorOpen && (
-                      <div ref={unfoldRef(g.key)}>
-                        {/* Direct leaves (3-segment NSIDs) come first. */}
-                        {g.directItems.length > 0 && (
-                          <ul style={listStyle()}>
-                            {g.directItems.map((nsid) => (
-                              <LeafRow
-                                key={nsid}
-                                nsid={nsid}
-                                href={leafHref(nsid)}
-                                dimPrefix={`${g.key}.`}
-                                inCommon={myCollections?.has(nsid)}
-                                pinnable={canPin}
-                                pinned={activePinSet.has(nsid)}
-                                onTogglePin={() => togglePin(nsid)}
-                                current={nsid === current}
-                                stripe={treeStripe()}
-                              />
-                            ))}
-                          </ul>
-                        )}
-                        {/* Then collapsible sub-groups. */}
-                        {g.subgroups.map((sub) => {
-                          const subOpen = isOpen(sub.fullKey);
-                          return (
-                            <div key={sub.fullKey}>
-                              <GroupHeader
-                                open={subOpen}
-                                onToggle={() => toggle(sub.fullKey)}
-                                prefix={sub.fullKey}
-                                dimPrefix={`${g.key}.`}
-                                count={sub.items.length}
-                                indent
-                                stripe={treeStripe()}
-                                pinnable={canPin}
-                                pinned={isGroupPinned(sub.fullKey)}
-                                onTogglePin={() => toggleGroupPin(sub.fullKey)}
-                              />
-                              {subOpen && (
-                                <ul ref={unfoldRef(sub.fullKey)} style={listStyle()}>
-                                  {sub.items.map((nsid) => (
-                                    <LeafRow
-                                      key={nsid}
-                                      nsid={nsid}
-                                      href={leafHref(nsid)}
-                                      deepIndent
-                                      dimPrefix={`${sub.fullKey}.`}
-                                      inCommon={myCollections?.has(nsid)}
-                                      pinnable={canPin}
-                                      pinned={activePinSet.has(nsid)}
-                                      onTogglePin={() => togglePin(nsid)}
-                                      current={nsid === current}
-                                      stripe={treeStripe()}
-                                    />
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import {
   BadgeCheck,
   CalendarDays,
+  ChartColumn,
   ExternalLink,
   EyeOff,
   FolderTree,
@@ -25,7 +26,7 @@ import { setSectionHidden } from '@/utils/preferences';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { CheckNavBadge } from './AccountChecks';
 import { useBreadcrumbTrail } from './BreadcrumbContext';
-import { ProfileViewSwitch, REPO_TABS, REPO_TOOL_TABS, type RepoTabId } from './RepoExplorer';
+import { ProfileViewSwitch, REPO_TABS, REPO_TOOL_TABS, useRepoTabs, type RepoTabId } from './RepoExplorer';
 import { SkeletonAccountCard, SkeletonBar, SkeletonTreePane } from './skeletons/primitives';
 import CollectionsTab from './tabs/CollectionsTab';
 import { STACKED_QUERY, useMediaQuery } from './useIsNarrow';
@@ -35,6 +36,7 @@ import { useExplorerView } from './workbench/useExplorerView';
 
 const VIEW_ICONS: Record<RepoTabId, LucideIcon> = {
   collections: FolderTree,
+  glance: ChartColumn,
   labels: Tags,
   visibility: EyeOff,
   identity: Fingerprint,
@@ -173,6 +175,7 @@ function AccountRail({
   const { prefs, update, loading } = usePreferences();
   const sections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
   const profileHidden = sectionHidden(sections, 'profile');
+  const tabs = useRepoTabs();
   const hrefFor = (id: RepoTabId) => (id === 'collections' ? base : `${base}?tab=${id}`);
   // Inside a collection or a record, Collections is where you are.
   const currentView: RepoTabId = level === 'repo' ? tab : 'collections';
@@ -195,7 +198,7 @@ function AccountRail({
         />
       )}
       <nav aria-label="Account views" className="fx-wb-views fx-rail-views">
-        {REPO_TABS.map((t) => {
+        {tabs.map((t) => {
           const Icon = VIEW_ICONS[t.id];
           return (
             <Link
@@ -279,7 +282,7 @@ function RailSkeleton({ card, account, tree }: { card: boolean; account: boolean
         </div>
       )}
       <div className="fx-wb-views fx-rail-views" aria-hidden>
-        {['5.5rem', '3rem', '4rem', '3.75rem', '2rem', '4.5rem', '3rem'].map((width, i) => (
+        {['5.5rem', '2.5rem', '3rem', '4rem', '3.75rem', '2rem', '4.5rem', '3rem'].map((width, i) => (
           <span key={i} className="fx-wb-view" data-skeleton>
             <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
             <SkeletonBar width={width} height="0.6rem" />
