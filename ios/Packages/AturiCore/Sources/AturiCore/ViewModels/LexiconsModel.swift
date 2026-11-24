@@ -86,7 +86,8 @@ public enum LexiconBrowseView: String, CaseIterable, Hashable, Sendable {
     public var label: String {
         switch self {
         case .top: return "Top"
-        case .all: return "All"
+        // The web says "All"; here the card sits under the outer All segment.
+        case .all: return "Catalog"
         }
     }
 }
@@ -102,7 +103,11 @@ public final class LexiconsModel {
     public nonisolated static let expandedCount = 20
     /// Pull more candidates than will be displayed so the filter (drop
     /// app.bsky.* in trending) plus the dedup (one row per top-2-segment
-    /// namespace) still leaves enough rows to fill the table.
+    /// namespace) still leaves enough rows to fill the table. The pool is
+    /// sized from the expanded count whatever is shown, so the collapsed
+    /// list is always the head of the expanded one: a pool that grew on
+    /// expand could rank a row from past the smaller pool above the rows
+    /// already on screen.
     public nonisolated static let candidatePoolFactor = 5
     /// Namespaces suppressed from the Trending view. Both flavours of
     /// Bluesky (public app and chat) dominate every absolute ranking and
@@ -142,8 +147,9 @@ public final class LexiconsModel {
     public var window: UFOsWindow = .sevenDays {
         didSet { if window != oldValue { rankingSettingsDidChange() } }
     }
-    /// "Show top 20" state. The fetch limit follows it, so toggling
-    /// refetches with the larger or smaller pool.
+    /// "Show top 20" state. The candidate pool is the same either way
+    /// (`candidatePoolFactor`); toggling refetches because the sparklines
+    /// are fetched only for the rows shown.
     public var expanded = false {
         didSet { if expanded != oldValue { rankingSettingsDidChange() } }
     }
@@ -167,6 +173,10 @@ public final class LexiconsModel {
     public private(set) var suggestions: [NsidCount] = []
     /// True from the keystroke until the debounced lookup answers.
     public private(set) var isSearchPending = false
+    /// The last debounced lookup failed, as opposed to answering with no
+    /// matches; cleared by the next edit. Lets the screen offer a retry
+    /// instead of saying nothing matched.
+    public private(set) var searchFailed = false
     /// Keyboard highlight into `suggestions`; -1 for none.
     public private(set) var highlightIndex = -1
 
@@ -200,9 +210,11 @@ public final class LexiconsModel {
 
     // MARK: Freshness
 
-    /// "Firehose data current as of 12s ago", from `/meta`; nil until it
-    /// answers, or when it does not carry a jetstream cursor.
-    public private(set) var freshnessLabel: String?
+    /// When the firehose cursor `/meta` reported was written; nil until it
+    /// answers, or when it does not carry a jetstream cursor. The date is
+    /// kept rather than the footnote so the screen can re-render the lag
+    /// as time passes (`freshnessLabel(cursorDate:now:)`).
+    public private(set) var freshnessCursorDate: Date?
 
     @ObservationIgnored private let ufos: UFOsClient
     @ObservationIgnored private let clock: @Sendable () -> Date
@@ -393,7 +405,7 @@ public final class LexiconsModel {
         let sinceIso = UFOsClient.isoAgo(hours: Double(window.hours), now: now)
         let pool = await client.fetchCollections(
             order: metric.collectionOrder,
-            limit: resultCount * candidatePoolFactor,
+            limit: max(resultCount, expandedCount) * candidatePoolFactor,
             since: sinceIso
         )
         if pool.failed || Task.isCancelled { return nil }
@@ -572,6 +584,7 @@ public final class LexiconsModel {
         isSearchOpen = true
         searchTask?.cancel()
         searchTask = nil
+        searchFailed = false
         let trimmed = trimmedSearch
         guard UFOsClient.isSearchable(trimmed) else {
             suggestions = []
@@ -596,9 +609,15 @@ public final class LexiconsModel {
                 result.matches.sorted { $0.counts.creates > $1.counts.creates }.prefix(LexiconsModel.suggestionLimit)
             )
             self.highlightIndex = -1
+            self.searchFailed = result.failed
             self.isSearchPending = false
             self.searchTask = nil
         }
+    }
+
+    /// Run the lookup for the current query again, after a failure.
+    public func retrySearch() {
+        searchQueryDidChange()
     }
 
     /// Wait for the debounced lookup in flight, if any.
@@ -785,17 +804,22 @@ public final class LexiconsModel {
             guard let meta = await client.fetchMeta() else { return }
             guard let self, !Task.isCancelled else { return }
             guard let cursorUs = meta.consumer?["jetstream"]?["latest_cursor"]?.doubleValue else { return }
-            self.freshnessLabel = LexiconsModel.freshnessLabel(cursorUs: cursorUs, now: self.clock())
+            self.freshnessCursorDate = Date(timeIntervalSince1970: cursorUs / 1_000_000)
         }
         freshnessTask = task
         return task
     }
 
-    /// Port of `Freshness`: "Firehose data current as of 12s ago", with the
-    /// lag in seconds under 90 s, minutes under 90 min, hours beyond.
-    public nonisolated static func freshnessLabel(cursorUs: Double, now: Date) -> String {
-        let lagSeconds = (now.timeIntervalSince1970 * 1000 - cursorUs / 1000) / 1000
+    /// Port of `Freshness`: "Updated 12s ago", with the
+    /// lag in seconds under 90 s, minutes under 90 min, hours beyond. A lag
+    /// under 5 s reads "just now": a cursor a second or two behind is as
+    /// current as the firehose gets, and "0s ago" reads like a glitch.
+    public nonisolated static func freshnessLabel(cursorDate: Date, now: Date) -> String {
+        let lagSeconds = now.timeIntervalSince(cursorDate)
         let agoSec = max(0, Int(lagSeconds.rounded(.toNearestOrAwayFromZero)))
+        if agoSec < 5 {
+            return "Updated just now"
+        }
         let rel: String
         if agoSec < 90 {
             rel = "\(agoSec)s"
@@ -804,7 +828,13 @@ public final class LexiconsModel {
         } else {
             rel = "\(Int((Double(agoSec) / 3600).rounded(.toNearestOrAwayFromZero)))h"
         }
-        return "Firehose data current as of \(rel) ago"
+        return "Updated \(rel) ago"
+    }
+
+    /// `freshnessLabel(cursorDate:now:)` for the raw jetstream cursor, in
+    /// microseconds since the epoch.
+    public nonisolated static func freshnessLabel(cursorUs: Double, now: Date) -> String {
+        freshnessLabel(cursorDate: Date(timeIntervalSince1970: cursorUs / 1_000_000), now: now)
     }
 }
 

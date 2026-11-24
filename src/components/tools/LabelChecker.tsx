@@ -126,8 +126,8 @@ function LabelRow({
       ) : (
         <p className="fn-tool-labels-desc" data-quiet>
           {self
-            ? 'This value is not one the protocol defines for self-labels, so apps ignore it.'
-            : 'The labeler publishes no description for this value.'}
+            ? 'Not a self-label value the protocol defines, so apps ignore it.'
+            : 'The labeler gives no description.'}
         </p>
       )}
       <p className="fn-tool-labels-meta">
@@ -157,7 +157,7 @@ function LabelGroupCard({
     ? 'Set by the account itself'
     : labeler?.displayName || (labeler?.handle ? `@${labeler.handle}` : shortDid(group.src));
   const sub = group.self
-    ? 'Self-labels, written into its own records'
+    ? 'Self-labels in its own records'
     : labeler?.handle
       ? `@${labeler.handle}`
       : labeler
@@ -309,8 +309,8 @@ export default function LabelChecker({ subject, heading }: { subject?: string; h
 
       {baseData?.unavailable && (
         <ToolVerdict tone="warn" title="Bluesky will not show this" icon={<Tags size={18} />}>
-          The AppView answered “{baseData.unavailable}”. That is not a label: it means there is no
-          {isPost ? ' post' : ' profile'} here for labels to appear on.
+          The AppView answered “{baseData.unavailable}”. That isn’t a label: there is no
+          {isPost ? ' post' : ' profile'} here to label.
         </ToolVerdict>
       )}
 
@@ -357,8 +357,7 @@ export default function LabelChecker({ subject, heading }: { subject?: string; h
           <ToolSection title="Labelers">
             <ToolCard className="fn-tool-labels-scan">
               <p>
-                Anyone can run a labeler, and an app only shows labels from the ones its user
-                subscribes to. The checker asks every labeler the relay lists, {LABELERS_PER_REQUEST} at a time.
+                Every labeler the relay lists is asked, {LABELERS_PER_REQUEST} at a time.
               </p>
 
               <div className="fn-tool-labels-scanbar" aria-live="polite">
@@ -486,25 +485,24 @@ export default function LabelChecker({ subject, heading }: { subject?: string; h
           items={[
             {
               term: 'Bluesky’s own labeler',
-              text: 'Asked first, because every Bluesky user is subscribed to it. Its answer comes with the labels the account put on itself.',
+              text: 'Asked first, since every Bluesky user subscribes to it. Self-labels come with its answer.',
             },
             {
               term: 'Every other labeler',
               text: (
                 <>
-                  Asked straight after. The checker lists every account with an{' '}
-                  <code>app.bsky.labeler.service</code> record and asks Bluesky’s AppView which of
-                  them have labelled this.
+                  Then every account with an <code>app.bsky.labeler.service</code> record, through Bluesky’s
+                  AppView.
                 </>
               ),
             },
             {
               term: 'What each label means',
-              text: 'A label is a short value such as spam. Its name, description and what it hides come from the definitions its labeler publishes.',
+              text: 'A label’s name, description and what it hides come from its labeler’s definitions.',
             },
             {
               term: 'What it leaves out',
-              text: 'Only labels the AppView has indexed are found, which is what Bluesky apps show. A suspension is not a label and is reported separately.',
+              text: 'Only labels the AppView has indexed. A suspension isn’t a label and is reported separately.',
             },
           ]}
         />

@@ -36,7 +36,9 @@ struct SessionBadge: View {
         let name = account.handle ?? shortDid(account.did)
         return Menu {
             /* The web's session menu (SessionMenu.tsx): the account's own
-               repo, Settings, then Sign out. */
+               repo, the account page, then Sign out. The web labels its
+               link to /account "Settings"; here that page is the Account
+               tab, so the item says so and goes there. */
             if let router {
                 Button {
                     router.open(.repo(account.did), in: .explore)
@@ -44,10 +46,9 @@ struct SessionBadge: View {
                     Label("My repo in Explorer", systemImage: "binoculars")
                 }
                 Button {
-                    router.popToRoot(.settings)
-                    router.select(.settings)
+                    router.show(.account)
                 } label: {
-                    Label("Settings", systemImage: "gearshape")
+                    Label("Account", systemImage: "person.crop.circle")
                 }
                 Divider()
             }

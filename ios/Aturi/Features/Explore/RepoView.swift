@@ -87,15 +87,17 @@ private struct RepoScreen: View {
                 case .idle, .loading:
                     SkeletonRows(count: 6)
                 case .failed(let message):
+                    /* Input that can never resolve gets its own headline and
+                       no retry: trying again would fail the same way, and
+                       the prefilled search box is the way forward. */
                     ExploreNotFoundPanel(
                         eyebrow: RecordModel.identityFailureEyebrow,
-                        headline: RecordModel.identityFailureHeadline,
+                        headline: model.isMalformedInput ? RepoModel.malformedInputHeadline : RecordModel.identityFailureHeadline,
                         message: model.notFoundMessage ?? message,
                         details: message,
-                        query: model.input
-                    ) {
-                        model.load()
-                    }
+                        query: model.input,
+                        retry: model.isMalformedInput ? nil : { _ = model.load() }
+                    )
                 case .loaded(let identity):
                     loadedContent(identity)
                 }
@@ -433,21 +435,21 @@ struct RepoProfileCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if header.hasStats {
-                HStack(spacing: 16) {
-                    if let count = header.profile.followersCount {
-                        stat("heart", count, "followers")
+                /* Big counts at large Dynamic Type no longer fit one row;
+                   stacking them keeps each label whole instead of
+                   wrapping "followers" mid-word. */
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) {
+                        statItems
                     }
-                    if let count = header.profile.followsCount {
-                        stat("person.2", count, "following")
-                    }
-                    if let count = header.profile.postsCount {
-                        stat("text.bubble", count, "posts")
+                    VStack(alignment: .leading, spacing: 6) {
+                        statItems
                     }
                 }
             }
             Divider()
             Button(action: onUniversalLink) {
-                Label("View the universal link page", systemImage: "globe")
+                Label("Open profile in\u{2026}", systemImage: "globe")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textAccent)
             }
@@ -488,6 +490,19 @@ struct RepoProfileCard: View {
         }
     }
 
+    @ViewBuilder
+    private var statItems: some View {
+        if let count = header.profile.followersCount {
+            stat("heart", count, "followers")
+        }
+        if let count = header.profile.followsCount {
+            stat("person.2", count, "following")
+        }
+        if let count = header.profile.postsCount {
+            stat("text.bubble", count, "posts")
+        }
+    }
+
     private func stat(_ systemImage: String, _ value: Int, _ label: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage)
@@ -500,6 +515,7 @@ struct RepoProfileCard: View {
             Text(label)
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
+                .lineLimit(1)
         }
         .accessibilityElement(children: .combine)
     }
@@ -604,13 +620,18 @@ private struct RepoGlanceGrid: View {
                 hint: "Earliest PLC operation timestamp"
             )
             scoreTile
-            RepoStatTile(
-                systemImage: "waveform.path.ecg",
-                label: "Last active",
-                value: stats.map { $0.lastActiveDate.map { Formatting.relative($0) } ?? Self.dash },
-                sublabel: stats?.headRevFromRelay == true ? "via relay" : nil,
-                hint: stats?.lastActiveHint
-            )
+            /* A relative time frozen at first render goes stale while the
+               page stays open ("just now" an hour later), so the tile
+               re-reads the clock once a minute. */
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                RepoStatTile(
+                    systemImage: "waveform.path.ecg",
+                    label: "Last active",
+                    value: stats.map { $0.lastActiveDate.map { Formatting.relative($0, now: context.date) } ?? Self.dash },
+                    sublabel: stats?.headRevFromRelay == true ? "via relay" : nil,
+                    hint: stats?.lastActiveHint
+                )
+            }
             exportTile
         }
     }
@@ -815,13 +836,21 @@ private struct RepoCollectionsTab: View {
                 }
                 .pickerStyle(.segmented)
             }
-            if let status = model.collectionsStatusLabel {
-                Text(status)
+            if let count = collectionCountLabel {
+                Text(count)
                     .font(AturiFont.monoSmall)
                     .foregroundStyle(theme.textTertiary)
-                    .accessibilityLabel("\(status) collections shown")
+                    .accessibilityLabel(model.narrowed ? "\(count) shown" : count)
             }
         }
+    }
+
+    /// The count under the filter, spelled out: a bare "12/40" read as a
+    /// ratio or a date rather than how many collections are listed.
+    private var collectionCountLabel: String? {
+        guard let total = model.collections.value?.count else { return nil }
+        let noun = total == 1 ? "collection" : "collections"
+        return model.narrowed ? "\(model.shownCount) of \(total) \(noun)" : "\(total) \(noun)"
     }
 
     private var pinnedSection: some View {
@@ -1612,7 +1641,7 @@ private struct RepoLabelsTab: View {
                     if let unavailable = base.unavailable {
                         AccountCheckVerdict(
                             title: "Bluesky will not show this",
-                            text: "The AppView answered \u{201C}\(unavailable)\u{201D}. That is not a label: it means there is no profile here for labels to appear on.",
+                            text: "The AppView answered \u{201C}\(unavailable)\u{201D}. That isn\u{2019}t a label: there is no profile here to label.",
                             tone: .warn
                         )
                     } else {
@@ -1692,7 +1721,7 @@ private struct RepoLabelsTab: View {
 
     private var scanCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Anyone can run a labeler, and an app only shows labels from the ones its user subscribes to. The checker asks every labeler the relay lists, \(Labels.labelersPerRequest) at a time.")
+            Text("Every labeler the relay lists is asked, \(Labels.labelersPerRequest) at a time.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1775,7 +1804,7 @@ struct RepoLabelGroupCard: View {
     }
 
     private var subtitle: String {
-        if group.isSelf { return "Self-labels, written into its own records" }
+        if group.isSelf { return "Self-labels in its own records" }
         if let handle = labeler?.handle { return "@\(handle)" }
         if labeler != nil { return group.src }
         return "Bluesky has no labeler profile for this DID"
@@ -1874,8 +1903,8 @@ private struct RepoLabelRow: View {
         let expired = Labels.isExpired(label, now: now)
         let state: String? = label.neg ? "Withdrawn" : (expired ? "Expired" : (meaning.severity == "alert" ? "Alert" : nil))
         let fallback = isSelf
-            ? "This value is not one the protocol defines for self-labels, so apps ignore it."
-            : "The labeler publishes no description for this value."
+            ? "Not a self-label value the protocol defines, so apps ignore it."
+            : "The labeler gives no description."
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(meaning.name)
@@ -1930,7 +1959,7 @@ private struct RepoVisibilityTab: View {
             case .waiting:
                 AccountCheckVerdict(
                     title: "Checking on \(Shadowban.defaultAppView.name)",
-                    text: "Waiting for Bluesky\u{2019}s first answer about the account.",
+                    text: "",
                     tone: .plain,
                     busy: true
                 )
@@ -1939,13 +1968,13 @@ private struct RepoVisibilityTab: View {
                 if absence == .deactivated {
                     EmptyState(
                         title: "Deactivated",
-                        detail: "Bluesky says the account is deactivated, so there is nothing for its AppView to show or hide.",
+                        detail: "Nothing for Bluesky to show or hide.",
                         systemImage: "eye.slash"
                     )
                 } else {
                     EmptyState(
                         title: "No Bluesky profile",
-                        detail: "Bluesky\u{2019}s AppView has no profile for this account, so there is nothing for it to hide.",
+                        detail: "Nothing for Bluesky to hide.",
                         systemImage: "eye.slash"
                     )
                 }
@@ -2007,7 +2036,7 @@ private struct RepoVisibilityTab: View {
 
         if !posts.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader("Recent posts", detail: "\(posts.count) from the PDS, newest first")
+                SectionHeader("Recent posts", detail: "\(posts.count) from the PDS")
                 VStack(spacing: 0) {
                     ForEach(Array(posts.enumerated()), id: \.offset) { pair in
                         if pair.offset > 0 {

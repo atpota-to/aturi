@@ -290,7 +290,7 @@ final class IdentityModelTests: XCTestCase {
         let transport = transport()
         let frozen = makeModel(identity(status: InactiveRepo(status: "frozen", error: "x")), transport: transport)
         XCTAssertEqual(frozen.statusLabel, "frozen")
-        XCTAssertEqual(frozen.statusNoticeCopy, RepoStatusCopy(headline: "This repo is marked frozen.", detail: "Its host refuses record reads while the repo is in this state."))
+        XCTAssertEqual(frozen.statusNoticeCopy, RepoStatusCopy(headline: "This repo is marked frozen.", detail: "Its host refuses record reads in this state."))
 
         let unnamed = makeModel(identity(status: InactiveRepo(status: nil, error: "x")), transport: transport)
         XCTAssertEqual(unnamed.statusLabel, "inactive")

@@ -117,6 +117,17 @@ function download(filename: string, text: string, type: string) {
  * the export are in src/lib/tools/resolve.ts; this does the lookups and
  * draws the rows as they come in.
  */
+/** What the table leaves out, or nothing when it is the whole list. */
+function resolveNote(tooLong: boolean, duplicates: number, dropped: number): string {
+  const parts: string[] = [];
+  if (tooLong) parts.push('Too long to share as a link.');
+  if (duplicates > 0)
+    parts.push(`${duplicates.toLocaleString('en-US')} ${duplicates === 1 ? 'duplicate' : 'duplicates'} left out.`);
+  if (dropped > 0)
+    parts.push(`Only the first ${MAX_IDENTIFIERS} are resolved; ${dropped.toLocaleString('en-US')} left out.`);
+  return parts.join(' ');
+}
+
 export default function BulkResolver() {
   const [{ list }, setQuery] = useToolQuery(['list'] as const);
   // A list too long for the link is kept here instead, and is not shareable.
@@ -144,6 +155,8 @@ export default function BulkResolver() {
       setQuery({ list: query });
     }
   }
+
+  const note = resolveNote(held !== null, parsed.duplicates, parsed.dropped);
 
   return (
     <ToolShell
@@ -191,15 +204,7 @@ export default function BulkResolver() {
                 <span style={{ width: `${counts.total ? (counts.settled / counts.total) * 100 : 0}%` }} />
               </div>
             ) : (
-              <p className="fn-tool-note">
-                {held !== null
-                  ? 'This list is too long to keep in the link, so it cannot be shared as one.'
-                  : 'The list is kept in the link, so this table can be shared.'}
-                {parsed.duplicates > 0 &&
-                  ` ${parsed.duplicates.toLocaleString('en-US')} ${parsed.duplicates === 1 ? 'duplicate was' : 'duplicates were'} left out.`}
-                {parsed.dropped > 0 &&
-                  ` Only the first ${MAX_IDENTIFIERS} are resolved; ${parsed.dropped.toLocaleString('en-US')} more were left out.`}
-              </p>
+              note && <p className="fn-tool-note">{note}</p>
             )}
             <div className="fn-tool-bar-end">
               <CopyButton value={rowsToCsv(rows)} label="Copy CSV" compact />
@@ -247,22 +252,18 @@ export default function BulkResolver() {
               term: 'Reads the list',
               text: (
                 <>
-                  Handles, DIDs, <code>@handles</code>, <code>at://</code> URIs and profile links, one per line or
-                  separated by commas. Duplicates are dropped and the order is kept, up to {MAX_IDENTIFIERS}.
+                  Handles, DIDs, <code>at://</code> URIs or profile links, one per line or comma-separated, up to{' '}
+                  {MAX_IDENTIFIERS}.
                 </>
               ),
             },
             {
               term: 'Resolves each one',
-              text: 'A handle to its DID and a DID to its handle, with the PDS the account lives on. A handle only counts when its DID points back at it.',
+              text: 'Each to its DID, handle and PDS. A handle counts only when its DID points back.',
             },
             {
               term: 'Flags what is off',
-              text: 'A handle that does not resolve, a DID with no handle, a handle that now belongs to a differently named account, and anything that is not an identifier at all.',
-            },
-            {
-              term: 'Hands the table back',
-              text: 'Copy it as CSV or JSON, or download the CSV. A short list is kept in the link, so the table can be shared.',
+              text: 'Handles that don’t resolve, DIDs with no handle, handles now on another account, and anything that isn’t an identifier.',
             },
           ]}
         />

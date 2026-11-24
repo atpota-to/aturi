@@ -227,8 +227,8 @@ export default function HandleDebugger() {
               term: 'The domain names a DID',
               text: (
                 <>
-                  A TXT record at <code>_atproto.&lt;handle&gt;</code>, or a text file at{' '}
-                  <code>/.well-known/atproto-did</code>. Either is enough; both are read.
+                  A TXT record at <code>_atproto.&lt;handle&gt;</code> or a file at{' '}
+                  <code>/.well-known/atproto-did</code>. Either is enough.
                 </>
               ),
             },
@@ -236,18 +236,18 @@ export default function HandleDebugger() {
               term: 'The DID claims the domain',
               text: (
                 <>
-                  The DID document has to list <code>at://&lt;handle&gt;</code> first under{' '}
-                  <code>alsoKnownAs</code>. Without it, apps show <code>handle.invalid</code>.
+                  The DID document lists <code>at://&lt;handle&gt;</code> first under <code>alsoKnownAs</code>.
+                  Otherwise apps show <code>handle.invalid</code>.
                 </>
               ),
             },
             {
               term: 'The account is reachable',
-              text: 'Its PDS answers for the repository, reports it active, and agrees about the handle.',
+              text: 'Its PDS serves the repository, reports it active and agrees on the handle.',
             },
             {
               term: 'Bluesky has caught up',
-              text: 'The AppView keeps its own copy of each handle, which can lag behind a change.',
+              text: 'The AppView’s copy of the handle can lag behind a change.',
             },
           ]}
         />

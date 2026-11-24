@@ -132,18 +132,18 @@ final class AtmospherePulseModelTests: XCTestCase {
     func testCopyFollowsTheWindowAndMetric() {
         let model = makeModel(PulseFakeTransport([]))
         XCTAssertEqual(model.heading, "This week in the Atmosphere")
-        XCTAssertEqual(model.headingDetail, "Lexicon activity from UFOs, compared with the week before")
-        XCTAssertEqual(model.topSubtitle, "Accounts writing each lexicon")
+        XCTAssertEqual(model.headingDetail, "Compared with the week before, via UFOs")
+        XCTAssertEqual(model.topSubtitle, "By accounts")
         XCTAssertEqual(model.risingSubtitle, "Accounts last week \u{2192} this week")
         XCTAssertEqual(model.newTitle, "New this week")
-        XCTAssertEqual(model.newSubtitle, "First seen in the last 7d, by accounts")
+        XCTAssertEqual(model.newSubtitle, "By accounts")
 
         model.window = .oneDay
         model.metric = .creates
         XCTAssertEqual(model.heading, "Today in the Atmosphere")
-        XCTAssertEqual(model.topSubtitle, "Records created in each lexicon")
+        XCTAssertEqual(model.topSubtitle, "By records created")
         XCTAssertEqual(model.risingSubtitle, "Records created yesterday \u{2192} today")
-        XCTAssertEqual(model.newTitle, "New this day")
+        XCTAssertEqual(model.newTitle, "New today")
         XCTAssertEqual(UFOsWindow.allCases.map(AtmospherePulseModel.windowLabel), ["Day", "Week", "Month"])
     }
 

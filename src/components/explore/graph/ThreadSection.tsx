@@ -96,7 +96,7 @@ export default function ThreadSection({ uri }: { uri: string }) {
             ? 'Couldn’t read this thread from the Bluesky AppView.'
             : !thread
               ? 'Reading the thread…'
-              : 'Nobody has replied yet. Its likes, quotes and links open full screen.'}
+              : 'No replies yet.'}
         </p>
       </section>
     );

@@ -57,7 +57,7 @@ public enum LinkResolution: Hashable, Sendable {
         case .notFound:
             return .notFound(handle: parsed.handle)
         case .unavailable:
-            return .unavailable("We couldn't reach the atproto resolver to look up \"\(parsed.handle)\". This is usually temporary; try again in a moment.")
+            return .unavailable("Couldn't reach the resolver to look up \"\(parsed.handle)\". This is usually temporary: try again in a moment.")
         case .did(let resolved):
             did = resolved
         }

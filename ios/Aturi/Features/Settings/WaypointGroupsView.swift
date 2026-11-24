@@ -48,7 +48,7 @@ struct WaypointGroupsView: View {
 
     private var summary: String {
         if groups.isEmpty {
-            return "No groups yet. Create one to start surfacing waypoints."
+            return "No groups yet."
         }
         var visible = Set<String>()
         for group in groups {
@@ -95,7 +95,7 @@ struct WaypointGroupsView: View {
 
             SettingsSection(
                 "Groups",
-                footer: "Drag rows to reorder groups, or to move a waypoint within or between groups. Use the plus on a group to add waypoints from the catalog. The same waypoint can live in several groups; anything in no group is hidden from the picker."
+                footer: "Drag to reorder. Waypoints in no group are hidden from the picker."
             ) {
                 Text(summary)
                     .font(AturiFont.footnote)
@@ -161,7 +161,7 @@ struct WaypointGroupsView: View {
                 preferences.update { $0.removeGroup(id: group.id) }
             }
         } message: { _ in
-            Text("Waypoints inside stay available in any other groups they belong to.")
+            Text("Its waypoints stay in any other groups.")
         }
         .confirmationDialog(
             "Restore the default groups?",
@@ -172,7 +172,7 @@ struct WaypointGroupsView: View {
                 restoreDefaults()
             }
         } message: {
-            Text("This discards any groups you have created. Custom waypoints are kept.")
+            Text("Groups you created will be discarded. Custom waypoints are kept.")
         }
     }
 
@@ -481,12 +481,12 @@ private struct NewWaypointsNotice: View {
     private var summary: String {
         let names = waypoints.map(\.name)
         if names.count == 1 {
-            return "\(names[0]) is a new waypoint. Add it to your groups to see it in the picker."
+            return "\(names[0]) is a new waypoint"
         }
         if names.count <= 3 {
-            return "New waypoints: \(names.joined(separator: ", ")). Add them to your groups to see them in the picker."
+            return "New waypoints: \(names.joined(separator: ", "))"
         }
-        return "\(names.prefix(2).joined(separator: ", ")) and \(names.count - 2) more new waypoints. Add them to your groups to see them in the picker."
+        return "\(names.prefix(2).joined(separator: ", ")) and \(names.count - 2) more new waypoints"
     }
 
     var body: some View {

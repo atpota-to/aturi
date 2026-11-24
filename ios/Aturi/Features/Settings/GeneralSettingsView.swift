@@ -29,7 +29,7 @@ struct GeneralSettingsView: View {
         List {
             SettingsSection(
                 "Color scheme",
-                footer: "The palette the whole app is painted in. Every scheme has a dark and a light variant; the switch below picks which one you see. Saved with the rest of your settings, so it follows you to other devices when you are signed in."
+                footer: "Synced when you\u{2019}re signed in."
             ) {
                 ForEach(AturiColorScheme.allCases, id: \.self) { scheme in
                     SettingsChoiceRow(
@@ -47,7 +47,7 @@ struct GeneralSettingsView: View {
 
             SettingsSection(
                 "Dark or light",
-                footer: "Which variant of the scheme to show. Saved on this device, so you can run light here and dark on another."
+                footer: "Saved on this device."
             ) {
                 Picker("Appearance", selection: appearance) {
                     ForEach(Appearance.allCases) { option in
@@ -58,10 +58,7 @@ struct GeneralSettingsView: View {
                 .padding(.vertical, 4)
             }
 
-            SettingsSection(
-                "Picker layout",
-                footer: "How the universal-link picker draws your waypoints. The same switch sits above the picker itself, so you can change it while looking at the result."
-            ) {
+            SettingsSection("Picker layout") {
                 ForEach(WaypointLayout.allCases, id: \.self) { layout in
                     SettingsChoiceRow(
                         Self.layoutLabel(layout),
@@ -82,7 +79,7 @@ struct GeneralSettingsView: View {
 
             SettingsSection(
                 "Pinned lexicons",
-                footer: "Pin lexicons (or entire NSID groups like app.bsky.feed.*) from any repo\u{2019}s Lexicons tab to surface them at the top of the list. Useful for jumping straight to the records you touch most."
+                footer: "Pinned lexicons and groups (app.bsky.feed.*) sit at the top of a repo\u{2019}s Collections tab. Pins in the Explore lexicon browser are a separate list."
             ) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Show pinned section on")
@@ -93,7 +90,7 @@ struct GeneralSettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    Text("My repo shows the Pinned section only on your own account page. Every repo bubbles a single shared list up on every page that has a match. Separate lets you keep two different lists: one for your repo, another for everyone else\u{2019}s.")
+                    Text("My repo: your account only. Every repo: one list everywhere. Separate: one list for yours, one for everyone else\u{2019}s.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -101,7 +98,6 @@ struct GeneralSettingsView: View {
                 .padding(.vertical, 4)
                 SettingsToggleRow(
                     "Start lexicon groups collapsed",
-                    detail: "When on, every group on the explorer\u{2019}s Lexicons tab starts folded. Use the toggle next to the filter bar to flip everything at once.",
                     isOn: preferences.settingsBinding({ $0.collectionGroupsCollapsedByDefault }, { $0.collectionGroupsCollapsedByDefault = $1 })
                 )
             }
@@ -149,9 +145,9 @@ struct GeneralSettingsView: View {
 
     private static func layoutHint(_ layout: WaypointLayout) -> String {
         switch layout {
-        case .dense: return "One line per waypoint: mark, name and the host it opens."
-        case .grid: return "Icon tiles, names only."
-        case .classic: return "Full-width cards with descriptions and collapsible group headers."
+        case .dense: return "One line per waypoint"
+        case .grid: return "Icon tiles, names only"
+        case .classic: return "Full cards with descriptions"
         }
     }
 
@@ -165,8 +161,10 @@ struct GeneralSettingsView: View {
 }
 
 /// The web's two-tone chip: the dark variant on the left, the light one on
-/// the right, each showing its background with a dot of its accent, so
-/// both are visible whichever one is active.
+/// the right, each showing its background with a dot of its text accent, so
+/// both are visible whichever one is active. Trans is the exception, as in
+/// globals.css: its light half takes the pink accent instead of the deep
+/// blue text accent, so the chip shows the flag's sky blue and pink.
 private struct SchemeSwatch: View {
     let scheme: AturiColorScheme
 
@@ -176,8 +174,8 @@ private struct SchemeSwatch: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         HStack(spacing: 0) {
-            half(scheme.darkPalette)
-            half(scheme.lightPalette)
+            half(scheme.darkPalette, dot: scheme.darkPalette.textAccent)
+            half(scheme.lightPalette, dot: scheme == .trans ? scheme.lightPalette.accentMoss : scheme.lightPalette.textAccent)
         }
         .frame(width: 48, height: 30)
         .clipShape(shape)
@@ -185,11 +183,11 @@ private struct SchemeSwatch: View {
         .accessibilityHidden(true)
     }
 
-    private func half(_ palette: Palette) -> some View {
+    private func half(_ palette: Palette, dot: String) -> some View {
         ZStack {
             Color(hex: palette.bgPrimary)
             Circle()
-                .fill(Color(hex: palette.accentMoss))
+                .fill(Color(hex: dot))
                 .frame(width: 10, height: 10)
         }
     }
@@ -263,7 +261,7 @@ private struct PinnedListSection: View {
         SettingsSection(
             "\(title) (\(list.count))",
             footer: list.isEmpty
-                ? "Nothing pinned yet. Add an NSID or a group wildcard (e.g. app.bsky.feed.*) above, or use the pin button on rows and group headers in any repo\u{2019}s Lexicons tab."
+                ? "Nothing pinned yet. Add one above or pin from a repo\u{2019}s Collections tab."
                 : nil
         ) {
             HStack(spacing: 8) {
@@ -341,7 +339,7 @@ private struct PinnedListSection: View {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !value.isEmpty else { return }
         guard PinnedLexicons.isLikelyPinEntry(value) else {
-            errorMessage = "That doesn\u{2019}t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post), or a group wildcard (e.g. app.bsky.feed.*)."
+            errorMessage = "Not a valid NSID. Use lowercase and dots (app.bsky.feed.post) or a group (app.bsky.feed.*)."
             return
         }
         guard !list.contains(value) else {

@@ -63,11 +63,7 @@ export default function ExploreLanding() {
           <div className="fn-x-intro-copy">
             <span className="fn-kicker">Atmosphere explorer</span>
             <h1 id="fn-x-title">Browse any repository</h1>
-            <p>
-              Every account in the Atmosphere keeps its records in a public PDS.
-              Browse collections, inspect identity history, follow backlinks, and
-              edit your own records, all from the browser.
-            </p>
+            <p>Records, identity history, and backlinks for any account.</p>
           </div>
           <div className="fn-x-intro-search">
             <SearchBox />

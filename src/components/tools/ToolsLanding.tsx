@@ -20,7 +20,7 @@ const PREVIEWS = [
     href: '/explore/spaces',
     title: 'Atproto spaces',
     tag: 'alpha',
-    desc: 'Browse your permissioned data: records kept outside your public repo, readable only by a space’s members.',
+    desc: 'Records kept outside your public repo, readable only by a space’s members.',
     Icon: Orbit,
   },
 ];
@@ -33,11 +33,6 @@ export default function ToolsLanding() {
           <div className="fn-x-intro-copy">
             <span className="fn-kicker">Tools</span>
             <h1>Small tools for the Atmosphere</h1>
-            <p>
-              Single-purpose utilities for atproto: check a handle, validate a record, watch the
-              network. Each one works on its own page and keeps its input in the link, so a result
-              can be shared.
-            </p>
           </div>
         </header>
       </AppearIn>
@@ -47,17 +42,16 @@ export default function ToolsLanding() {
           <section className="fn-t-group" aria-labelledby={`fn-t-group-${group.id}`}>
             <header className="fn-t-group-head">
               <h2 id={`fn-t-group-${group.id}`}>{group.title}</h2>
-              <p>{group.blurb}</p>
             </header>
             <nav aria-label={`${group.title} tools`} className="fn-x-tiles fn-t-tiles">
-              {tools.map(({ slug, title, desc, Icon }) => (
+              {tools.map(({ slug, title, tile, Icon }) => (
                 <Link key={slug} href={toolHref(slug)} className="fn-x-tile fn-t-tile">
                   <span aria-hidden className="fn-x-tile-icon">
                     <Icon size={18} />
                   </span>
                   <span className="fn-x-tile-text">
                     <span className="fn-x-tile-title">{title}</span>
-                    <span className="fn-x-tile-desc">{desc}</span>
+                    <span className="fn-x-tile-desc">{tile}</span>
                   </span>
                   <ChevronRight size={16} aria-hidden className="fn-x-tile-chev" />
                 </Link>
@@ -71,7 +65,6 @@ export default function ToolsLanding() {
         <section className="fn-t-group" aria-labelledby="fn-t-group-preview">
           <header className="fn-t-group-head">
             <h2 id="fn-t-group-preview">In preview</h2>
-            <p>Early looks at what is coming to atproto.</p>
           </header>
           <nav aria-label="Preview tools" className="fn-x-tiles fn-t-tiles">
             {PREVIEWS.map(({ href, title, tag, desc, Icon }) => (

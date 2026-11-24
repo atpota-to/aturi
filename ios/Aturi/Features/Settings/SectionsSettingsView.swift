@@ -26,23 +26,19 @@ struct SectionsSettingsView: View {
         List {
             SettingsSection(
                 "Record pages",
-                footer: "Choose which sections appear on a record / Bluesky-post explorer page, and drag to reorder them. The rich JSON preview and raw JSON are the two data views; at least one always stays on so the record is never blank."
+                footer: "At least one content section stays on."
             ) {
                 SectionListRows(page: .record) {
                     resetting = .record
                 }
             }
 
-            SettingsSection(
-                "Repo & profile pages",
-                footer: "Choose which sections appear on a repo / profile explorer page, and drag to reorder. The breadcrumb and the collections tabs stay fixed."
-            ) {
+            SettingsSection("Repo & profile pages") {
                 SectionListRows(page: .repo) {
                     resetting = .repo
                 }
                 SettingsToggleRow(
                     "Start \u{201C}Repo at a glance\u{201D} collapsed",
-                    detail: "When shown, the stats section starts folded; tap its header to expand. No effect when hidden above.",
                     isOn: preferences.settingsBinding({ $0.repoGlanceCollapsedByDefault }, { $0.repoGlanceCollapsedByDefault = $1 })
                 )
             }

@@ -456,8 +456,7 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
         </g>
       </FlowBox>
       <p className="fx-graph-caption">
-        Open a relationship to see who’s in it, and a person to open theirs. Their follows and followers are read live,
-        so this goes as far as you like. Drag a card with a mouse to move it out of the way.
+        Open a relationship to see who’s in it, and a person to open theirs. Drag a card with a mouse to move it.
       </p>
     </>
   );
@@ -678,9 +677,9 @@ export function FlowThread({
       <p className="fx-graph-caption">
         Replies one column deeper, most-discussed first.{' '}
         {onSelect
-          ? 'Choose a post to read it whole, and to open its replies if they’re folded; the button on its edge folds them.'
+          ? 'Choose a post to read it and open its replies; the button on its edge folds them.'
           : 'Choose a post to fold or open what’s under it.'}{' '}
-        Drag a card with a mouse to move it out of the way.
+        Drag a card with a mouse to move it.
       </p>
     </>
   );

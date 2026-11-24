@@ -92,11 +92,7 @@ struct LexiconToolView: View {
             if let detail = check.detail, !detail.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(detail.enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .font(AturiFont.monoSmall)
-                            .foregroundStyle(theme.textSecondary)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
+                        detailLine(line)
                     }
                 }
                 .padding(10)
@@ -124,6 +120,29 @@ struct LexiconToolView: View {
         .padding(.vertical, 2)
     }
 
+    /* A line of evidence that answers the one above it starts with an
+       arrow. The arrow gets its own column so a long DID or URI after it
+       wraps under itself, not back under the arrow. */
+    @ViewBuilder
+    private func detailLine(_ line: String) -> some View {
+        if line.hasPrefix("\u{2192} ") {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\u{2192}")
+                Text(String(line.dropFirst(2)))
+            }
+            .font(AturiFont.monoSmall)
+            .foregroundStyle(theme.textSecondary)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text(line)
+                .font(AturiFont.monoSmall)
+                .foregroundStyle(theme.textSecondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private func schemaSection(_ schema: LexiconPublishing.FoundSchema, nsid: String) -> some View {
         let authority = "_lexicon.\(LexiconPublishing.nsidAuthority(nsid).domain)"
         return ToolSection(
@@ -137,7 +156,7 @@ struct LexiconToolView: View {
                     ToolFactRow(label: "Repository", value: schema.did)
                 }
                 .buttonStyle(.plain)
-                CopyRow(label: "Record", value: schema.uri)
+                CopyRow(label: "Record", value: schema.uri, lineLimit: 1)
                 if let cid = schema.cid, !cid.isEmpty {
                     CopyRow(label: "CID", value: cid)
                 }
@@ -163,7 +182,7 @@ struct LexiconToolView: View {
             ),
             (
                 "The authority names a repository",
-                "A TXT record at _lexicon.<authority> holds did=<DID>. Each authority needs its own: a record on the domain above it is not consulted."
+                "A TXT record at _lexicon.<authority> holds did=<DID>. One on a parent domain doesn\u{2019}t count."
             ),
             (
                 "The repository holds the schema",

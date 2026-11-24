@@ -457,7 +457,7 @@ function RankedPane({ host, mode }: { host: ListHost; mode: 'trending' | 'top' }
       )}
       {rows && rows.length >= RANKED_COUNT && !query && (
         <p className="fx-lx-note">
-          The top {RANKED_COUNT}. Every lexicon with activity in the window is under{' '}
+          Top {RANKED_COUNT}. The rest are in{' '}
           <Link href={addressFor({ scope: { kind: 'list', list: 'all' } })} prefetch={false}>
             All lexicons
           </Link>
@@ -496,7 +496,7 @@ function NewPane({ host }: { host: ListHost }) {
     <Pane
       icon={<LIST_ICONS.new size={16} />}
       title="New lexicons"
-      sub={<>Record types seen for the first time in {windowWords(host)}, with three or more accounts using them.</>}
+      sub={<>First seen in {windowWords(host)}, by 3+ accounts.</>}
       filter={filter}
       setFilter={setFilter}
       meta={answer ? `${answer.count} new` : null}
@@ -506,7 +506,7 @@ function NewPane({ host }: { host: ListHost }) {
       ) : !visible ? (
         <RowsSkeleton cols="new" />
       ) : visible.length === 0 ? (
-        rows && rows.length > 0 ? <NoMatch filter={filter} /> : <Message>Nothing new with three or more accounts in this window.</Message>
+        rows && rows.length > 0 ? <NoMatch filter={filter} /> : <Message>Nothing new with 3+ accounts in this window.</Message>
       ) : (
         <ul className="fx-lx-list" data-cols="new">
           <li className="fx-lx-head" aria-hidden>
@@ -538,8 +538,8 @@ function NewPane({ host }: { host: ListHost }) {
       )}
       {answer && (
         <p className="fx-lx-note">
-          First seen means no activity UFOs recorded between {answer.historyBegins}, when its history begins, and the start
-          of the window. Account counts are estimates, and a few accounts can still be one developer testing.
+          First seen: no activity from {answer.historyBegins}, when UFOs&rsquo; history begins, to the window&rsquo;s start.
+          Account counts are estimates; a few may be one developer testing.
         </p>
       )}
     </Pane>
@@ -568,7 +568,7 @@ function CatalogPane({ host }: { host: ListHost }) {
     <Pane
       icon={<LIST_ICONS.all size={16} />}
       title="All lexicons"
-      sub={<>Every lexicon with activity in {windowWords(host)}, A to Z as UFOs pages them. Sorting sorts what’s loaded.</>}
+      sub={<>Active in {windowWords(host)}. Sorts only what’s loaded.</>}
       filter={filter}
       setFilter={setFilter}
       meta={rows ? `${formatCount(rows.length)} loaded` : null}
@@ -845,7 +845,7 @@ function SearchPane({ host, term }: { host: ListHost; term: string }) {
     <Pane
       icon={<Search size={16} />}
       title={<>“{term}”</>}
-      sub={rows ? <>{rows.length === 1 ? 'One lexicon matches' : `${rows.length} lexicons match`}, from UFOs’ search of every NSID it has seen.</> : null}
+      sub={rows ? <>{rows.length === 1 ? 'One lexicon matches' : `${rows.length} lexicons match`}</> : null}
       filter={filter}
       setFilter={setFilter}
       meta={rows ? `${rows.length} found` : null}

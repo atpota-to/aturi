@@ -108,8 +108,8 @@ function ClientView({
             term: 'The document is served correctly',
             text: (
               <>
-                A <code>client_id</code> is an https URL with no port. It has to answer 200 with{' '}
-                <code>application/json</code>, without redirecting, and repeat its own URL as{' '}
+                The <code>client_id</code> is an https URL with no port that answers 200 with{' '}
+                <code>application/json</code>, without redirecting, and repeats its own URL as{' '}
                 <code>client_id</code>.
               </>
             ),
@@ -128,8 +128,8 @@ function ClientView({
             term: 'Redirect URIs fit the client type',
             text: (
               <>
-                A web client redirects to https URLs. A native client may use a scheme of its own, which
-                must be the <code>client_id</code>’s hostname in reverse.
+                Web clients redirect to https. A native client may use a scheme of its own: the{' '}
+                <code>client_id</code>’s hostname reversed.
               </>
             ),
           },
@@ -138,14 +138,14 @@ function ClientView({
             text: (
               <>
                 <code>private_key_jwt</code> needs a public key in <code>jwks</code> or at a{' '}
-                <code>jwks_uri</code>, one or the other. The key set itself is not fetched.
+                <code>jwks_uri</code>. The key set isn’t fetched.
               </>
             ),
           },
         ]}
       >
         <p className="fn-tool-note fn-tool-oauth-source">
-          The rules are the Clients section of the{' '}
+          Rules from the Clients section of the{' '}
           <a href="https://atproto.com/specs/oauth" target="_blank" rel="noreferrer">
             atproto OAuth specification
           </a>
@@ -214,8 +214,8 @@ function ClientView({
             </ToolFacts>
             {loopback && (
               <p className="fn-tool-note fn-tool-oauth-implied">
-                A server that supports this form builds the document below from the URL, and adds a{' '}
-                <code>client_name</code> of its own choosing.
+                A server that supports this form builds the document below from the URL and adds its own{' '}
+                <code>client_name</code>.
               </p>
             )}
             {scope && (
@@ -234,14 +234,14 @@ function ClientView({
           <ToolJson value={document} label="document" />
           {!loopback && probe?.otherFields?.length ? (
             <p className="fn-tool-note fn-tool-oauth-others">
-              Shown are the fields client metadata defines. The document also carries{' '}
+              The document also carries{' '}
               {probe.otherFields.map((name, index) => (
                 <span key={name}>
                   {index > 0 ? ', ' : ''}
                   <code>{name}</code>
                 </span>
               ))}
-              , which a server ignores.
+              , which servers ignore.
             </p>
           ) : null}
         </ToolSection>

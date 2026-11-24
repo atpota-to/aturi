@@ -120,18 +120,18 @@ public struct RecordFailure: Hashable, Sendable {
 
         if notFound, isSchema {
             headline = "No schema published for this lexicon"
-            body = "\(rkey) is used across the network, but @\(handle) hasn\u{2019}t published a com.atproto.lexicon.schema record defining it. That\u{2019}s common: a lexicon can be widely adopted without a formal schema record in its owner\u{2019}s repository."
+            body = "@\(handle) hasn\u{2019}t published a com.atproto.lexicon.schema record for \(rkey). Many lexicons are used without one."
             lexiconPath = NSID.lexiconPathFor(rkey)
             lexiconLinkLabel = "See how \(rkey) is used across the atmosphere"
         } else if notFound {
             headline = "This record doesn\u{2019}t exist"
-            body = "We couldn\u{2019}t find a \(collection) record with key \(rkey) in @\(handle)\u{2019}s repository. It may have been deleted, or the link may be incorrect."
+            body = "No \(collection) record with key \(rkey) in @\(handle)\u{2019}s repo. It may have been deleted, or the link may be wrong."
             lexiconPath = nil
             lexiconLinkLabel = nil
         } else {
             headline = "Couldn\u{2019}t load this record"
             let statusClause = parsed.status.map { " (HTTP \($0))" } ?? ""
-            body = "The PDS returned an error\(statusClause) while fetching this record. It might be a temporary problem. Try again in a moment."
+            body = "The PDS returned an error\(statusClause). Try again in a moment."
             lexiconPath = nil
             lexiconLinkLabel = nil
         }

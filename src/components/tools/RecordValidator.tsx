@@ -152,7 +152,7 @@ function Schemas({ check }: { check: RecordCheck }) {
       )}
       {check.result.unresolved.length > 0 && schema.status === 'found' && (
         <p className="fn-tool-note fn-tool-validate-unchecked">
-          Not checked, because these could not be found: {check.result.unresolved.join(', ')}.
+          Not found, so not checked: {check.result.unresolved.join(', ')}.
         </p>
       )}
       <div className="fn-tool-actions">
@@ -300,9 +300,8 @@ export default function RecordValidator() {
               term: 'The schema is the published one',
               text: (
                 <>
-                  The record’s <code>$type</code> names a lexicon. Its schema is found the way the network finds
-                  it: the <code>_lexicon</code> DNS record on its domain, then the schema record in that account’s
-                  repository.
+                  The <code>$type</code>’s schema, found as the network finds it: the <code>_lexicon</code> DNS
+                  record, then the schema record in that repository.
                 </>
               ),
             },
@@ -312,7 +311,7 @@ export default function RecordValidator() {
             },
             {
               term: 'References are followed',
-              text: 'When a field’s type lives in another lexicon, that one is fetched and checked too. Anything that could not be found is listed, not passed.',
+              text: 'Types from other lexicons are fetched and checked too. Anything not found is listed, not passed.',
             },
           ]}
         />

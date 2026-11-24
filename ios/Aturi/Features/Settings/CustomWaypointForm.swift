@@ -111,7 +111,7 @@ struct CustomWaypointForm: View {
                     }
                 }
 
-                SettingsSection("Handles", footer: "Which kinds of links this waypoint understands.") {
+                SettingsSection("Handles", footer: "Kinds of link it can open.") {
                     SettingsWrapLayout(spacing: 8) {
                         ForEach(Self.typeOptions, id: \.type) { option in
                             SettingsChipToggle(option.label, isOn: types.contains(option.type)) {
@@ -129,7 +129,7 @@ struct CustomWaypointForm: View {
 
                 SettingsSection(
                     "Auto-redirect families",
-                    footer: "Optional, and empty is the usual choice for a personal bookmark. Ticking a family lets this waypoint be picked as a redirect destination under Redirects."
+                    footer: "Optional. Lets it be a redirect destination."
                 ) {
                     SettingsWrapLayout(spacing: 8) {
                         ForEach(WaypointCatalog.compatFamilyOrder, id: \.self) { family in

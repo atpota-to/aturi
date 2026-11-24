@@ -654,7 +654,7 @@ final class CollectionModelTests: XCTestCase {
         model.startEditing()
         model.selectAllVisible()
         XCTAssertTrue(model.willPace)
-        XCTAssertTrue(model.deleteConfirmationMessage.contains("pace this under Bluesky\u{2019}s ~5,000/hour write limit"))
+        XCTAssertTrue(model.deleteConfirmationMessage.contains("stay under Bluesky\u{2019}s ~5,000/hour write limit"))
 
         let batches = Batches()
         var seenWait: Int?

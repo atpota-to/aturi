@@ -125,13 +125,6 @@
   color: var(--text-primary);
 }
 
-.settings-page-lede {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
 /* Signed-out notice above the cards: a quiet note on the subtle surface.
    The pale green pair is for the selected thing (tree row, chip), and the
    note is not selected; green also made it the loudest block on every

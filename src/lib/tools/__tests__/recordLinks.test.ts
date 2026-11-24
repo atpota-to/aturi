@@ -54,7 +54,8 @@ test('catalog entries are complete and filed under a real group', () => {
     slugs.add(tool.slug);
     assert.match(tool.slug, /^[a-z]+$/);
     assert.ok(groups.has(tool.group), `${tool.slug} is in a known group`);
-    assert.ok(tool.title && tool.desc && tool.lead, `${tool.slug} has its copy`);
+    assert.ok(tool.title && tool.desc && tool.tile, `${tool.slug} has its copy`);
+    assert.ok(tool.tile.length <= 60, `${tool.slug} tile line is short`);
     // One sentence each: they sit on tiles and in meta descriptions.
     assert.ok(tool.desc.length <= 160, `${tool.slug} description fits a meta description`);
     assert.ok(tool.desc.endsWith('.'), `${tool.slug} description is a sentence`);

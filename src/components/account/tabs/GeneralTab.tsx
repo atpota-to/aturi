@@ -82,16 +82,12 @@ function UpdatesCard() {
     <section className="settings-card">
       <div className="settings-card-head">
         <h2 className="settings-card-title">Updates</h2>
-        <p className="settings-card-sub">
-          When Aturi ships something new — a client joining the catalog, a new
-          feature — it can tell you about it the next time you visit.
-        </p>
       </div>
 
       <Toggle
         id="announce-releases"
         label="Announce new releases"
-        description="Show a summary of what changed the first time you visit after an update. The bell in the header always keeps the notes available, whether this is on or off."
+        description="Show what changed on your first visit after an update. The bell keeps the notes either way."
         checked={prefs.announceReleases}
         onChange={(next) => update((p) => ({ ...p, announceReleases: next }))}
       />
@@ -104,13 +100,6 @@ function AppearanceCard() {
     <section className="settings-card">
       <div className="settings-card-head">
         <h2 className="settings-card-title">Appearance</h2>
-        <p className="settings-card-sub">
-          Pick a color scheme, flip it between dark and light, tune the text
-          size, and dial in accessibility options. The page chrome and accent
-          palette move together; explorer panels, embeds, and the home strip
-          all follow. Choose which explorer sections appear (and in what
-          order) under the <strong>Sections</strong> tab.
-        </p>
       </div>
       <ColorSchemePicker />
       <ThemePicker />
@@ -133,9 +122,8 @@ function ExplorerCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Explorer</h2>
         <p className="settings-card-sub">
-          Pin lexicons (or entire NSID groups like <code>app.bsky.feed.*</code>)
-          from any repo&apos;s collections tab to surface them at the top of the
-          list. Useful for jumping straight to the records you touch most.
+          Pinned lexicons and groups (<code>app.bsky.feed.*</code>) sit at the
+          top of a repo&apos;s Collections tab.
         </p>
       </div>
 
@@ -145,11 +133,9 @@ function ExplorerCard() {
             Show pinned section on
           </span>
           <span className="settings-toggle-label-sub">
-            <em>My repo</em> shows the Pinned section only on your own account
-            page. <em>Every repo</em> bubbles a single shared list up on
-            every page that has a match. <em>Separate</em> lets you keep
-            two different lists: one for your repo, another for everyone
-            else&apos;s.
+            <em>My repo</em>: your account only. <em>Every repo</em>: one list
+            everywhere. <em>Separate</em>: one list for yours, one for
+            everyone else&apos;s.
           </span>
         </div>
         <div
@@ -185,7 +171,6 @@ function ExplorerCard() {
       <Toggle
         id="collections-collapse-default"
         label="Start lexicon groups collapsed"
-        description="When on, every group on the explorer's Collections tab starts folded. Use the toggle next to the filter bar to flip everything at once."
         checked={prefs.collectionGroupsCollapsedByDefault}
         onChange={(next) =>
           update((p) => ({ ...p, collectionGroupsCollapsedByDefault: next }))
@@ -301,7 +286,7 @@ function PinnedList({
     if (!v) return;
     if (!isLikelyPinEntry(v)) {
       setErr(
-        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post), or a group wildcard (e.g. app.bsky.feed.*).',
+        'Not a valid NSID. Use lowercase and dots (app.bsky.feed.post) or a group (app.bsky.feed.*).',
       );
       return;
     }
@@ -426,9 +411,8 @@ function PinnedList({
 
       {list.length === 0 ? (
         <p className="settings-empty">
-          Nothing pinned yet. Add an NSID or a group wildcard (e.g.
-          app.bsky.feed.*) above, or use the pin button on rows and group
-          headers in any repo&apos;s Collections tab.
+          Nothing pinned yet. Add one above or pin from a repo&apos;s
+          Collections tab.
         </p>
       ) : (
         <ul className="settings-list">
@@ -509,10 +493,7 @@ function ColorSchemePicker() {
       <div className="settings-toggle-label">
         <span className="settings-toggle-label-text">Color scheme</span>
         <span className="settings-toggle-label-sub">
-          The palette the whole app is painted in. Every scheme has a dark and
-          a light variant — the row below picks which one you see. Saved with
-          the rest of your settings, so it follows you to other devices when
-          you&apos;re signed in.
+          Synced when you&apos;re signed in.
         </span>
       </div>
       <div
@@ -565,8 +546,7 @@ function ThemePicker() {
       <div className="settings-toggle-label">
         <span className="settings-toggle-label-text">Dark or light</span>
         <span className="settings-toggle-label-sub">
-          Which variant of the scheme above to show. Saved in this browser, so
-          you can run light here and dark on your phone.
+          Saved in this browser.
         </span>
       </div>
       <div
@@ -636,7 +616,7 @@ function FontScalePicker() {
       <div className="settings-toggle-label">
         <span className="settings-toggle-label-text">Font size</span>
         <span className="settings-toggle-label-sub">
-          Adjusts text size across the app. Saved in this browser.
+          Saved in this browser.
         </span>
       </div>
       <div
@@ -687,7 +667,7 @@ function ReduceMotionToggle() {
     <Toggle
       id="reduce-motion"
       label="Reduce motion"
-      description="Pauses page, hover, and loading animations across the site. Defaults to your system setting."
+      description="Defaults to your system setting."
       checked={on}
       onChange={set}
     />
@@ -716,7 +696,7 @@ function HighContrastToggle() {
     <Toggle
       id="high-contrast"
       label="High contrast"
-      description="Boosts text and border contrast for a sharper, more legible interface. Defaults to your system setting."
+      description="Defaults to your system setting."
       checked={on}
       onChange={set}
     />

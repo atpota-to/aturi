@@ -135,7 +135,7 @@ export default function SchemaView({
       {raw === 'json' || !summary ? (
         <div className="fx-lx-json">
           {!summary && raw === 'summary' && (
-            <p className="fx-lx-schema-note">This record doesn’t read as a lexicon document, so here it is as published.</p>
+            <p className="fx-lx-schema-note">Not a valid lexicon document, so shown as published.</p>
           )}
           <LinkifiedJson value={lookup.doc} />
         </div>
@@ -144,7 +144,7 @@ export default function SchemaView({
           {summary.main ? (
             <DefCard def={summary.main} refs={refs} main usage={fieldUsage} />
           ) : (
-            <p className="fx-lx-schema-note">This document has no main definition, only the ones below.</p>
+            <p className="fx-lx-schema-note">No main definition.</p>
           )}
           {summary.defs.length > 0 && (
             <section className="fx-lx-defs" aria-label="Other definitions">
@@ -228,15 +228,15 @@ function NoSchema({ lookup }: { lookup: Exclude<SchemaLookup, { status: 'found' 
       <div className="fx-lx-empty">
         <Globe size={18} aria-hidden />
         <p>
-          <strong>No schema to find.</strong> Nothing claims this namespace: there’s no <code>_lexicon</code> record
+          <strong>No schema to find.</strong> There’s no <code>_lexicon</code> record
           {lookup.domain ? (
             <>
               {' '}
               on <code>{lookup.domain}</code>
             </>
           ) : null}
-          , and <code>{lookup.publisher}</code> isn’t a handle. That’s common for lexicons that work fine; the fields
-          below are the shape they take in practice. <PublishingCheckLink nsid={lookup.nsid} />
+          , and <code>{lookup.publisher}</code> isn’t a handle. Common for working lexicons; the fields below show how
+          it’s used. <PublishingCheckLink nsid={lookup.nsid} />
         </p>
       </div>
     );
@@ -255,8 +255,7 @@ function Unpublished({ lookup }: { lookup: Extract<SchemaLookup, { status: 'unpu
           {label}
         </Link>{' '}
         answers for this namespace but has no <code>{LEXICON_SCHEMA_COLLECTION}</code> record for{' '}
-        <code>{lookup.nsid}</code>. A lexicon can be widely used without one; the fields below are the shape it takes in
-        practice. <PublishingCheckLink nsid={lookup.nsid} />
+        <code>{lookup.nsid}</code>. The fields below show how it’s used. <PublishingCheckLink nsid={lookup.nsid} />
       </p>
     </div>
   );

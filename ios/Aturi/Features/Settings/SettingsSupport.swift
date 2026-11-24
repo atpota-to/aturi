@@ -11,6 +11,7 @@ struct SettingsListStyle: ViewModifier {
         content
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(theme.bgPrimary)
             .navigationBarTitleDisplayMode(.inline)
     }

@@ -179,7 +179,7 @@ export default function AtmosphericConditions() {
   const down = loaded && !reading && !almanac;
   // The station can be up with a part missing (its fallback sample has no
   // accounts or hosts), or down while the almanac's history still answers.
-  const missing = reading ? 'Not in this reading' : 'The station isn\u2019t answering';
+  const missing = reading ? 'Not reported' : 'Station not answering';
   const updated = reading
     ? new Date(reading.measuredAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
     : null;
@@ -206,13 +206,6 @@ export default function AtmosphericConditions() {
             <h2 id="fn-wx-title" className="fn-list-card-title">
               Atmospheric conditions
             </h2>
-            <p className="fn-list-card-sub">
-              The last minute of the whole firehose, from{' '}
-              <a href={ATPOTATO} target="_blank" rel="noreferrer noopener">
-                atpota.to
-              </a>
-              &rsquo;s weather station
-            </p>
           </div>
           <div className="fn-wx-headside">
             {updated && (
@@ -230,8 +223,7 @@ export default function AtmosphericConditions() {
 
         {down ? (
           <p className="explore-placeholder fn-list-card-msg">
-            The weather station isn&rsquo;t answering right now. The full report may still have the
-            latest it heard.
+            The weather station isn&rsquo;t answering. The full report may have the latest.
           </p>
         ) : (
           <dl className="fn-wx-grid">
@@ -243,7 +235,7 @@ export default function AtmosphericConditions() {
               note={
                 reading ? (
                   <>
-                    <Odometer value={whole(reading.recordsPerSecond)} /> records a second
+                    <Odometer value={whole(reading.recordsPerSecond)} /> records/s
                     {reading.accounts !== null && (
                       <>
                         {' · '}
@@ -263,10 +255,10 @@ export default function AtmosphericConditions() {
               value={usual ? changeText(usual.changePercent) : null}
               note={
                 usual
-                  ? `${capitalize(usual.verdict)} over the last hour`
+                  ? `${capitalize(usual.verdict)} · last hour`
                   : almanac
-                    ? 'Still learning what usual looks like'
-                    : 'The almanac isn’t answering'
+                    ? 'No baseline yet'
+                    : 'Almanac not answering'
               }
             />
             <Stat
@@ -277,7 +269,7 @@ export default function AtmosphericConditions() {
               level={reading?.diversity?.level}
               note={
                 reading?.diversity
-                  ? `${percent(reading.diversity.share)} of active accounts write with ${whole(reading.diversity.apps)} other apps`
+                  ? `${percent(reading.diversity.share)} on ${whole(reading.diversity.apps)} non-Bluesky apps`
                   : missing
               }
             />
@@ -289,7 +281,7 @@ export default function AtmosphericConditions() {
               level={reading?.hosts ? hostingLevel(reading.hosts.index) : undefined}
               note={
                 reading?.hosts
-                  ? `${percent(reading.hosts.share)} of accounts on ${whole(reading.hosts.independent)} independent PDSes`
+                  ? `${percent(reading.hosts.share)} on ${whole(reading.hosts.independent)} independent PDSes`
                   : missing
               }
             />

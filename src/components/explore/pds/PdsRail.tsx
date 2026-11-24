@@ -203,8 +203,8 @@ export default function PdsRail({
 
             <p className="fx-wb-note fx-pd-rail-note">
               {listing.done
-                ? `Counted over all ${rows.length.toLocaleString()} accounts the host lists.`
-                : `Counted over the first ${rows.length.toLocaleString()} the host lists.`}
+                ? `Across all ${rows.length.toLocaleString()} listed.`
+                : `Across the first ${rows.length.toLocaleString()} listed.`}
             </p>
           </>
         )}

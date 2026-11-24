@@ -43,9 +43,8 @@ public final class AtmosphericConditionsModel {
     public nonisolated static let refreshInterval: TimeInterval = 60
 
     public nonisolated static let title = "Atmospheric conditions"
-    public nonisolated static let subtitle = "The last minute of the whole firehose, from atpota.to\u{2019}s weather station"
     public nonisolated static let reportLinkLabel = "Full weather report"
-    public nonisolated static let downMessage = "The weather station isn\u{2019}t answering right now. The full report may still have the latest it heard."
+    public nonisolated static let downMessage = "The weather station isn\u{2019}t answering. The full report may have the latest."
 
     /// The web's `loaded`: the first load has finished, whatever it found.
     public private(set) var hasLoaded = false
@@ -150,7 +149,7 @@ public final class AtmosphericConditionsModel {
     /// sample has no accounts or hosts), or down while the almanac's
     /// history still answers.
     public var missingNote: String {
-        reading == nil ? "The station isn\u{2019}t answering" : "Not in this reading"
+        reading == nil ? "Station not answering" : "Not reported"
     }
 
     public var stats: [AtmosphericStat] {
@@ -162,7 +161,7 @@ public final class AtmosphericConditionsModel {
         guard let reading else {
             return AtmosphericStat(label: "Right now", value: nil, note: missingNote)
         }
-        var note = "\(AtpotatoWeather.whole(reading.recordsPerSecond)) records a second"
+        var note = "\(AtpotatoWeather.whole(reading.recordsPerSecond)) records/s"
         if let accounts = reading.accounts {
             note += " \u{00B7} \(AtpotatoWeather.whole(accounts)) accounts"
         }
@@ -175,10 +174,10 @@ public final class AtmosphericConditionsModel {
             return AtmosphericStat(
                 label: "Against usual",
                 value: AtpotatoWeather.changeText(usual.changePercent),
-                note: "\(AtpotatoWeather.capitalize(usual.verdict)) over the last hour"
+                note: "\(AtpotatoWeather.capitalize(usual.verdict)) \u{00B7} last hour"
             )
         }
-        let note = almanacAnswered ? "Still learning what usual looks like" : "The almanac isn\u{2019}t answering"
+        let note = almanacAnswered ? "No baseline yet" : "Almanac not answering"
         return AtmosphericStat(label: "Against usual", value: nil, note: note)
     }
 
@@ -190,7 +189,7 @@ public final class AtmosphericConditionsModel {
             label: "Diversity index",
             value: AtpotatoWeather.indexText(diversity.index),
             level: diversity.level,
-            note: "\(AtpotatoWeather.percent(diversity.share)) of active accounts write with \(AtpotatoWeather.whole(diversity.apps)) other apps"
+            note: "\(AtpotatoWeather.percent(diversity.share)) on \(AtpotatoWeather.whole(diversity.apps)) non-Bluesky apps"
         )
     }
 
@@ -202,7 +201,7 @@ public final class AtmosphericConditionsModel {
             label: "Hosting diversity",
             value: AtpotatoWeather.indexText(hosts.index),
             level: AtpotatoWeather.hostingLevel(hosts.index),
-            note: "\(AtpotatoWeather.percent(hosts.share)) of accounts on \(AtpotatoWeather.whole(hosts.independent)) independent PDSes"
+            note: "\(AtpotatoWeather.percent(hosts.share)) on \(AtpotatoWeather.whole(hosts.independent)) independent PDSes"
         )
     }
 }

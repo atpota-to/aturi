@@ -22,10 +22,6 @@ export default function LexiconsExplorer() {
           <div>
             <span className="fn-kicker">Lexicon trends</span>
             <h1 id="fn-lexicons-title">Every lexicon in the Atmosphere</h1>
-            <p>
-              Search any collection NSID, watch what&rsquo;s trending, and browse the
-              full catalog of record types seen across the AT Protocol firehose.
-            </p>
           </div>
           <div>
             <LexiconSearchBox />
@@ -47,7 +43,7 @@ export default function LexiconsExplorer() {
   );
 }
 
-/** Subtle "data current as of …" line from /meta's jetstream cursor. */
+/** Subtle "Updated … ago" line from /meta's jetstream cursor. */
 function Freshness() {
   const [label, setLabel] = useState<string | null>(null);
 
@@ -67,7 +63,7 @@ function Freshness() {
           : agoSec < 5400
             ? `${Math.round(agoSec / 60)}m`
             : `${Math.round(agoSec / 3600)}h`;
-      setLabel(`Firehose data current as of ${rel} ago`);
+      setLabel(`Updated ${rel} ago`);
     });
     return () => {
       cancelled = true;

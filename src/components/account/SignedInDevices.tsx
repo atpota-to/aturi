@@ -136,8 +136,7 @@ export default function SignedInDevices() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Where you&rsquo;re signed in</h2>
         <p className="settings-card-sub">
-          Each browser and extension holding a session. Ending one leaves the others
-          alone; signing out everywhere also revokes this app&rsquo;s access at your PDS.
+          Signing out everywhere also revokes Aturi&rsquo;s access at your PDS.
         </p>
       </div>
 
