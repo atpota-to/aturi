@@ -150,36 +150,67 @@ struct CollectionView: View {
     private var controls: some View {
         @Bindable var model = model
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Button {
-                    model.toggleLive()
-                } label: {
-                    Label("Live", systemImage: model.isLive ? "pause.fill" : "play.fill")
-                        .foregroundStyle(model.isLive ? theme.textAccent : theme.textPrimary)
+            /* "Newest first" and "Oldest first" pushed the row past an
+               iPhone's width. The short labels fit on one line there, and
+               the stacked fallback covers large text sizes. */
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    controlButtons
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.aturiSecondary)
-                .accessibilityLabel(model.isLive ? "Pause live stream" : "Stream new records as they arrive")
-                Button {
-                    model.setReverse(!model.reverse)
-                } label: {
-                    Label(model.reverse ? "Oldest first" : "Newest first", systemImage: "arrow.up.arrow.down")
-                }
-                .buttonStyle(.aturiSecondary)
-                .accessibilityHint("Flips the listing order")
-                /* The web's Lexicon button: this collection's usage across
-                   the network, on the lexicon's own page. */
-                NavigationLink(value: Route.lexicon(nsid: model.collection)) {
-                    Label("Lexicon", systemImage: "book")
-                }
-                .buttonStyle(.aturiSecondary)
-                .accessibilityHint("This collection's lexicon and its usage across the network")
-                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 8) { controlButtons }
             }
             ExploreFilterField("Search records", text: $model.filter, label: "Search records in this collection")
             Text(model.countLabel)
                 .font(AturiFont.monoSmall)
                 .foregroundStyle(theme.textTertiary)
         }
+    }
+
+    /// Live, sort order and Lexicon, laid out by `controls` in a row or a
+    /// column, whichever fits.
+    @ViewBuilder
+    private var controlButtons: some View {
+        Button {
+            model.toggleLive()
+        } label: {
+            Label("Live", systemImage: model.isLive ? "pause.fill" : "play.fill")
+                .lineLimit(1)
+                .foregroundStyle(model.isLive ? theme.textAccent : theme.textPrimary)
+        }
+        .buttonStyle(.aturiSecondary)
+        .accessibilityLabel(model.isLive ? "Pause live stream" : "Stream new records as they arrive")
+        Button {
+            model.setReverse(!model.reverse)
+        } label: {
+            Label {
+                /* Both words are laid out and only one shows, so the
+                   button keeps the wider one's width and the Lexicon
+                   button beside it doesn't shift when the order flips. */
+                ZStack {
+                    Text("Newest")
+                        .opacity(model.reverse ? 0 : 1)
+                        .accessibilityHidden(model.reverse)
+                    Text("Oldest")
+                        .opacity(model.reverse ? 1 : 0)
+                        .accessibilityHidden(!model.reverse)
+                }
+            } icon: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+            .lineLimit(1)
+        }
+        .buttonStyle(.aturiSecondary)
+        .accessibilityLabel(model.reverse ? "Oldest first" : "Newest first")
+        .accessibilityHint("Flips the listing order")
+        /* The web's Lexicon button: this collection's usage across
+           the network, on the lexicon's own page. */
+        NavigationLink(value: Route.lexicon(nsid: model.collection)) {
+            Label("Lexicon", systemImage: "book")
+                .lineLimit(1)
+        }
+        .buttonStyle(.aturiSecondary)
+        .accessibilityHint("This collection's lexicon and its usage across the network")
     }
 
     /// Port of `CollectionEditBar`: Select / Deselect, the running count,

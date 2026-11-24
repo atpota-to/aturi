@@ -229,23 +229,24 @@ struct MutualsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                MutualsIntroItem(term: "Find the mutuals", text: "Everyone the account follows who follows it back, from Bluesky\u{2019}s AppView.")
-                MutualsIntroItem(
-                    term: "Read their blocks",
-                    text: "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records are read from its own PDS, every page of them, along with the moderation lists it blocks."
-                )
-                MutualsIntroItem(
-                    term: "See where they agree",
-                    text: "How many mutuals block each account, and a list ranked by agreement. Move the threshold and everything follows."
-                )
-                MutualsIntroItem(
-                    term: "Save the ones you choose",
-                    text: "Sign in and the ticked accounts become a moderation list on your account, which you can subscribe to, block, or share."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Find the mutuals",
+                "Everyone the account follows who follows it back, from Bluesky\u{2019}s AppView."
+            ),
+            (
+                "Read their blocks",
+                "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records are read from its own PDS, every page of them, along with the moderation lists it blocks."
+            ),
+            (
+                "See where they agree",
+                "How many mutuals block each account, and a list ranked by agreement. Move the threshold and everything follows."
+            ),
+            (
+                "Save the ones you choose",
+                "Sign in and the ticked accounts become a moderation list on your account, which you can subscribe to, block, or share."
+            ),
+        ])
     }
 }
 
@@ -324,26 +325,6 @@ private struct MutualsStat: View {
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .cardBackground()
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct MutualsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
         .accessibilityElement(children: .combine)
     }
 }

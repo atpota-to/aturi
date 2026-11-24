@@ -68,12 +68,17 @@ struct LexiconsView: View {
                 case .search:
                     searchSection
                 }
-                if let freshness = model.freshnessLabel {
-                    Text(freshness)
-                        .aturiLabel()
-                        .foregroundStyle(theme.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
+                /* Rendered from the cursor's date on a timer, so the lag keeps
+                   growing while the page stays open instead of freezing at
+                   whatever it was when `/meta` answered. */
+                if let cursor = model.freshnessCursorDate {
+                    TimelineView(.periodic(from: .now, by: 15)) { context in
+                        Text(LexiconsModel.freshnessLabel(cursorDate: cursor, now: context.date))
+                            .aturiLabel()
+                            .foregroundStyle(theme.textTertiary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
                 MicrocosmCredit()
             }
@@ -103,11 +108,11 @@ struct LexiconsView: View {
             await model.load().value
             await newLoad?.value
         }
-        /* The Explore landing's "All new lexicons" lands here. The tab may
-           be built already or appear for the first time with the request,
-           so both moments get to try. */
+        /* The Explore landing's card links and `?list=` / `#new` links land
+           here. The page may be built already or appear for the first time
+           with the request, so both moments get to try. */
         .onAppear(perform: showRequestedSection)
-        .onChange(of: router.newLexiconsRequested) { _, _ in
+        .onChange(of: router.requestedLexiconList) { _, _ in
             showRequestedSection()
         }
         .onChange(of: segment) { _, next in
@@ -169,13 +174,14 @@ struct LexiconsView: View {
         let isGroup = PinnedLexicons.isGroup(entry)
         let name = isGroup ? PinnedLexicons.groupPrefix(entry) : entry
         let route: Route = isGroup ? .lexiconGroup(prefix: name) : .lexicon(nsid: name)
+        let display = isGroup ? "\(name).*" : name
         return NavigationLink(value: route) {
             HStack(spacing: 10) {
                 Image(systemName: isGroup ? "folder" : "square.stack.3d.up")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .accessibilityHidden(true)
-                Text(isGroup ? "\(name).*" : name)
+                Text(display)
                     .font(AturiFont.monoSmall)
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
@@ -191,11 +197,16 @@ struct LexiconsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        /* The row is drawn on the card's fill, so the touch-and-hold preview
+           lifts a solid card rather than floating text. The card's radius
+           keeps the last row inside the card's rounded bottom corners. */
+        .background(theme.bgSecondary, in: RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .contextMenu {
             Button(role: .destructive) {
                 preferences.update { $0.toggleLexiconExplorerPin(entry) }
             } label: {
-                Label("Unpin", systemImage: "pin.slash")
+                Label("Unpin \(display)", systemImage: "pin.slash")
             }
         }
         .accessibilityLabel(isGroup ? "Namespace \(name)" : name)
@@ -573,23 +584,36 @@ struct LexiconsView: View {
 
             if model.showsSearchDropdown {
                 suggestionList
+                /* A dotted term still offers "Browse all of", which does not
+                   need `/search`; the failure shows beneath it. */
+                if model.searchFailed {
+                    searchErrorPanel
+                }
             } else if !UFOsClient.isSearchable(searchTerm) {
                 EmptyState(
                     title: "Search lexicons",
                     detail: "Type a collection NSID such as app.bsky.feed.post, a namespace such as net.anisota, or a term such as grain.",
                     systemImage: "magnifyingglass"
                 )
-            } else if !model.isSearchPending {
-                VStack(alignment: .leading, spacing: 10) {
+            } else if !model.isSearchPending && model.suggestions.isEmpty {
+                /* A failed lookup is not "no matches": it gets the API error
+                   and a retry. Return in the field still submits the term. */
+                if model.searchFailed {
+                    searchErrorPanel
+                } else {
                     EmptyState(
-                        title: "No suggestions for \u{201C}\(searchTerm)\u{201D}.",
-                        detail: "Search anyway to open it as a namespace or a term.",
+                        title: "No lexicons match \u{201C}\(searchTerm)\u{201D}.",
+                        detail: "Try a shorter term, a namespace such as net.anisota, or a full NSID such as app.bsky.feed.post.",
                         systemImage: "magnifyingglass"
                     )
-                    Button("Search anyway", action: submitSearch)
-                        .buttonStyle(.aturiSecondary)
                 }
             }
+        }
+    }
+
+    private var searchErrorPanel: some View {
+        ErrorPanel(message: "Couldn't reach the UFOs API: \(LexiconsModel.apiUnavailableMessage)") {
+            model.retrySearch()
         }
     }
 
@@ -647,11 +671,26 @@ struct LexiconsView: View {
         .cardBackground()
     }
 
-    /* `router.showNewLexicons()` has already popped this stack to its root
-       and selected the tab; this turns to the section. */
+    /* `router.showLexicons(list:)` has already pushed this page on a fresh
+       Explore stack; this turns to the list it names. Top and Trending are
+       the two modes of the Trending section. An unknown list leaves the
+       page as it is. */
     private func showRequestedSection() {
-        guard router.consumeNewLexiconsRequest() else { return }
-        segment = .new
+        guard let list = router.consumeLexiconListRequest() else { return }
+        switch list {
+        case "new":
+            segment = .new
+        case "all":
+            segment = .all
+        case "top":
+            segment = .trending
+            model.mode = .top
+        case "trending":
+            segment = .trending
+            model.mode = .trending
+        default:
+            break
+        }
     }
 
     private func submitSearch() {

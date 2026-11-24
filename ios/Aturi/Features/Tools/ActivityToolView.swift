@@ -85,26 +85,24 @@ struct ActivityToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                ActivityIntroItem(
-                    term: "Record keys carry the time",
-                    text: "Most record keys are TIDs, which hold the moment they were made. A key such as 3lb2\u{2026} dates its record without the record being kept. Keys with no time in them fall back to the record\u{2019}s createdAt."
-                )
-                ActivityIntroItem(
-                    term: "Every collection, newest first",
-                    text: "Each collection in the repository is read from its newest record back, and reading stops at the first key older than the calendar. Posts, likes, and records from any other app count alike."
-                )
-                ActivityIntroItem(
-                    term: "A bounded number of requests",
-                    text: "The account\u{2019}s own PDS answers every request, so only \(ActivityCalendarScan.concurrency) collections are read at a time and each stops after \(ActivityCalendarScan.pagesPerCollection) pages. A collection that runs longer says so, and can be read further."
-                )
-                ActivityIntroItem(
-                    term: "What it cannot see",
-                    text: "A deleted record leaves no key behind and an edit does not change one. The calendar shows records that still exist, on the day each was created."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Record keys carry the time",
+                "Most record keys are TIDs, which hold the moment they were made. A key such as 3lb2\u{2026} dates its record without the record being kept. Keys with no time in them fall back to the record\u{2019}s createdAt."
+            ),
+            (
+                "Every collection, newest first",
+                "Each collection in the repository is read from its newest record back, and reading stops at the first key older than the calendar. Posts, likes, and records from any other app count alike."
+            ),
+            (
+                "A bounded number of requests",
+                "The account\u{2019}s own PDS answers every request, so only \(ActivityCalendarScan.concurrency) collections are read at a time and each stops after \(ActivityCalendarScan.pagesPerCollection) pages. A collection that runs longer says so, and can be read further."
+            ),
+            (
+                "What it cannot see",
+                "A deleted record leaves no key behind and an edit does not change one. The calendar shows records that still exist, on the day each was created."
+            ),
+        ])
     }
 
     /// The input a link handed the page, read once, and run when it is filled.
@@ -126,33 +124,6 @@ struct ActivityToolView: View {
         } else {
             model.clear()
         }
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct ActivityIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }
 

@@ -205,13 +205,13 @@ extension Route {
 }
 
 /// What a URL maps to: a route pushed on a tab, a section's root, or the
-/// lexicon browser on its New section.
+/// lexicon browser on one of its lists.
 enum DeepLinkTarget: Hashable {
     case route(Route, tab: Tab)
     case section(AppSection)
-    /// The lexicon browser on its New section
-    /// (`AppRouter.showNewLexicons`).
-    case newLexicons
+    /// The lexicon browser on the list a link names, one of
+    /// `DeepLinkRouting.lexiconLists` (`AppRouter.showLexicons(list:)`).
+    case lexiconList(String)
 }
 
 /// URL-to-target mapping, kept separate from the router so it can be
@@ -233,12 +233,7 @@ enum DeepLinks {
             guard let route = Route(destination: explorer, repoTab: repoTab, pdsQuery: pdsQuery) else { return nil }
             return .route(route, tab: route.defaultTab)
         case .lexiconList(let list):
-            /* New is the one list the lexicon browser can be sent to from
-               outside; any other opens the browser as it stands. */
-            if list == "new" {
-                return .newLexicons
-            }
-            return .section(.lexicons)
+            return .lexiconList(list)
         case .section(let section):
             return .section(AppSection(section))
         case .tool(let slug, let query):
@@ -275,11 +270,21 @@ final class AppRouter {
     /// because iOS asks before an app reads what another app copied, and
     /// only an app that is on screen can be asked.
     private(set) var clipboardLinkRequested = false
-    /// Set by the Explore landing's "All new lexicons", cleared by the
-    /// lexicon browser when it turns to its New section: the web's link to
-    /// `/explore/lexicons#new`, which lands on that card. An incoming link
-    /// to that address, or to `?list=new`, sets it too.
-    private(set) var newLexiconsRequested = false
+    /// The lexicon list the browser should turn to, one of
+    /// `DeepLinkRouting.lexiconLists`. Set by the Explore landing's card
+    /// links ("All new lexicons" is the web's `/explore/lexicons#new`) and
+    /// by an incoming `?list=` or `#new` link; cleared by the lexicon
+    /// browser once it has shown that list.
+    private(set) var requestedLexiconList: String?
+    /// Counts every time `show(.lexicons)` pushes a fresh browser. The
+    /// browser's view is keyed on it, so a link lands on a new page with
+    /// its default list and an empty search rather than one SwiftUI kept
+    /// from the last visit at the same stack position.
+    private(set) var lexiconsVisit = 0
+    /// One counter per tab, bumped when that tab's root should scroll back
+    /// to its top: a section link landing on it, or the tab reselected
+    /// while already at its root. Each root watches its own entry.
+    private(set) var scrollToTopRequest: [Tab: Int] = [:]
 
     init() {}
 
@@ -336,26 +341,49 @@ final class AppRouter {
         selectedTab = tab
     }
 
+    /// Ask a tab's root to scroll to its top (see `scrollToTopRequest`).
+    func requestTop(_ tab: Tab) {
+        scrollToTopRequest[tab, default: 0] += 1
+    }
+
+    /// A tap on the tab that is already selected, as UIKit's tab bar
+    /// handles it: back to the root when a page is pushed, and to the top
+    /// of the root when it is already showing.
+    func reselect(_ tab: Tab) {
+        if depth(of: tab) == 0 {
+            requestTop(tab)
+        } else {
+            popToRoot(tab)
+        }
+    }
+
     /// Go to a section at its top, as a link or a shortcut names it. Links
     /// is the Explore landing, where links are pasted; Lexicons is the
-    /// lexicon browser pushed once on a fresh Explore stack.
+    /// lexicon browser pushed once on a fresh Explore stack. Popping alone
+    /// leaves a root wherever it was scrolled, so each root is also asked
+    /// to scroll up; the lexicon browser is a new page and starts there.
     func show(_ section: AppSection) {
         switch section {
         case .explore, .links:
             popToRoot(.explore)
+            requestTop(.explore)
             selectedTab = .explore
         case .lexicons:
             popToRoot(.explore)
+            lexiconsVisit += 1
             explorePath.append(Route.lexicons)
             selectedTab = .explore
         case .tools:
             popToRoot(.tools)
+            requestTop(.tools)
             selectedTab = .tools
         case .settings:
             popToRoot(.settings)
+            requestTop(.settings)
             selectedTab = .settings
         case .account:
             popToRoot(.account)
+            requestTop(.account)
             selectedTab = .account
         }
     }
@@ -439,19 +467,26 @@ final class AppRouter {
         return true
     }
 
-    /// Show the lexicon browser with the New section selected (see
-    /// `newLexiconsRequested`), on a fresh Explore stack.
-    func showNewLexicons() {
+    /// Show the lexicon browser on one of its lists (see
+    /// `requestedLexiconList`), on a fresh Explore stack.
+    func showLexicons(list: String) {
         show(.lexicons)
-        newLexiconsRequested = true
+        requestedLexiconList = list
     }
 
-    /// True once per request: the lexicon browser calls this when it
-    /// appears and when the request changes, then shows its New section.
-    func consumeNewLexiconsRequest() -> Bool {
-        guard newLexiconsRequested else { return false }
-        newLexiconsRequested = false
-        return true
+    /// `showLexicons(list:)` on the New section, the Explore landing's
+    /// "All new lexicons".
+    func showNewLexicons() {
+        showLexicons(list: "new")
+    }
+
+    /// The requested list, once per request: the lexicon browser calls
+    /// this when it appears and when the request changes, then shows that
+    /// list. Nil when nothing is waiting.
+    func consumeLexiconListRequest() -> String? {
+        let list = requestedLexiconList
+        requestedLexiconList = nil
+        return list
     }
 
     private func apply(_ target: DeepLinkTarget) {
@@ -460,8 +495,8 @@ final class AppRouter {
             show(section)
         case .route(let route, let tab):
             open(route, in: tab)
-        case .newLexicons:
-            showNewLexicons()
+        case .lexiconList(let list):
+            showLexicons(list: list)
         }
     }
 }

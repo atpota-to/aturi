@@ -8,7 +8,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var router = router
-        TabView(selection: $router.selectedTab) {
+        TabView(selection: tabSelection) {
             NavigationStack(path: $router.explorePath) {
                 ExploreLandingView()
                     .withRouteDestinations()
@@ -38,6 +38,22 @@ struct RootView: View {
             .tag(Tab.account)
         }
     }
+
+    /* A tap on the selected tab reaches the binding as a set to the value
+       it already holds. Passing that on as a reselect lets the router pop
+       the stack or scroll the root up, as UIKit's tab bar does. */
+    private var tabSelection: Binding<Tab> {
+        Binding(
+            get: { router.selectedTab },
+            set: { new in
+                if new == router.selectedTab {
+                    router.reselect(new)
+                } else {
+                    router.selectedTab = new
+                }
+            }
+        )
+    }
 }
 
 /// The one place a `Route` value becomes a screen. Every stack registers
@@ -45,6 +61,8 @@ struct RootView: View {
 /// page is offered to Spotlight, Siri Suggestions and Handoff from here.
 struct RouteDestinationView: View {
     let route: Route
+
+    @Environment(AppRouter.self) private var router
 
     var body: some View {
         page
@@ -67,7 +85,10 @@ struct RouteDestinationView: View {
         case .lexiconGroup(let prefix):
             LexiconGroupView(prefix: prefix)
         case .lexicons:
+            /* Keyed on the visit so every link builds a new browser instead
+               of reusing the one SwiftUI kept at this stack position. */
             LexiconsView()
+                .id(router.lexiconsVisit)
         case .preview(let components):
             PreviewView(components: components)
         case .search(let query):

@@ -30,9 +30,20 @@ const VERBATIM_INPUT = {
 const DRAWER_SEEN_CAP = 5;
 const SHEET_SEEN_CAP = 8;
 
-/** Where the site's go-to field would take the typed text. */
+/**
+ * Where the site's go-to field would take the typed text. Only text shaped
+ * like a target gets a Go row: one word with a dot or a slash, or a DID or an
+ * at:// URI. resolveSearchPath reads anything else as a handle, so a half-typed
+ * "ali" would go to the explore page of a handle that does not exist. Typing
+ * part of a seen repo's name is the commoner case, and the site's own palette
+ * holds back the same way (looksLikeTarget in src/lib/paletteSearch.ts, used
+ * by src/components/CompactSearchPanel.tsx).
+ */
 export function goToUrl(text: string): string | null {
-  const path = resolveSearchPath(text);
+  const t = text.trim();
+  if (!t || /\s/.test(t)) return null;
+  if (!t.includes('.') && !t.includes('/') && !/^(did|at):/i.test(t)) return null;
+  const path = resolveSearchPath(t);
   return path ? `${ATURI_BASE}${path}` : null;
 }
 
@@ -86,7 +97,9 @@ export function SearchDrawer({
       setActive(i => Math.max(-1, i - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const target = active >= 0 ? options[active]?.href : go;
+      // With nothing highlighted and no Go row, Enter takes the first seen
+      // repo, so typing part of a handle and pressing Enter still lands.
+      const target = active >= 0 ? options[active]?.href : (go ?? options[0]?.href);
       if (target) void openAturi(target);
     } else if (e.key === 'Escape') {
       e.preventDefault();

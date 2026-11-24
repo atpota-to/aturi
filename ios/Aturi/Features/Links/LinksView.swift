@@ -7,18 +7,21 @@ import AturiCore
    box already took links. What the two screens share is here. */
 
 /// How a typed or pasted string becomes the universal-link page. Only a
-/// web link does: a handle, a DID or an `at://` URI typed into Explore
-/// still opens the explorer page for it, as it always has.
+/// web link does, typed with or without its `https://`: a handle, a DID
+/// or an `at://` URI typed into Explore still opens the explorer page for
+/// it, as it always has.
 enum LinkInput {
-    /// The preview for `value` when it is an http(s) link to a page this
-    /// app can preview: an aturi.to universal link, or a link from any
-    /// client in the catalog (bsky.app, deer.social, tangled.org...). Nil
-    /// for anything else, including aturi.to explorer pages, which the
-    /// router opens as explorer pages.
+    /// The preview for `value` when it is a link to a page this app can
+    /// preview: an aturi.to universal link, or a link from any client in
+    /// the catalog (bsky.app, deer.social, tangled.org...), with or without
+    /// its `https://`. Nil for anything else, including aturi.to explorer
+    /// pages, which the router opens as explorer pages.
     static func previewComponents(for value: String) -> AtUriComponents? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = trimmed.lowercased()
-        guard lower.hasPrefix("https://") || lower.hasPrefix("http://") else { return nil }
+        guard lower.hasPrefix("https://") || lower.hasPrefix("http://") else {
+            return schemelessPreviewComponents(for: trimmed)
+        }
         if let target = DeepLinks.target(for: trimmed) {
             if case .route(.preview(let components), _) = target {
                 return components
@@ -30,6 +33,29 @@ enum LinkInput {
             components.identifier.removeFirst()
         }
         return components
+    }
+
+    /* People type "bsky.app/profile/dame.is" without the scheme, and
+       Explore used to read the host as a handle. The input is retried as a
+       link only when it looks like a host followed by a path whose first
+       segment has no dot: explorer shorthand such as
+       "dame.is/app.bsky.feed.post/xyz" puts an NSID there and must still
+       reach the explorer. Only the router's own preview mapping counts, not
+       the loose extractAtUriComponents fallback, which would read nearly
+       any "host/path" as a handle. */
+    private static func schemelessPreviewComponents(for trimmed: String) -> AtUriComponents? {
+        let lower = trimmed.lowercased()
+        guard !trimmed.contains("://"), !lower.hasPrefix("at:"), !lower.hasPrefix("did:") else { return nil }
+        let segments = trimmed.split(separator: "/", omittingEmptySubsequences: true)
+        guard segments.count >= 2 else { return nil }
+        let host = segments[0]
+        guard host.contains("."), !host.contains(where: \.isWhitespace) else { return nil }
+        guard !segments[1].contains(".") else { return nil }
+        let candidate = "https://" + trimmed
+        if case .route(.preview(let components), _) = DeepLinks.target(for: candidate) {
+            return components
+        }
+        return nil
     }
 
     /// Push the preview for a link the person entered in the app. It is

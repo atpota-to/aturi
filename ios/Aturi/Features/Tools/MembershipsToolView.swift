@@ -259,22 +259,20 @@ struct MembershipsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it finds") {
-            VStack(alignment: .leading, spacing: 12) {
-                MembershipsIntroItem(
-                    term: "Lists that include the account",
-                    text: "Every app.bsky.graph.listitem record that names it, wherever it was written, with the list each one belongs to."
-                )
-                MembershipsIntroItem(
-                    term: "What each list is for",
-                    text: "Curation lists, moderation lists and the member lists behind starter packs are shown apart, with who made each one and how many are on it."
-                )
-                MembershipsIntroItem(
-                    term: "Who has verified it",
-                    text: "Every app.bsky.graph.verification record that names it, and whether Bluesky trusts the account that wrote it."
-                )
-            }
-        }
+        ToolIntro("What it finds", items: [
+            (
+                "Lists that include the account",
+                "Every app.bsky.graph.listitem record that names it, wherever it was written, with the list each one belongs to."
+            ),
+            (
+                "What each list is for",
+                "Curation lists, moderation lists and the member lists behind starter packs are shown apart, with who made each one and how many are on it."
+            ),
+            (
+                "Who has verified it",
+                "Every app.bsky.graph.verification record that names it, and whether Bluesky trusts the account that wrote it."
+            ),
+        ])
     }
 
     // MARK: Input
@@ -516,32 +514,5 @@ private struct MembershipsVerificationRow: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 8)
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct MembershipsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }

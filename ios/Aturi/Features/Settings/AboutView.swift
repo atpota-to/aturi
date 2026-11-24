@@ -28,9 +28,9 @@ struct AboutView: View {
     ]
 
     private static let privacyParagraphs: [String] = [
-        "Aturi does not collect, transmit or sell any personal data. The app has no analytics, no telemetry, no tracking, no advertising and no remote code. Everything you configure stays on your device, in the app group the share extension reads.",
+        "Aturi does not collect, transmit or sell any personal data. The app has no analytics, no telemetry, no tracking, no advertising and no remote code. Unless you sign in, everything you configure stays on your device, in the app group the share extension reads.",
         "The only network requests the app makes go directly from your device to public atproto services: the Bluesky AppView for profiles, posts and handle resolution, the PLC directory and did:web hosts for DID documents, your own or another account's Personal Data Server for records, the Jetstream relay for the live feed, and the Microcosm services (Constellation, Slingshot, UFOs) for backlinks, record hydration and lexicon statistics. Each of these has its own privacy policy. The app never contacts an Aturi-operated server during normal use.",
-        "Signing in stores an OAuth session for your PDS in the device keychain and, when you change a preference, writes it to a record in your own repo so other devices can read it. Signing out removes the session from this device. Nothing else leaves the device.",
+        "Signing in stores an OAuth session for your PDS in the device keychain and, when you change a preference, writes it to a record in your own repo so other devices can read it. Other writes to your repo, such as editing or deleting a record or creating a list, happen only when you ask for them. Signing out removes the session from this device.",
     ]
 
     private var appVersion: String {

@@ -227,7 +227,11 @@ public enum BacklinkRelations {
         if path.hasPrefix(".embed.") { return .quote }
         if isViaPath(path) { return .via }
         if name.contains("subscri") { return .subscribe }
-        if lastSegment(collection) == "listitem" || isOwnerField(path, targetCollection: targetCollection) { return .item }
+        // A gate's `.post` is a setting on the post, not a record filed
+        // under it: a threadgate or postgate says who may reply or quote.
+        if lastSegment(collection) == "listitem" || (!name.hasSuffix("gate") && isOwnerField(path, targetCollection: targetCollection)) {
+            return .item
+        }
         return .other
     }
 

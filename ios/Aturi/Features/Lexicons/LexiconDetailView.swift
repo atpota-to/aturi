@@ -10,6 +10,7 @@ import AturiCore
 /// rather than an error.
 struct LexiconDetailView: View {
     @State private var model: LexiconDetailModel
+    @FocusState private var searchFocused: Bool
 
     @Environment(AppRouter.self) private var router
     @Environment(PreferencesStore.self) private var preferences
@@ -428,6 +429,7 @@ struct LexiconDetailView: View {
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
                     .submitLabel(.search)
+                    .focused($searchFocused)
                     .onSubmit(submitSearch)
                     .accessibilityLabel("Search lexicons")
             }
@@ -439,6 +441,12 @@ struct LexiconDetailView: View {
 
     private func submitSearch() {
         guard let destination = model.submitSearch() else { return }
+        /* This page stays on the stack under the one the search opens, so
+           Back would land on the old query still typed in the field. The
+           search has done its job once it navigates; clear it here and
+           leave the model's submit free of view state. */
+        model.search = ""
+        searchFocused = false
         ExploreNavigator.open(destination, router: router, openURL: openURL)
     }
 }

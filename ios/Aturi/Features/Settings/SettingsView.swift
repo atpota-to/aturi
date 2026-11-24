@@ -66,7 +66,28 @@ struct SettingsView: View {
     @Environment(\.sessionStore) private var sessionStore
     @Environment(\.aturiTheme) private var theme
 
+    /// Ids of the rows the router's scroll-to-top lands on: the banner
+    /// when it shows, else the first Preferences row.
+    private static let bannerID = "settings-banner"
+    private static let firstPageID = "settings-first-page"
+
     var body: some View {
+        ScrollViewReader { proxy in
+            list
+                .onChange(of: router.scrollToTopRequest[.settings, default: 0]) { _, _ in
+                    let top = sessionStore.state.isSignedIn ? Self.firstPageID : Self.bannerID
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(top, anchor: .top)
+                    }
+                }
+        }
+        .navigationTitle("Settings")
+        .navigationDestination(for: SettingsPage.self) { page in
+            SettingsPageDestination(page: page)
+        }
+    }
+
+    private var list: some View {
         List {
             /* Signing in lives on the Account tab; the banner points there. */
             if !sessionStore.state.isSignedIn {
@@ -93,11 +114,13 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Opens the Account tab")
+                    .id(Self.bannerID)
                 }
             }
 
             SettingsSection("Preferences") {
                 pageLink(.general)
+                    .id(Self.firstPageID)
                 pageLink(.sections)
                 pageLink(.waypoints)
                 pageLink(.redirects)
@@ -110,10 +133,6 @@ struct SettingsView: View {
             }
         }
         .settingsList()
-        .navigationTitle("Settings")
-        .navigationDestination(for: SettingsPage.self) { page in
-            SettingsPageDestination(page: page)
-        }
     }
 
     private func pageLink(_ page: SettingsPage) -> some View {

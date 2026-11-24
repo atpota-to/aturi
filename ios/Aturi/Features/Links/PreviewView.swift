@@ -40,12 +40,25 @@ private struct PreviewScreen: View {
     /* Where the picker is, for the bar along the bottom edge (see
        `bottomBar`). The page's height is measured outside the bottom inset
        and the picker from the scroll view's top, so neither moves when the
-       inset's content changes height. Until measured, the picker counts as
-       on screen, so the scroll hint cannot flash on a page that has no need
-       of it, as the web's starts. */
+       inset's content changes height. The page's bottom runs under the tab
+       bar and the remember bar, so a picker hidden behind them would count
+       as on screen and the hint would never show; both are taken off.
+       Until measured, the picker counts as on screen, so the scroll hint
+       cannot flash on a page that has no need of it, as the web's starts. */
     @State private var pageHeight: CGFloat = .infinity
+    /// What the tab bar and home indicator cover at the page's bottom.
+    @State private var coveredBottom: CGFloat = 0
+    /* The remember bar's height, as last measured. It only grows: a
+       smaller reading while the bar animates in would lower the line the
+       picker is judged by, and the bar and the hint could trade places
+       back and forth. It starts at about the bar's height, for the test
+       before the bar has ever been on screen. */
+    @State private var rememberBarHeight: CGFloat = 64
     @State private var pickerOnScreen = true
     @State private var scrolledPastHint = false
+    /// The menu's checkmark after a copy, put back after a moment.
+    @State private var copied = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.aturiTheme) private var theme
@@ -241,9 +254,11 @@ private struct PreviewScreen: View {
                 Menu {
                     menuItems
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: copied ? "checkmark.circle" : "ellipsis.circle")
+                        .contentTransition(.symbolEffect(.replace))
                 }
-                .accessibilityLabel("More actions")
+                .sensoryFeedback(.success, trigger: copied) { _, now in now }
+                .accessibilityLabel(copied ? "Copied" : "More actions")
                 .disabled(model.link == nil)
             }
         }
@@ -253,12 +268,12 @@ private struct PreviewScreen: View {
     private var menuItems: some View {
         if let link = model.link {
             Button {
-                UIPasteboard.general.string = link.aturiLink
+                copy(link.aturiLink)
             } label: {
                 Label("Copy link", systemImage: "doc.on.doc")
             }
             Button {
-                UIPasteboard.general.string = link.atUri
+                copy(link.atUri)
             } label: {
                 Label("Copy AT URI", systemImage: "doc.on.doc")
             }
@@ -279,13 +294,34 @@ private struct PreviewScreen: View {
         }
     }
 
+    /* A copy from the menu otherwise leaves no trace: the menu closes and
+       nothing on the page changes. The menu's own icon turns into a
+       checkmark for a moment instead, with a tap of haptics and a spoken
+       "Copied" for VoiceOver. A second copy restarts the moment. */
+    private func copy(_ value: String) {
+        UIPasteboard.general.string = value
+        withAnimation(.easeInOut(duration: 0.15)) {
+            copied = true
+        }
+        UIAccessibility.post(notification: .announcement, argument: "Copied")
+        copyResetTask?.cancel()
+        copyResetTask = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                copied = false
+            }
+        }
+    }
+
     // MARK: Bottom edge
 
     /* The bottom edge holds one bar at a time. The countdown wins while it
        runs. Otherwise the remember bar stands there once the picker's top
-       is on screen, as the web's sticks once the picker reaches the
-       viewport, and until then the scroll hint does, put away after a
-       short scroll; on the web the two share that spot too. */
+       shows above the tab bar and the remember bar itself, as the web's
+       sticks once the picker reaches the viewport, and until then the
+       scroll hint does, put away after a short scroll; on the web the two
+       share that spot too. */
     @ViewBuilder
     private func bottomBar(_ proxy: ScrollViewProxy) -> some View {
         if model.isAutoRedirectArmed, let name = model.autoRedirectTargetName {
@@ -293,6 +329,14 @@ private struct PreviewScreen: View {
         } else if model.link != nil {
             if pickerOnScreen {
                 WaypointRememberBar()
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear
+                                .onChange(of: geometry.size.height, initial: true) { _, height in
+                                    rememberBarHeight = max(rememberBarHeight, height)
+                                }
+                        }
+                    }
             } else if !scrolledPastHint {
                 PickerScrollHint {
                     scrollToPicker(proxy)
@@ -307,11 +351,12 @@ private struct PreviewScreen: View {
         }
     }
 
-    /// Whether the picker's top edge has come up past the page's bottom
-    /// edge, measured from the scroll view's top.
+    /// Whether the picker's top edge has come up past what covers the
+    /// page's bottom (the tab bar, the home indicator and the remember
+    /// bar), measured from the scroll view's top.
     private var pickerPositionReader: some View {
         GeometryReader { geometry in
-            let onScreen = geometry.frame(in: Self.scrollSpace).minY < pageHeight
+            let onScreen = geometry.frame(in: Self.scrollSpace).minY < pageHeight - coveredBottom - rememberBarHeight
             Color.clear
                 .onChange(of: onScreen, initial: true) { _, value in
                     pickerOnScreen = value
@@ -330,12 +375,16 @@ private struct PreviewScreen: View {
         }
     }
 
-    /// The page's height, bottom inset included.
+    /// The page's height, bottom inset included, and how much of its
+    /// bottom the tab bar and home indicator cover.
     private var pageHeightReader: some View {
         GeometryReader { geometry in
             Color.clear
                 .onChange(of: geometry.size.height, initial: true) { _, height in
                     pageHeight = height
+                }
+                .onChange(of: geometry.safeAreaInsets.bottom, initial: true) { _, bottom in
+                    coveredBottom = bottom
                 }
         }
     }

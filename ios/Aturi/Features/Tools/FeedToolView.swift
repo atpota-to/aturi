@@ -41,7 +41,7 @@ struct FeedToolView: View {
         ToolFrame(slug: "feed", shareQuery: ["feed": model.raw]) {
             VStack(alignment: .leading, spacing: 10) {
                 ToolInputBar(
-                    placeholder: "bsky.app/profile/…/feed/… or at://…",
+                    placeholder: "Feed link or at:// URI",
                     text: $text,
                     buttonTitle: "Inspect",
                     isRunning: model.isRunning
@@ -173,7 +173,7 @@ struct FeedToolView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let uri = model.feedUri {
-                    CopyRow(label: "Feed URI", value: uri)
+                    CopyRow(label: "Feed URI", value: uri, lineLimit: 1)
                 }
                 if let service = model.probe?.service {
                     CopyRow(label: "Service DID", value: service.did)
@@ -542,8 +542,8 @@ struct ServicesIntroItem: Hashable {
     let text: String
 }
 
-/// What a tool checks, numbered, before anything has been asked: the web's
-/// `ToolIntro`.
+/// The services tools' intro, under the name their call sites use: the
+/// shared `ToolIntro`, so it looks like every other tool's.
 struct ServicesIntro: View {
     var title: String = "What it checks"
     let items: [ServicesIntroItem]
@@ -555,37 +555,9 @@ struct ServicesIntro: View {
         self.note = note
     }
 
-    @Environment(\.aturiTheme) private var theme
-
     var body: some View {
-        ToolSection(title) {
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(AturiFont.monoSmall)
-                            .foregroundStyle(theme.textTertiary)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.term)
-                                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                                .foregroundStyle(theme.textPrimary)
-                            Text(item.text)
-                                .font(AturiFont.footnote)
-                                .foregroundStyle(theme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-                if let note {
-                    Text(note)
-                        .font(AturiFont.caption)
-                        .foregroundStyle(theme.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
+        let rows: [(term: String, text: String)] = items.map { (term: $0.term, text: $0.text) }
+        return ToolIntro(title, items: rows, note: note)
     }
 }
 

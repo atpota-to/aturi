@@ -379,26 +379,24 @@ struct LabelsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                LabelsIntroItem(
-                    term: "Bluesky\u{2019}s own labeler",
-                    text: "Asked first, because every Bluesky user is subscribed to it. Its answer comes with the labels the account put on itself."
-                )
-                LabelsIntroItem(
-                    term: "Every other labeler",
-                    text: "Asked straight after. The checker lists every account with an app.bsky.labeler.service record and asks Bluesky\u{2019}s AppView which of them have labelled this."
-                )
-                LabelsIntroItem(
-                    term: "What each label means",
-                    text: "A label is a short value such as spam. Its name, description and what it hides come from the definitions its labeler publishes."
-                )
-                LabelsIntroItem(
-                    term: "What it leaves out",
-                    text: "Only labels the AppView has indexed are found, which is what Bluesky apps show. A suspension is not a label and is reported separately."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Bluesky\u{2019}s own labeler",
+                "Asked first, because every Bluesky user is subscribed to it. Its answer comes with the labels the account put on itself."
+            ),
+            (
+                "Every other labeler",
+                "Asked straight after. The checker lists every account with an app.bsky.labeler.service record and asks Bluesky\u{2019}s AppView which of them have labelled this."
+            ),
+            (
+                "What each label means",
+                "A label is a short value such as spam. Its name, description and what it hides come from the definitions its labeler publishes."
+            ),
+            (
+                "What it leaves out",
+                "Only labels the AppView has indexed are found, which is what Bluesky apps show. A suspension is not a label and is reported separately."
+            ),
+        ])
     }
 
     // MARK: Input
@@ -476,32 +474,5 @@ private struct FlowingChips<Item: View>: View {
                 item(value)
             }
         }
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct LabelsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }

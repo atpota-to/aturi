@@ -139,6 +139,8 @@ const COPIED_MS = 1500;
  * showing and opens "Records on this page" under the card. The open tab is
  * the card's own sheet, which carries two verbs: Copy, a ledger of the
  * record's identifiers that unfolds inside the card, and Open on aturi.to.
+ * On aturi.to's own explorer the page's sheet drops Open, since it would only
+ * open the page the reader is already on; Copy takes the whole row.
  */
 export function RecordCard({
   page,
@@ -174,6 +176,7 @@ export function RecordCard({
   const lone = refs.length === 0;
   const runEntries = runReferences(refs, openKey === PAGE_KEY ? null : openKey);
   const showMore = view.hidden > 0;
+  const onExplorer = open.pinned && open.match?.source === 'aturiExplore';
 
   // Switching records clears a copied row at once; the ledger stays open, so
   // copying the same identifier from several records is one click each.
@@ -437,18 +440,20 @@ export function RecordCard({
                   <span>{copiedRow ? 'Copied' : 'Copy'}</span>
                   {ledgerOpen ? <ChevronUp size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />}
                 </button>
-                <a
-                  className="popup-page-btn popup-open-btn"
-                  href={open.exploreUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="The record, its raw JSON, its PDS and the links to it, on aturi.to"
-                  onClick={closePopupSoon}
-                >
-                  <Compass size={14} aria-hidden />
-                  <span>Open on aturi.to</span>
-                  <ExternalLink size={12} aria-hidden />
-                </a>
+                {!onExplorer && (
+                  <a
+                    className="popup-page-btn popup-open-btn"
+                    href={open.exploreUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="The record, its raw JSON, its PDS and the links to it, on aturi.to"
+                    onClick={closePopupSoon}
+                  >
+                    <Compass size={14} aria-hidden />
+                    <span>Open on aturi.to</span>
+                    <ExternalLink size={12} aria-hidden />
+                  </a>
+                )}
               </div>
               {ledgerOpen && (
                 <ul
@@ -513,7 +518,15 @@ export function RecordCard({
                     </span>
                     <span className="popup-waypoint-name">{entry.who}</span>
                     <span className="popup-waypoint-desc">
+                      {/* The record key tells apart two records of one
+                          kind by one account, which is most of this list. */}
                       {entry.kind}
+                      {entry.rkey && (
+                        <>
+                          {' · '}
+                          <span className="popup-rkey">{entry.rkey}</span>
+                        </>
+                      )}
                       {entry.provenance && <> · {entry.provenance}</>}
                     </span>
                     {isOpen && (

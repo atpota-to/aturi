@@ -45,6 +45,10 @@ struct SafariExtensionSettingsView: View {
         return "In Safari, tap the page menu in the address bar, then Manage Extensions."
     }
 
+    private var useItStep: String {
+        "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker."
+    }
+
     /// Where Settings keeps Safari's extensions. iOS 18 moved the apps'
     /// settings under Apps.
     private var settingsPath: String {
@@ -95,13 +99,29 @@ struct SafariExtensionSettingsView: View {
                 statusSection
             }
 
-            SettingsSection(
-                "Turn it on",
-                footer: "Or turn it on in \(settingsPath) > Aturi."
-            ) {
-                StepRow(number: 1, text: openExtensionsStep)
-                StepRow(number: 2, text: "Turn on Aturi.")
-                StepRow(number: 3, text: "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker.")
+            /* Once Safari reports the extension on, the steps to turn it on
+               are done, so only the last one, how to use it, is left. Every
+               other state, including no report at all, keeps the steps. */
+            if status == .on {
+                SettingsSection(
+                    "Use it",
+                    footer: "To turn it off, use \(settingsPath) > Aturi."
+                ) {
+                    Text(useItStep)
+                        .font(AturiFont.body)
+                        .foregroundStyle(theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 2)
+                }
+            } else {
+                SettingsSection(
+                    "Turn it on",
+                    footer: "Or turn it on in \(settingsPath) > Aturi."
+                ) {
+                    StepRow(number: 1, text: openExtensionsStep)
+                    StepRow(number: 2, text: "Turn on Aturi.")
+                    StepRow(number: 3, text: useItStep)
+                }
             }
 
             SettingsSection(
