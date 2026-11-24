@@ -8,17 +8,32 @@
  * a plain string membership test, so the served `scope` and the requested one
  * have to agree byte for byte. Both come from `METADATA_SCOPE`.
  *
- * This is a SECOND client, published alongside the existing public one at
- * /oauth-client-metadata.json. That document is not touched. `client_id` is
- * the URL the metadata is served from, so mutating the existing one in place
- * would break every live session at its next refresh, with no rollback —
- * whereas two documents can run in parallel behind a flag.
+ * This client and the public browser client run in parallel behind a flag,
+ * each with its own document. `client_id` is the URL a document is served
+ * from, and the authorization server checks on every refresh that the client
+ * still authenticates the way its document says, so a document that changes
+ * kind in place breaks every live session bound to it.
+ *
+ * This client holds the conventional path. The reference authorization
+ * server's consent screen names a client by its bare hostname only when the
+ * client_id is exactly `https://<host>/oauth-client-metadata.json`; any other
+ * path is shown as the full URL. One host gets one short name, and it goes to
+ * the client new sign-ins use. The browser client held this path until
+ * November 2026; moving it to BROWSER_CLIENT_METADATA_PATH signed out every
+ * browser-client session once. Moving either path again does the same to
+ * whichever client is bound to it.
  */
 
 import { METADATA_SCOPE } from './scopes';
 
 /** Path the confidential metadata is served from. It IS the client_id. */
-export const CLIENT_METADATA_PATH = '/oauth/client-metadata.json';
+export const CLIENT_METADATA_PATH = '/oauth-client-metadata.json';
+/**
+ * Path the public browser client's metadata is served from. It IS that
+ * client's client_id. It only serves sign-ins while NEXT_PUBLIC_AUTH_MODE is
+ * not `bff`, which is the fallback, so it does without the short name.
+ */
+export const BROWSER_CLIENT_METADATA_PATH = '/oauth/browser-client-metadata.json';
 /** The one redirect_uri registered with the authorization server. */
 export const REDIRECT_PATH = '/api/oauth/callback';
 export const JWKS_PATH = '/oauth/jwks.json';

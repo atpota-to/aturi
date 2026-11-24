@@ -369,7 +369,7 @@ public struct RepoStatusNotice: Hashable, Sendable {
 
     /// The paragraph every state shares: a dead repo is not a dead identity.
     public static let reassurance =
-        "Its identity is untouched. The DID document, the PLC audit log and every record elsewhere in the Atmosphere that points at this DID live outside the PDS, so the ID, LOG and BACKLINKS tabs below all still work."
+        "Its identity lives outside the PDS, so the Identity, Log and Backlinks tabs still work."
 
     public init(status: String?) {
         let status = status.flatMap { $0.isEmpty ? nil : $0 } ?? "inactive"
@@ -377,19 +377,19 @@ public struct RepoStatusNotice: Hashable, Sendable {
         switch status {
         case "takendown":
             headline = "This repo has been taken down."
-            detail = "Its host refuses every record read. A takedown is the host’s own action and carries no public reason with it."
+            detail = "Its host refuses record reads. No public reason is given."
         case "suspended":
             headline = "This repo is suspended."
-            detail = "Its host refuses every record read. The status is all the PDS reports — there is no duration or reason attached to it."
+            detail = "Its host refuses record reads. No reason or duration is given."
         case "deactivated":
             headline = "This account is deactivated."
-            detail = "Deactivation is usually the account holder’s own switch: it is how you step away from a host, and how a repo looks part-way through migrating between two. Records return if it is reactivated."
+            detail = "Usually the account holder’s own choice, or a move between hosts in progress. Records return if it is reactivated."
         case "deleted":
             headline = "This repo has been deleted."
-            detail = "Its host reports the repo gone, so there are no records left to read from it."
+            detail = "Its host reports no records left to read."
         default:
             headline = "This repo is marked \(status)."
-            detail = "Its host refuses record reads while the repo is in this state."
+            detail = "Its host refuses record reads in this state."
         }
     }
 
@@ -744,6 +744,14 @@ public final class RepoModel {
     }
 
     private func run(generation gen: Int) async {
+        // Text that can never be a handle or a DID ("coffee cake") would
+        // otherwise go out to the resolver and come back as "couldn't
+        // find an account", which reads as if the account might exist.
+        // Saying so locally is both quicker and more honest.
+        if isMalformedInput {
+            identity = .failed("Not a handle or DID: \(repoCandidate)")
+            return
+        }
         let bundle: IdentityBundle
         do {
             bundle = try await resolver.resolveIdentifier(input)
@@ -950,8 +958,37 @@ public final class RepoModel {
     /// details".
     public var notFoundMessage: String? {
         identity.errorMessage.map { _ in
-            "We couldn\u{2019}t find an account for \u{201C}\(input)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
+            if isMalformedInput {
+                if repoCandidate.contains(where: \.isWhitespace) {
+                    return "Handles can\u{2019}t contain spaces. Full-text search isn\u{2019}t supported; enter a handle (alice.bsky.social), a DID or an at:// URI."
+                }
+                return "\u{201C}\(repoCandidate)\u{201D} isn\u{2019}t a valid handle or DID. Handles look like alice.bsky.social."
+            }
+            return "We couldn\u{2019}t find an account for \u{201C}\(input)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         }
+    }
+
+    /// The not-found panel's headline when the input could never resolve.
+    public static let malformedInputHeadline = "That isn\u{2019}t a handle or DID."
+
+    /// True when the input, read the way the resolver reads it, is neither
+    /// a handle nor a DID, so no lookup could ever succeed. Empty input is
+    /// left to the resolver, which already fails it without a request.
+    public var isMalformedInput: Bool {
+        let candidate = repoCandidate
+        return !candidate.isEmpty && !isValidHandle(candidate) && !isValidDid(candidate)
+    }
+
+    /// The identifier the resolver would look up: trimmed, the repo segment
+    /// of an at:// URI, and without the presentation-only leading "@".
+    private var repoCandidate: String {
+        var target = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if target.hasPrefix("at://") {
+            let repo = target.dropFirst("at://".count).prefix { $0 != "/" }
+            if !repo.isEmpty { target = String(repo) }
+        }
+        if target.hasPrefix("@") { target.removeFirst() }
+        return target
     }
 
     /// The banner for an inactive repo; nil in the ordinary case.
@@ -1073,7 +1110,19 @@ public final class RepoModel {
     /// in `collections.errorMessage`.
     public var collectionsInactiveNotice: String? {
         guard collections.errorMessage != nil, let status = identity.value?.repoStatus else { return nil }
-        return "No collections to list: this repo is \(status.status ?? "inactive") and its PDS refuses record reads."
+        // The raw status is a protocol token ("takendown"); the sentence
+        // needs it as English.
+        let s = RepoStatusNotice(status: status.status).status
+        let clause: String
+        switch s {
+        case "takendown": clause = "has been taken down"
+        case "deleted": clause = "has been deleted"
+        case "suspended": clause = "is suspended"
+        case "deactivated": clause = "is deactivated"
+        case "inactive": clause = "is inactive"
+        default: clause = "is marked \(s)"
+        }
+        return "No collections: this repo \(clause)."
     }
 
     /// Placeholder copy when the tab has nothing to list.

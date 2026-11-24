@@ -428,16 +428,6 @@
   min-width: 0;
 }
 
-.fn-wx-heading .fn-list-card-sub a {
-  color: var(--text-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.fn-wx-heading .fn-list-card-sub a:hover {
-  color: var(--accent-forest);
-}
-
 /* The time and the way out to the full report, on the heading's right; under
    it once the heading takes the row. */
 .fn-wx-headside {

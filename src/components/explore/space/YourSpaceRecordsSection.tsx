@@ -150,8 +150,8 @@ export default function YourSpaceRecordsSection({
 
       {!complete && collections.length > 0 && (
         <p className="fx-sp-note fx-sp-foot">
-          Counted from the first {formatCount(SUMMARY_LIMIT)} records, so these
-          are lower bounds. Open a collection for its full listing.
+          Lower bounds from the first {formatCount(SUMMARY_LIMIT)} records. Open a
+          collection for its full listing.
         </p>
       )}
     </section>

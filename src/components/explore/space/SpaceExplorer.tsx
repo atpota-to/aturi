@@ -421,17 +421,14 @@ function ConfigSection({
         {!loading && error != null && !unconfigured && (
           <p className="fx-sp-note">
             This space host didn’t return a <code>com.atproto.simplespace</code>{' '}
-            configuration. Spaces are not required to be simplespaces; the
-            authority may run a different implementation with its own rules.
+            configuration. The authority may run a different implementation.
           </p>
         )}
         {!loading && unconfigured && (
           <>
             <p className="fx-sp-note">
               This address has no <code>com.atproto.simplespace</code>{' '}
-              configuration. Writing to a space address creates the data without
-              creating a space to govern it, so there are no access rules here and
-              no member list to keep.
+              configuration, so there are no access rules or member list.
             </p>
             {canCreate && adminTransport && (
               <span className="fx-sp-self-start">
@@ -669,17 +666,16 @@ function MembersSection({
         <div className="fx-sp-body">
           <p className="fx-sp-note">
             {useAuthorityList
-              ? 'The authority’s own membership list. Only the authority can read it; a space credential is refused, whoever holds it.'
-              : 'Accounts that have written to this space, as the space host tracks them. This is the sync boundary, not an access list: a member who has never written doesn’t appear here.'}
+              ? 'Only the authority can read this list.'
+              : 'Accounts that have written here. Members who never wrote don’t appear.'}
           </p>
           {/* The list outlives the policy that reads it. Saying so beside the
               controls is the only place it can be said before somebody adds
               people to a list nothing consults. */}
           {canEditMembers && config && !policyUsesMemberList(config) && (
             <p className="fx-sp-note">
-              This space’s user access isn’t set to the member list, so this list
-              is kept but never consulted. Switch user access to “Member list”
-              under Space configuration for it to take effect.
+              User access isn’t set to the member list, so this list has no effect.
+              Switch user access to “Member list” under Space configuration.
             </p>
           )}
           {active && error != null && <SpaceReadErrorPanel err={error} what="this space" />}
@@ -728,8 +724,7 @@ function MembersSection({
             )}
             {!complete && rows.length > 0 && (
               <p className="fx-sp-note fx-sp-foot">
-                Showing the first {formatCount(rows.length)}; the listing was cut
-                off before the end.
+                Showing the first {formatCount(rows.length)}.
               </p>
             )}
           </>

@@ -204,7 +204,7 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(LexiconRankingMode.trending.title, "Trending lexicons")
         XCTAssertEqual(LexiconRankingMode.top.title, "Top lexicons")
         XCTAssertEqual(LexiconRankingMode.allCases.map(\.label), ["Trending", "Top"])
-        XCTAssertEqual(LexiconBrowseView.allCases.map(\.label), ["Top", "All"])
+        XCTAssertEqual(LexiconBrowseView.allCases.map(\.label), ["Top", "Catalog"])
     }
 
     // MARK: Ranking strip
@@ -232,8 +232,8 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertFalse(model.isRankingRefreshing)
         XCTAssertNil(model.rankingErrorMessage)
 
-        let poolURL = transport.urls(containing: "limit=50").first ?? ""
-        XCTAssertTrue(poolURL.hasSuffix("/collections?order=dids-estimate&limit=50&since=2025-01-01T00%3A00%3A00.000Z"), poolURL)
+        let poolURL = transport.urls(containing: "limit=100").first ?? ""
+        XCTAssertTrue(poolURL.hasSuffix("/collections?order=dids-estimate&limit=100&since=2025-01-01T00%3A00%3A00.000Z"), poolURL)
         let stats = transport.urls(containing: "/collections/stats")
         XCTAssertEqual(stats.count, 2, "both windows are scored from stats")
         XCTAssertTrue(stats[0].contains("since=2025-01-01T00%3A00%3A00.000Z&until=2025-01-08T00%3A00%3A00.000Z"), stats[0])
@@ -265,8 +265,8 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.rankingTitle, "Top lexicons")
         XCTAssertEqual(model.rankingSeriesLabel, "Activity over the last 1d")
 
-        let poolURL = transport.urls(containing: "limit=50").first ?? ""
-        XCTAssertTrue(poolURL.contains("order=records-created&limit=50&since=2025-01-07T00%3A00%3A00.000Z"), poolURL)
+        let poolURL = transport.urls(containing: "limit=100").first ?? ""
+        XCTAssertTrue(poolURL.contains("order=records-created&limit=100&since=2025-01-07T00%3A00%3A00.000Z"), poolURL)
         // The fixture has no 1d stats, so the lookup comes back empty and the
         // ranked pool's creates stand in rather than every row scoring zero.
         XCTAssertEqual(transport.count(containing: "/collections/stats"), 1)
@@ -284,7 +284,7 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(rows.map(\.nsid), ["app.bsky.feed.post", "sh.tangled.repo", "social.grain.gallery", "net.anisota.harvest.minigame", "com.example.thing"])
         XCTAssertEqual(rows.map(\.value), [50, 30, 8, 0, 0], "rows with no updates score zero and keep the pool order")
 
-        let poolURL = transport.urls(containing: "limit=50").first ?? ""
+        let poolURL = transport.urls(containing: "limit=100").first ?? ""
         XCTAssertTrue(poolURL.contains("order=records-created"), "updates cannot be sorted server side")
         let stats = transport.urls(containing: "/collections/stats")
         XCTAssertEqual(stats.count, 1)
@@ -337,7 +337,7 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(transport.count(containing: "/collections/stats"), 0, "nothing left to score")
     }
 
-    func testExpandRefetchesWithALargerPoolAndCollapseSlicesImmediately() async {
+    func testExpandKeepsTheCollapsedRowsAndAppendsTheNextTen() async {
         let wide = Self.collectionsBody((0..<25).map { Self.row("ns\($0).x.y", 100 - $0, dids: 100 - $0) })
         let transport = LexiconsFakeTransport([
             (["/timeseries"], .init(status: 200, body: #"{"range":[],"series":{}}"#)),
@@ -347,31 +347,64 @@ final class LexiconsModelTests: XCTestCase {
         let model = makeModel(transport)
         model.mode = .top
         await model.load().value
-        XCTAssertEqual(model.ranking.value?.count, 10)
+        let collapsed = (0..<10).map { "ns\($0).x.y" }
+        XCTAssertEqual(model.ranking.value?.map(\.nsid), collapsed)
         XCTAssertEqual(model.visibleRanking?.count, 10)
         XCTAssertTrue(model.showsRankingToggle, "a full collapsed list can expand")
         XCTAssertEqual(model.rankingToggleLabel, "Show top 20")
         XCTAssertEqual(model.rankingLimit, 10)
         XCTAssertEqual(model.visibleRanking?.first?.series, [], "a missing series reads as empty")
+        XCTAssertEqual(transport.count(containing: "limit=100"), 1, "the collapsed strip fetches the full pool")
 
         model.expanded = true
         XCTAssertEqual(model.rankingLimit, 20)
         XCTAssertTrue(model.isRankingRefreshing)
-        XCTAssertEqual(model.visibleRanking?.count, 10, "the old rows stay while the wider pool loads")
+        XCTAssertEqual(model.visibleRanking?.count, 10, "the old rows stay while the refetch loads")
         await model.awaitPending()
         XCTAssertFalse(model.isRankingRefreshing)
-        XCTAssertEqual(model.ranking.value?.count, 20)
-        XCTAssertEqual(model.visibleRanking?.count, 20)
+        let expanded = model.visibleRanking?.map(\.nsid) ?? []
+        XCTAssertEqual(Array(expanded.prefix(10)), collapsed, "rows 1 to 10 keep their places")
+        XCTAssertEqual(Array(expanded.dropFirst(10)), (10..<20).map { "ns\($0).x.y" }, "rows 11 to 20 are appended")
         XCTAssertEqual(model.rankingToggleLabel, "Show top 10")
         XCTAssertTrue(model.showsRankingToggle)
-        XCTAssertEqual(transport.count(containing: "limit=100"), 1)
+        XCTAssertEqual(transport.count(containing: "limit=100"), 2, "the expand refetch asks for the same pool")
 
         model.expanded = false
-        XCTAssertEqual(model.visibleRanking?.count, 10, "collapsing takes effect before the refetch lands")
+        XCTAssertEqual(model.visibleRanking?.map(\.nsid), collapsed, "collapsing takes effect before the refetch lands")
         XCTAssertTrue(model.showsRankingToggle)
         await model.awaitPending()
-        XCTAssertEqual(model.visibleRanking?.count, 10)
-        XCTAssertEqual(transport.count(containing: "limit=50"), 2)
+        XCTAssertEqual(model.visibleRanking?.map(\.nsid), collapsed)
+        XCTAssertEqual(transport.count(containing: "limit=100"), 3)
+    }
+
+    /// A pool sized from the rows shown left a fast riser past position 50
+    /// out of the collapsed strip, then put it at the top once the expand
+    /// fetched a deeper pool, so "Show top 20" reshuffled the first ten.
+    func testTrendingCollapsedRowsAreTheHeadOfTheExpandedList() async {
+        let nsids = (0..<60).map { "t\($0).x.y" }
+        let current = Self.statsBody(nsids.map { ($0, Self.counts(dids: 100)) })
+        // Every row falls a little more than the one before it, except
+        // t55, which grows tenfold.
+        let prior = Self.statsBody(nsids.enumerated().map { i, nsid in
+            (nsid, Self.counts(dids: i == 55 ? 10 : 101 + i))
+        })
+        let transport = LexiconsFakeTransport([
+            (["/collections/stats", "since=2024-12-25"], .init(status: 200, body: prior)),
+            (["/collections/stats", "since=2025-01-01"], .init(status: 200, body: current)),
+            (["/timeseries"], .init(status: 200, body: #"{"range":[],"series":{}}"#)),
+            (["/collections?"], .init(status: 200, body: Self.collectionsBody(nsids.map { Self.row($0, 100, dids: 100) }))),
+        ])
+        let model = makeModel(transport)
+        await model.load().value
+        let collapsed = model.visibleRanking?.map(\.nsid) ?? []
+        XCTAssertEqual(collapsed.count, 10)
+        XCTAssertEqual(collapsed.first, "t55.x.y", "a riser deep in the pool still ranks first")
+
+        model.expanded = true
+        await model.awaitPending()
+        let expanded = model.visibleRanking?.map(\.nsid) ?? []
+        XCTAssertEqual(expanded.count, 20)
+        XCTAssertEqual(Array(expanded.prefix(10)), collapsed)
     }
 
     func testModeChangeKeepsTheOldTableWhileRefreshing() async {
@@ -390,11 +423,11 @@ final class LexiconsModelTests: XCTestCase {
 
         model.mode = .top
         await model.awaitPending()
-        XCTAssertEqual(transport.count(containing: "limit=50"), 2, "setting the same value again does not refetch")
+        XCTAssertEqual(transport.count(containing: "limit=100"), 2, "setting the same value again does not refetch")
 
         model.window = .thirtyDays
         await model.awaitPending()
-        XCTAssertTrue(transport.urls(containing: "limit=50").last!.contains("since=2024-12-09T00%3A00%3A00.000Z"))
+        XCTAssertTrue(transport.urls(containing: "limit=100").last!.contains("since=2024-12-09T00%3A00%3A00.000Z"))
         XCTAssertTrue(transport.urls(containing: "/timeseries").last!.contains("step=86400"))
     }
 
@@ -575,6 +608,31 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.submitSearch(), .lexiconGroup(prefix: "grain"))
     }
 
+    func testFailedSearchIsFlaggedUntilTheNextEdit() async {
+        let transport = LexiconsFakeTransport([(["/search"], .init(status: 500, body: "down"))])
+        let model = makeModel(transport)
+        XCTAssertFalse(model.searchFailed)
+        model.searchQuery = "grain"
+        await model.awaitPendingSearch()
+        XCTAssertTrue(model.searchFailed)
+
+        transport.setRoutes(searchRoutes())
+        model.retrySearch()
+        XCTAssertFalse(model.searchFailed, "a retry clears the flag while it runs")
+        await model.awaitPendingSearch()
+        XCTAssertFalse(model.searchFailed)
+        XCTAssertEqual(model.suggestions.count, LexiconsModel.suggestionLimit)
+
+        transport.setRoutes([(["/search"], .init(status: 500, body: "down"))])
+        model.searchQuery = "grains"
+        await model.awaitPendingSearch()
+        XCTAssertTrue(model.searchFailed)
+        model.searchQuery = "grainsx"
+        XCTAssertFalse(model.searchFailed, "a later edit clears it")
+        model.searchQuery = "g"
+        XCTAssertFalse(model.searchFailed, "too short to search is not a failure")
+    }
+
     // MARK: Browse all
 
     private nonisolated static let browsePool = collectionsBody((0..<60).map { i in
@@ -653,7 +711,7 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.browseCursor, "c1")
         XCTAssertTrue(model.canLoadMoreBrowse)
         XCTAssertEqual(model.displayedBrowse?.count, 100, "All shows every page, not the top fifty")
-        XCTAssertTrue(transport.urls(containing: "limit=100")[0].hasSuffix("/collections?limit=100"))
+        XCTAssertEqual(transport.count(containing: "/collections?limit=100"), 1, "All's first page carries no order or window")
 
         let more = model.loadMoreBrowse()
         XCTAssertNotNil(more)
@@ -732,36 +790,43 @@ final class LexiconsModelTests: XCTestCase {
         func label(_ secondsAgo: Double) -> String {
             LexiconsModel.freshnessLabel(cursorUs: (Self.now.timeIntervalSince1970 - secondsAgo) * 1_000_000, now: Self.now)
         }
-        XCTAssertEqual(label(12), "Firehose data current as of 12s ago")
-        XCTAssertEqual(label(89), "Firehose data current as of 89s ago")
-        XCTAssertEqual(label(90), "Firehose data current as of 2m ago")
-        XCTAssertEqual(label(5399), "Firehose data current as of 90m ago")
-        XCTAssertEqual(label(5400), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(7200), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(-30), "Firehose data current as of 0s ago", "a cursor ahead of the clock clamps to zero")
-        XCTAssertEqual(label(0.4), "Firehose data current as of 0s ago")
-        XCTAssertEqual(label(0.5), "Firehose data current as of 1s ago")
+        XCTAssertEqual(label(12), "Updated 12s ago")
+        XCTAssertEqual(label(89), "Updated 89s ago")
+        XCTAssertEqual(label(90), "Updated 2m ago")
+        XCTAssertEqual(label(5399), "Updated 90m ago")
+        XCTAssertEqual(label(5400), "Updated 2h ago")
+        XCTAssertEqual(label(7200), "Updated 2h ago")
+        XCTAssertEqual(label(-30), "Updated just now", "a cursor ahead of the clock clamps to zero")
+        XCTAssertEqual(label(0.4), "Updated just now")
+        XCTAssertEqual(label(0.5), "Updated just now")
+        XCTAssertEqual(label(5), "Updated 5s ago")
+        XCTAssertEqual(
+            LexiconsModel.freshnessLabel(cursorDate: Self.now.addingTimeInterval(-12), now: Self.now),
+            "Updated 12s ago"
+        )
     }
 
-    func testLoadFreshnessReadsTheJetstreamCursor() async {
+    func testLoadFreshnessReadsTheJetstreamCursor() async throws {
         let cursor = Int((Self.now.timeIntervalSince1970 - 42) * 1_000_000)
         let transport = LexiconsFakeTransport([
             (["/meta"], .init(status: 200, body: #"{"consumer":{"jetstream":{"latest_cursor":\#(cursor)}},"storage":{},"storage_name":"x"}"#)),
         ])
         let model = makeModel(transport)
-        XCTAssertNil(model.freshnessLabel)
+        XCTAssertNil(model.freshnessCursorDate)
         await model.loadFreshness().value
-        XCTAssertEqual(model.freshnessLabel, "Firehose data current as of 42s ago")
+        let date = try XCTUnwrap(model.freshnessCursorDate)
+        XCTAssertEqual(date.timeIntervalSince1970, Self.now.timeIntervalSince1970 - 42, accuracy: 0.001)
+        XCTAssertEqual(LexiconsModel.freshnessLabel(cursorDate: date, now: Self.now), "Updated 42s ago")
 
         let missing = makeModel(LexiconsFakeTransport([
             (["/meta"], .init(status: 200, body: #"{"consumer":{"jetstream":{"latest_cursor":"soon"}},"storage_name":"x"}"#)),
         ]))
         await missing.loadFreshness().value
-        XCTAssertNil(missing.freshnessLabel, "a non-numeric cursor is ignored")
+        XCTAssertNil(missing.freshnessCursorDate, "a non-numeric cursor is ignored")
 
         let down = makeModel(LexiconsFakeTransport([(["/meta"], .init(status: 500, body: ""))]))
         await down.loadFreshness().value
-        XCTAssertNil(down.freshnessLabel)
+        XCTAssertNil(down.freshnessCursorDate)
     }
 
     // MARK: Cancellation
@@ -784,7 +849,7 @@ final class LexiconsModelTests: XCTestCase {
         await task.value
         XCTAssertTrue(again.ranking.isLoading)
         XCTAssertTrue(again.browse.isLoading)
-        XCTAssertNil(again.freshnessLabel)
+        XCTAssertNil(again.freshnessCursorDate)
     }
 
     // MARK: Group page

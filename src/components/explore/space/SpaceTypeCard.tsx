@@ -63,11 +63,8 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
 
         {resolved && !declaration && (
           <p className="fx-sp-note">
-            No space type declaration resolved for <code>{nsid}</code>. Either its
-            publisher hasn’t published a <code>com.atproto.lexicon.schema</code>{' '}
-            record for it, or the record there isn’t a space definition. The space
-            itself may still exist; the declaration is documentation, not a
-            gatekeeper.
+            No space type declaration resolved for <code>{nsid}</code>. The space
+            can still exist without one.
           </p>
         )}
 

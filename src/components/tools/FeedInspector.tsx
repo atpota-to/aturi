@@ -451,8 +451,7 @@ export default function FeedInspector() {
           {skeleton && !hasSkeleton && needsViewer(skeleton) && (
             <ToolSection title="Skeleton">
               <ToolEmpty>
-                No skeleton to show. The generator returns one only to a signed-in viewer, and this tool asks
-                without one.
+                No skeleton. This generator only answers signed-in viewers, and this tool asks without signing in.
               </ToolEmpty>
             </ToolSection>
           )}
@@ -466,8 +465,7 @@ export default function FeedInspector() {
               term: 'The record',
               text: (
                 <>
-                  A feed is an <code>app.bsky.feed.generator</code> record. It gives the feed its name and names
-                  the service that computes it, by DID.
+                  An <code>app.bsky.feed.generator</code> record names the feed and the DID of the service behind it.
                 </>
               ),
             },
@@ -475,8 +473,7 @@ export default function FeedInspector() {
               term: 'The service',
               text: (
                 <>
-                  That DID has to resolve, and its document has to say where the generator is, in a{' '}
-                  <code>#bsky_fg</code> service.
+                  The DID resolves and lists the generator as a <code>#bsky_fg</code> service.
                 </>
               ),
             },
@@ -484,14 +481,13 @@ export default function FeedInspector() {
               term: 'The skeleton',
               text: (
                 <>
-                  The generator is asked for the feed with <code>getFeedSkeleton</code>. It answers with post
-                  addresses and nothing else, shown here in the order it gave them.
+                  The post addresses <code>getFeedSkeleton</code> returns, in its order.
                 </>
               ),
             },
             {
               term: 'The AppView',
-              text: 'Bluesky has to have indexed the feed before an app can open it. Its view is read too, and the skeleton’s posts are filled in from it.',
+              text: 'Bluesky must index the feed before apps can open it. Posts are filled in from it.',
             },
           ]}
         />

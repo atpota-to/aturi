@@ -238,9 +238,9 @@ const draftOf = (request: ConsoleRequest): Draft => ({
 });
 
 const SOURCE_NOTE: Record<MethodLexicon['source'], string> = {
-  published: 'Parameters are read from the lexicon this method’s authority published.',
-  repository: 'Parameters are read from the lexicon in the atproto repository.',
-  names: 'This method’s lexicon could not be found, so its parameters are plain text fields.',
+  published: 'Parameters from the lexicon this method’s authority published.',
+  repository: 'Parameters from the lexicon in the atproto repository.',
+  names: 'Lexicon not found, so parameters are plain text fields.',
 };
 
 /**
@@ -422,7 +422,7 @@ export default function XrpcConsole() {
 
                 {notAQuery && (
                   <ToolVerdict tone="warn" title={`This is a ${notAQuery}, not a query`} icon={<TriangleAlert size={18} />}>
-                    The console sends queries, which only read. It does not send procedures or open subscriptions.
+                    The console only sends queries, not procedures or subscriptions.
                   </ToolVerdict>
                 )}
 
@@ -451,7 +451,7 @@ export default function XrpcConsole() {
                         />
                       </span>
                       <p className="fn-tool-note">
-                        Left empty, the request goes to the PDS of the repo it asks about.
+                        Leave empty to ask the PDS of the repo in the request.
                       </p>
                     </>
                   )}

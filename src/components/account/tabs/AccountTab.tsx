@@ -44,9 +44,6 @@ export default function AccountTab() {
       <section className="settings-card">
         <div className="settings-card-head">
           <h2 className="settings-card-title">Signed in</h2>
-          <p className="settings-card-sub">
-            Your account identity. Sign out clears the OAuth session in this browser.
-          </p>
         </div>
         <div className="settings-identity">
           {avatar ? (
@@ -86,9 +83,6 @@ export default function AccountTab() {
       <section className="settings-card">
         <div className="settings-card-head">
           <h2 className="settings-card-title">Repo at a glance</h2>
-          <p className="settings-card-sub">
-            Stats pulled in parallel from your PDS, the PLC directory, and Constellation.
-          </p>
         </div>
         <AccountStats did={did} />
       </section>
@@ -150,9 +144,7 @@ function SignInCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Sign in to sync</h2>
         <p className="settings-card-sub">
-          You can use Aturi without signing in: preferences save to this
-          browser. Sign in and they sync to your PDS so the same setup
-          follows you across devices.
+          Optional. Without it, settings stay in this browser.
         </p>
       </div>
       {step === 'handle' ? (
@@ -208,8 +200,7 @@ function SignInCard() {
         </div>
       )}
       <p className="settings-card-note">
-        You&rsquo;ll be redirected to your PDS to authorize Aturi. Reads
-        always work because your repo is public.
+        You&rsquo;ll be redirected to your PDS to authorize Aturi.
       </p>
     </section>
   );

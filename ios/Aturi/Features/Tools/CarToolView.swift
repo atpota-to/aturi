@@ -78,13 +78,7 @@ struct CarToolView: View {
     }
 
     private func depth(of tab: Tab) -> Int {
-        switch tab {
-        case .explore: return router.explorePath.count
-        case .links: return router.linksPath.count
-        case .lexicons: return router.lexiconsPath.count
-        case .tools: return router.toolsPath.count
-        case .settings: return router.settingsPath.count
-        }
+        router.depth(of: tab)
     }
 
     // MARK: Form
@@ -92,7 +86,7 @@ struct CarToolView: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
             ToolInputBar(
-                placeholder: "alice.example.com or did:plc:\u{2026}",
+                placeholder: "Handle or DID",
                 text: $input,
                 buttonTitle: "Look up",
                 isRunning: model.account.isLoading
@@ -107,7 +101,7 @@ struct CarToolView: View {
                 Image(systemName: "doc.badge.arrow.up")
                     .foregroundStyle(theme.textTertiary)
                     .accessibilityHidden(true)
-                Text("Or open a .car file from this device. It is read in the app and never uploaded.")
+                Text("Or open a .car file from this device. It is never uploaded.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -236,7 +230,7 @@ struct CarToolView: View {
             }
             ToolFactRow(label: "PDS", value: PDSServer.pdsHostname(identity.pds))
             if let inactive = identity.repoStatus {
-                Text("The PDS reports this repository as \(inactive.status ?? "inactive"), so it may refuse to send the export.")
+                Text("The PDS reports this repository as \(inactive.status ?? "inactive") and may refuse the export.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -258,7 +252,7 @@ struct CarToolView: View {
                     .buttonStyle(.aturiSecondary)
                     .accessibilityHint("Opens outside the app")
                 }
-                Text("The export is every record in the repository in one file, which can run to many megabytes. It is fetched straight from the PDS into this app; up to \(CarFormat.bytes(CarFormat.maxArchiveBytes)) can be opened.")
+                Text("Exports can run to many megabytes. Up to \(CarFormat.bytes(CarFormat.maxArchiveBytes)) can be opened here.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -268,26 +262,24 @@ struct CarToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it shows") {
-            VStack(alignment: .leading, spacing: 12) {
-                CarIntroItem(
-                    term: "The commit",
-                    text: "Whose repository this is, when it was last written, and the root of the tree that holds everything else."
-                )
-                CarIntroItem(
-                    term: "Every record",
-                    text: "The tree is walked to list each collection and record key, and a record is decoded when it is opened. Any of it can be saved as JSON."
-                )
-                CarIntroItem(
-                    term: "Whether the file is sound",
-                    text: "Parts of the tree that are missing, records it lists but does not hold, and, when asked, whether every block still hashes to its address."
-                )
-                CarIntroItem(
-                    term: "What it leaves out",
-                    text: "The commit\u{2019}s signature is not verified, and blobs are not in an export: images and video appear as links, not files."
-                )
-            }
-        }
+        ToolIntro("What it shows", items: [
+            (
+                "The commit",
+                "Whose repository it is, when it was last written, and its root."
+            ),
+            (
+                "Every record",
+                "Each collection and record key. Records decode when opened and save as JSON."
+            ),
+            (
+                "Whether the file is sound",
+                "Missing parts of the tree, listed records it doesn\u{2019}t hold, and, on request, whether every block matches its hash."
+            ),
+            (
+                "What it leaves out",
+                "The signature isn\u{2019}t verified, and blobs aren\u{2019}t in an export, so images and video show as links."
+            ),
+        ])
     }
 }
 
@@ -444,7 +436,7 @@ private struct CarRecordsBrowser: View {
                 if let collection {
                     recordsSection(collection)
                 }
-                Text("Blobs are not part of a repository export. An image or video appears here as a link to its CID; the file itself stays on the account\u{2019}s PDS.")
+                Text("Blobs aren\u{2019}t in an export. Images and video link to their CID on the account\u{2019}s PDS.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -705,26 +697,5 @@ private struct CarFactLink: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens the repository")
-    }
-}
-
-/// One term of the intro and what it means.
-private struct CarIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
     }
 }

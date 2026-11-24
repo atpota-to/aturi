@@ -193,7 +193,7 @@ export default function ActivityHeatmap({
       </div>
       {!compact && (
         <div className="fn-tool-activity-legend">
-          {interactive && <span className="fn-tool-activity-hint">Pick a day to see what was written on it.</span>}
+          {interactive && <span className="fn-tool-activity-hint">Pick a day to see its records.</span>}
           <span aria-hidden className="fn-tool-activity-scale">
             Less
             {LEVELS.map((level) => (

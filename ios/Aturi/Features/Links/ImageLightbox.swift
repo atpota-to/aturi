@@ -9,6 +9,8 @@ struct ImageLightbox: View {
     let images: [EmbedImage]
 
     @State private var index: Int
+    /// The alt text shown in full rather than cut at four lines.
+    @State private var altExpanded = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
@@ -45,6 +47,11 @@ struct ImageLightbox: View {
         }
         .overlay(alignment: .bottom) {
             caption
+        }
+        /* Each image has its own description, so a new page starts with
+           its caption cut short again. */
+        .onChange(of: index) {
+            altExpanded = false
         }
         .preferredColorScheme(.dark)
     }
@@ -91,20 +98,58 @@ struct ImageLightbox: View {
         .padding(.top, 8)
     }
 
+    /* Alt text often runs past four lines, and the lightbox is the one
+       place a sighted reader goes to read it, so a tap on the caption shows
+       all of it. Expanded, it scrolls past about 280 points rather than
+       covering the image. */
     @ViewBuilder
     private var caption: some View {
         if let alt = current?.alt, !alt.isEmpty {
-            Text(alt)
-                .font(AturiFont.footnote)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineLimit(4)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 40)
+            Group {
+                if altExpanded {
+                    /* A scroll view takes all the height it is offered, so it
+                       stands in only when the full text is taller than the
+                       cap; shorter text keeps its own height. */
+                    ViewThatFits(in: .vertical) {
+                        fullCaptionText(alt)
+                        ScrollView {
+                            fullCaptionText(alt)
+                        }
+                    }
+                    .frame(maxHeight: 280)
+                } else {
+                    captionText(alt)
+                        .lineLimit(4)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    altExpanded.toggle()
+                }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(altExpanded ? "Collapses the description" : "Shows the full description")
+            .padding(.horizontal, 16)
+            .padding(.bottom, 40)
         }
+    }
+
+    private func captionText(_ alt: String) -> some View {
+        Text(alt)
+            .font(AturiFont.footnote)
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+    }
+
+    private func fullCaptionText(_ alt: String) -> some View {
+        captionText(alt)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
     }
 }
 

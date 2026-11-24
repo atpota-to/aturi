@@ -1,5 +1,6 @@
 'use client';
 
+import { EXPLORER_VIEW_SWITCH } from '@/lib/explorerView';
 import PdsExplorer from '../PdsExplorer';
 import { useExplorerView } from '../workbench/useExplorerView';
 import ViewSwitch from '../workbench/ViewSwitch';
@@ -16,6 +17,7 @@ export default function PdsRoute({ host }: { host: string }) {
   const view = useExplorerView();
   // Keyed by host: another PDS starts with its own rail, list and inspector.
   if (view !== 'classic') return <PdsShell key={host} mode={view} host={host} />;
+  if (!EXPLORER_VIEW_SWITCH) return <PdsExplorer key={host} host={host} />;
   return (
     <>
       <div className="fx-viewbar">

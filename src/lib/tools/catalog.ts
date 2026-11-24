@@ -39,18 +39,21 @@ export type ToolGroupId = 'network' | 'identity' | 'accounts' | 'records' | 'ser
 export type ToolGroup = {
   id: ToolGroupId;
   title: string;
-  /** What the group is for, one short sentence. */
-  blurb: string;
 };
 
 export type ToolEntry = {
   /** The path segment under /tools. */
   slug: string;
   title: string;
-  /** One sentence for the hub tile and the page's meta description. */
+  /** One sentence for the page's meta description and link card. */
   desc: string;
-  /** The line under the tool's own heading. May say a little more than `desc`. */
-  lead: string;
+  /** One short line for the hub tile. */
+  tile: string;
+  /**
+   * A line under the tool's own heading, only where the user needs to know
+   * something before using it (what leaves the browser, what is compared).
+   */
+  lead?: string;
   group: ToolGroupId;
   Icon: LucideIcon;
   /** Extra words the command palette matches on. */
@@ -58,11 +61,11 @@ export type ToolEntry = {
 };
 
 export const TOOL_GROUPS: ToolGroup[] = [
-  { id: 'network', title: 'Network', blurb: 'What the network is doing, and how to ask it.' },
-  { id: 'identity', title: 'Identity', blurb: 'Handles, DIDs and the identifiers records are built from.' },
-  { id: 'accounts', title: 'Accounts', blurb: 'What an account has written, and what others say about it.' },
-  { id: 'records', title: 'Records and lexicons', blurb: 'Check a record against its schema, and a schema against the network.' },
-  { id: 'services', title: 'Services and the web', blurb: 'Feed generators, OAuth clients, and pages that point at records.' },
+  { id: 'network', title: 'Network' },
+  { id: 'identity', title: 'Identity' },
+  { id: 'accounts', title: 'Accounts' },
+  { id: 'records', title: 'Records and lexicons' },
+  { id: 'services', title: 'Services and the web' },
 ];
 
 export const TOOLS: ToolEntry[] = [
@@ -70,7 +73,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'stream',
     title: 'Stream monitor',
     desc: 'Watch Jetstream and the PLC directory live, filtered by event type, account, collection or text.',
-    lead: 'Records being written across the Atmosphere and every did:plc operation, as they happen.',
+    tile: 'Live Jetstream and PLC events, filtered.',
     group: 'network',
     Icon: Activity,
     keywords: ['jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live'],
@@ -79,7 +82,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'xrpc',
     title: 'XRPC console',
     desc: 'Call any atproto query: pick a method, fill in its parameters from the lexicon, and read the response.',
-    lead: 'Pick a query from the atproto and Bluesky lexicons, fill in its parameters, and send it to the public AppView or any PDS.',
+    tile: 'Call any atproto query and read the response.',
     group: 'network',
     Icon: SquareTerminal,
     keywords: ['xrpc', 'api', 'console', 'playground', 'query', 'endpoint', 'request'],
@@ -88,7 +91,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'relay',
     title: 'Relay crawl check',
     desc: 'Ask the relays whether they are crawling a PDS, how many accounts they see on it, and how far they have read.',
-    lead: 'A PDS only reaches the network through a relay. This asks each one what it knows about a host.',
+    tile: 'Check whether relays are crawling a PDS.',
     group: 'network',
     Icon: RadioTower,
     keywords: ['relay', 'crawl', 'pds', 'host', 'firehose', 'self-host', 'requestcrawl'],
@@ -106,7 +109,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'handle',
     title: 'Handle debugger',
     desc: 'Check a handle step by step: the DNS record, the well-known file, the DID document and the PDS behind it.',
-    lead: 'A handle is only valid when it points at a DID and that DID points back. This checks both directions and says which step fails.',
+    tile: 'Find the step where a handle stops resolving.',
     group: 'identity',
     Icon: AtSign,
     keywords: ['handle', 'dns', 'well-known', 'did', 'verify', 'domain', 'invalid', 'debug'],
@@ -115,7 +118,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'resolve',
     title: 'Bulk identity resolver',
     desc: 'Paste a list of handles and DIDs and get each one’s DID, handle and PDS as a table to copy or download.',
-    lead: 'Paste handles and DIDs, one per line or separated by commas. Each is resolved to its DID, current handle and PDS.',
+    tile: 'Resolve a list of handles and DIDs to a table.',
     group: 'identity',
     Icon: ListChecks,
     keywords: ['resolve', 'bulk', 'batch', 'did', 'handle', 'csv', 'lookup'],
@@ -124,7 +127,8 @@ export const TOOLS: ToolEntry[] = [
     slug: 'decode',
     title: 'Identifier decoder',
     desc: 'Take apart a TID, CID, at:// URI, DID, NSID or JWT and see what each part means. Nothing leaves the browser.',
-    lead: 'Paste a record key, CID, at:// URI, DID, NSID or a token. It is decoded here in the browser and never sent anywhere.',
+    tile: 'Take apart a TID, CID, at:// URI, DID, NSID or JWT.',
+    lead: 'Decoded in the browser. Nothing is sent.',
     group: 'identity',
     Icon: Binary,
     keywords: ['tid', 'cid', 'rkey', 'at-uri', 'did:key', 'jwt', 'decode', 'timestamp', 'nsid'],
@@ -133,7 +137,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'activity',
     title: 'Activity calendar',
     desc: 'A year of one account’s writes across every app, drawn from the timestamps inside its record keys.',
-    lead: 'Every record key carries the moment it was made. This reads an account’s keys across every collection and draws the year.',
+    tile: 'A year of an account’s writes, across every app.',
     group: 'accounts',
     Icon: CalendarDays,
     keywords: ['activity', 'calendar', 'heatmap', 'history', 'contributions', 'timeline'],
@@ -142,7 +146,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'memberships',
     title: 'Lists and verifications',
     desc: 'Find the lists an account has been added to and the accounts that have verified it, from records across the network.',
-    lead: 'Lists and verifications are records in other people’s repositories. This finds the ones that point at an account.',
+    tile: 'Lists an account is on, and who verified it.',
     group: 'accounts',
     Icon: BadgeCheck,
     keywords: ['lists', 'listitem', 'verification', 'verified', 'memberships', 'starter pack', 'moderation list'],
@@ -151,7 +155,8 @@ export const TOOLS: ToolEntry[] = [
     slug: 'labels',
     title: 'Label checker',
     desc: 'See the labels on an account or post, which labeler applied each one, and what that labeler says it means.',
-    lead: 'Labels come from independent labelers, and an app only shows the ones it subscribes to. This asks for all of them.',
+    tile: 'Every label on an account or post, and who applied it.',
+    lead: 'From every labeler, not only the ones your app subscribes to.',
     group: 'accounts',
     Icon: Tags,
     keywords: ['labels', 'labeler', 'moderation', 'ozone', 'takedown', 'warning'],
@@ -160,7 +165,8 @@ export const TOOLS: ToolEntry[] = [
     slug: 'shadowban',
     title: 'Shadowban checker',
     desc: 'Compare an account’s posts on its PDS with what an AppView returns, and find posts, replies or search results that are missing.',
-    lead: 'An AppView can hide an account without labeling it. Its replies disappear from threads, or it stops showing up in search. This reads the account’s posts from its PDS and compares them with what the AppView returns.',
+    tile: 'Find posts, replies or search results an AppView hides.',
+    lead: 'Compares an account’s posts on its PDS with what the AppView returns.',
     group: 'accounts',
     Icon: EyeOff,
     keywords: ['shadowban', 'shadow ban', 'hidden', 'needs review', 'visibility', 'appview', 'search', 'suppressed'],
@@ -169,7 +175,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'mutuals',
     title: 'Mutuals’ blocks',
     desc: 'See which accounts your mutuals block most, map how their blocks overlap, and save the ones you pick as a moderation list.',
-    lead: 'Blocks are public records. This finds the accounts that follow each other with yours, reads each one’s blocks from its own PDS, and shows which accounts many of them block, and how far they agree.',
+    tile: 'Which accounts your mutuals block, and how much they agree.',
     group: 'accounts',
     Icon: UsersRound,
     keywords: ['mutuals', 'moots', 'blocks', 'blocked', 'block list', 'moderation list', 'modlist', 'six degrees'],
@@ -178,7 +184,8 @@ export const TOOLS: ToolEntry[] = [
     slug: 'car',
     title: 'Repo archive inspector',
     desc: 'Open a repository export (a CAR file) in the browser: its commit, its collections and every record in it.',
-    lead: 'A repository export is one file holding every record an account has written. Open one here, or fetch an account’s, and browse it without uploading it anywhere.',
+    tile: 'Browse a repository export (CAR file).',
+    lead: 'Opened in the browser. Nothing is uploaded.',
     group: 'accounts',
     Icon: FileArchive,
     keywords: ['car', 'archive', 'backup', 'export', 'repo', 'getRepo', 'cbor', 'mst'],
@@ -187,7 +194,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'validate',
     title: 'Record validator',
     desc: 'Check a record against the lexicon its author published, and list every field that does not match.',
-    lead: 'Paste a record, or point at one by at:// URI. It is checked against the schema published for its type.',
+    tile: 'Check a record against its published lexicon.',
     group: 'records',
     Icon: FileCheck2,
     keywords: ['validate', 'lexicon', 'schema', 'record', 'json', 'lint'],
@@ -196,7 +203,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'post',
     title: 'Post inspector',
     desc: 'Open a Bluesky post’s record: facets by byte range, embeds, reply and quote rules, labels and timestamps.',
-    lead: 'Everything a post record says and an app does not show: where each link and mention starts and ends, who may reply, and when it was really written.',
+    tile: 'A post record’s facets, embeds, gates and timestamps.',
     group: 'records',
     Icon: ScanText,
     keywords: ['post', 'facets', 'richtext', 'bytes', 'threadgate', 'postgate', 'embed', 'inspect'],
@@ -205,7 +212,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'lexicon',
     title: 'Lexicon publishing checker',
     desc: 'Follow an NSID from its DNS record to the schema record behind it, and see where the chain breaks.',
-    lead: 'A lexicon is published by a DNS record that names a DID, and a schema record in that DID’s repository. This walks the chain.',
+    tile: 'Trace an NSID from DNS to its schema record.',
     group: 'records',
     Icon: BookCheck,
     keywords: ['lexicon', 'nsid', 'publish', '_lexicon', 'dns', 'schema', 'authority'],
@@ -214,7 +221,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'feed',
     title: 'Feed inspector',
     desc: 'Look inside a custom feed: who runs it, whether its generator answers, and the raw skeleton it returns.',
-    lead: 'A feed is a record that names a service. This reads the record, asks the service what it serves, and shows what comes back.',
+    tile: 'Check a custom feed and what its generator returns.',
     group: 'services',
     Icon: Rss,
     keywords: ['feed', 'generator', 'skeleton', 'algorithm', 'custom feed', 'feedgen'],
@@ -223,7 +230,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'oauth',
     title: 'OAuth client checker',
     desc: 'Validate an OAuth client metadata document against the atproto profile, and build or read a scope string.',
-    lead: 'Fetch a client metadata document and check it against what atproto authorization servers require, or put together the scopes an app should ask for.',
+    tile: 'Validate OAuth client metadata and build scopes.',
     group: 'services',
     Icon: KeyRound,
     keywords: ['oauth', 'client metadata', 'client_id', 'scope', 'dpop', 'permission', 'granular'],
@@ -232,7 +239,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'share',
     title: 'Share button builder',
     desc: 'Make “share to the Atmosphere” links and buttons that open the composer in each client that supports it.',
-    lead: 'Write the text once and get a link for every client with a compose route, plus markup to put on a page.',
+    tile: 'Make share links and buttons for every client.',
     group: 'services',
     Icon: Share2,
     keywords: ['share', 'intent', 'compose', 'button', 'link', 'embed'],
@@ -241,7 +248,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'page',
     title: 'Page checker',
     desc: 'See how a web page presents itself to the Atmosphere: its link card and the at:// records it declares.',
-    lead: 'Fetch a page the way a client would, and read the link card it offers and the at:// tags that tie it to a record.',
+    tile: 'A web page’s link card and at:// tags.',
     group: 'services',
     Icon: PanelTop,
     keywords: ['page', 'link card', 'open graph', 'og', 'at tags', 'preview', 'meta'],

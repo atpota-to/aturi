@@ -229,8 +229,8 @@ export default function AccountsPane({
         <div ref={scrollRef} className="fx-wb-scroll">
           {refused ? (
             <Message title={listing.error ?? undefined}>
-              This PDS didn’t list its accounts. It may be offline, or it may not allow listing: an entryway
-              like bsky.social doesn’t, and the PDSs behind it do.
+              This PDS didn’t list its accounts. It may be offline or not allow listing, like the bsky.social
+              entryway.
             </Message>
           ) : loadingFirst ? (
             <AccountsSkeleton display={display} />
@@ -312,25 +312,24 @@ export function Summary({
       <>The host won’t list its accounts.</>
     );
   }
-  if (loaded === 0) return <>Asking the host for its accounts…</>;
+  if (loaded === 0) return <>Loading accounts…</>;
   if (done) {
     return (
       <>
-        All <strong>{loaded.toLocaleString()}</strong> {loaded === 1 ? 'account' : 'accounts'} the host lists, oldest
-        first as it lists them.
+        All <strong>{loaded.toLocaleString()}</strong> {loaded === 1 ? 'account' : 'accounts'}, oldest first.
       </>
     );
   }
   return (
     <>
-      The first <strong>{loaded.toLocaleString()}</strong> the host lists
+      First <strong>{loaded.toLocaleString()}</strong>
       {relayCount !== null && (
         <>
           {' '}
           of about <strong>{relayCount.toLocaleString()}</strong> the relays count
         </>
       )}
-      , {REPO_PAGE.toLocaleString()} at a time.
+      .
     </>
   );
 }

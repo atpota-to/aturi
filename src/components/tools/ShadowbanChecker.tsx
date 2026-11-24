@@ -485,7 +485,7 @@ export default function ShadowbanChecker({ subject, heading }: { subject?: strin
           )}
 
           {posts.length > 0 && (
-            <ToolSection title="Recent posts" meta={`${posts.length} from the PDS, newest first`}>
+            <ToolSection title="Recent posts" meta={`${posts.length} from the PDS`}>
               <ToolCard flush>
                 <ul className="fn-tool-rows">
                   {posts.map((post) => (
@@ -503,19 +503,19 @@ export default function ShadowbanChecker({ subject, heading }: { subject?: strin
           items={[
             {
               term: 'Posts on the PDS',
-              text: 'Reads the account’s 25 latest posts directly from its PDS, the server that stores them. AppViews can’t change this copy.',
+              text: 'The account’s 25 latest posts, read from its PDS. AppViews can’t change this copy.',
             },
             {
               term: 'Posts on the AppView',
-              text: 'Asks the AppView for each of those posts. If the PDS has a post and the AppView won’t return it, the AppView is hiding it. If you enter a link to a post, that post is checked as well.',
+              text: 'Each of those posts from the AppView. One the PDS has and the AppView won’t return is hidden. A linked post is checked too.',
             },
             {
               term: 'Replies in threads',
-              text: 'Looks for each recent reply under the post it replies to. This is where Bluesky’s “needs review” status shows up now that it’s no longer a label. The reply opens on its own but is missing from the thread. Blocks and reply limits can also hide a reply, so the tool checks for those first.',
+              text: 'Each recent reply under its parent. Bluesky’s “needs review” shows as a reply that opens alone but is missing from the thread. Blocks and reply limits are ruled out first.',
             },
             {
               term: 'Search',
-              text: 'Searches for the account by its handle and for its posts by author. If typeahead (the suggestions that appear as you type) finds the account but full search doesn’t, the AppView is leaving it out of search.',
+              text: 'The account by handle and its posts by author. Found by typeahead but not by full search means it is left out of search.',
             },
           ]}
         />

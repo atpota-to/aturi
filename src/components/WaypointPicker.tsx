@@ -213,8 +213,7 @@ export default function WaypointPicker({
     });
   };
 
-  // "Open @alice.test's profile in…", plus a one-line subhead saying what
-  // every option has in common.
+  // "Open @alice.test's profile in…".
   const getContextText = () => {
     switch (type) {
       case 'post':
@@ -227,19 +226,6 @@ export default function WaypointPicker({
         return `Open this record from ${display} in…`;
       default:
         return `Open content from ${display} in…`;
-    }
-  };
-
-  const getSubheadText = () => {
-    switch (type) {
-      case 'post':
-        return 'Pick an app. They all show the same post.';
-      case 'profile':
-        return 'Pick an app. They all show the same account.';
-      case 'list':
-        return 'Pick an app. They all show the same list.';
-      default:
-        return 'Pick an app. They all read the same record.';
     }
   };
 
@@ -334,7 +320,6 @@ export default function WaypointPicker({
 
       <header className="fn-lp-head">
         <h1>{getContextText()}</h1>
-        <p>{getSubheadText()}</p>
       </header>
 
       {!hasWaypoints ? (

@@ -418,7 +418,7 @@ function PhoneSearchSheet({ query, leaving }: { query: string; leaving: boolean 
           key: 'app:all',
           icon: <LayoutGrid size={16} aria-hidden />,
           label: `All ${allApps.length} apps`,
-          detail: 'The waypoint picker, grouped, with previews',
+          detail: 'Grouped, with previews',
           end: <ChevronRight size={16} aria-hidden />,
           href: picker,
         });

@@ -83,7 +83,7 @@ public final class AtmospherePulseModel {
     public nonisolated static let newResultCount = 10
     public nonisolated static let newExpandedCount = 25
     public nonisolated static let rankingEmptyMessage = LexiconsModel.rankingEmptyMessage
-    public nonisolated static let newEmptyMessage = "Nothing new with three or more accounts in this window."
+    public nonisolated static let newEmptyMessage = "Nothing new with 3+ accounts in this window."
     public nonisolated static let newUnavailableMessage = "aturi.to did not answer"
 
     public var window: UFOsWindow = .sevenDays {
@@ -284,7 +284,7 @@ public final class AtmospherePulseModel {
     }
 
     public var headingDetail: String {
-        "Lexicon activity from UFOs, compared with the \(Self.windowNoun(window)) before"
+        "Compared with the \(Self.windowNoun(window)) before, via UFOs"
     }
 
     private var comparison: String {
@@ -296,7 +296,7 @@ public final class AtmospherePulseModel {
     }
 
     public var topSubtitle: String {
-        metric == .dids ? "Accounts writing each lexicon" : "\(Self.metricNoun(metric)) in each lexicon"
+        "By \(metricUnit)"
     }
 
     public var risingSubtitle: String {
@@ -304,11 +304,11 @@ public final class AtmospherePulseModel {
     }
 
     public var newTitle: String {
-        "New this \(Self.windowNoun(window))"
+        window == .oneDay ? "New today" : "New this \(Self.windowNoun(window))"
     }
 
     public var newSubtitle: String {
-        "First seen in the last \(window.label), by accounts"
+        "By accounts"
     }
 
     /// The unit a row's figures count, for accessibility labels.

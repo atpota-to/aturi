@@ -95,9 +95,9 @@ struct MembershipsToolView: View {
 
     private func standing(_ account: MembershipsClient.Account) -> String {
         if account.verified { return "Bluesky shows this account as verified." }
-        if account.trustedVerifier { return "Bluesky treats this account as a trusted verifier, which can verify others." }
+        if account.trustedVerifier { return "Bluesky treats this account as a trusted verifier." }
         if account.onBluesky { return "Bluesky does not show this account as verified." }
-        return "Bluesky\u{2019}s AppView has no profile for this account, so only the records themselves are shown."
+        return "Bluesky\u{2019}s AppView has no profile for this account. Only the records are shown."
     }
 
     @ViewBuilder
@@ -182,10 +182,10 @@ struct MembershipsToolView: View {
                 let groups = model.groups
                 listSection("Curation lists", hint: "Lists people follow or build feeds from.", items: groups.curate)
                 listSection("Moderation lists", hint: "Lists whose subscribers mute or block everyone on them.", items: groups.mod)
-                listSection("Starter packs", hint: "The member list behind a starter pack.", items: groups.reference)
+                listSection("Starter packs", hint: "", items: groups.reference)
                 listSection(
                     "Unavailable lists",
-                    hint: "The list was deleted, or the account behind it is gone. The index still counts the membership.",
+                    hint: "Deleted, or the account behind it is gone. The index still counts the membership.",
                     items: groups.unavailable
                 )
                 moreControls
@@ -196,7 +196,7 @@ struct MembershipsToolView: View {
     @ViewBuilder
     private func listSection(_ title: String, hint: String, items: [Memberships.Membership]) -> some View {
         if !items.isEmpty {
-            ToolSection(title, detail: "\(Labels.formatCount(items.count)) loaded. \(hint)") {
+            ToolSection(title, detail: hint.isEmpty ? "\(Labels.formatCount(items.count)) loaded" : "\(Labels.formatCount(items.count)) loaded. \(hint)") {
                 ForEach(Array(items.enumerated()), id: \.offset) { pair in
                     if pair.offset > 0 {
                         Divider()
@@ -259,22 +259,20 @@ struct MembershipsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it finds") {
-            VStack(alignment: .leading, spacing: 12) {
-                MembershipsIntroItem(
-                    term: "Lists that include the account",
-                    text: "Every app.bsky.graph.listitem record that names it, wherever it was written, with the list each one belongs to."
-                )
-                MembershipsIntroItem(
-                    term: "What each list is for",
-                    text: "Curation lists, moderation lists and the member lists behind starter packs are shown apart, with who made each one and how many are on it."
-                )
-                MembershipsIntroItem(
-                    term: "Who has verified it",
-                    text: "Every app.bsky.graph.verification record that names it, and whether Bluesky trusts the account that wrote it."
-                )
-            }
-        }
+        ToolIntro("What it finds", items: [
+            (
+                "Lists that include the account",
+                "Every app.bsky.graph.listitem record that names it, with its list."
+            ),
+            (
+                "What each list is for",
+                "Curation, moderation and starter pack lists, apart, with who made each and its size."
+            ),
+            (
+                "Who has verified it",
+                "Every app.bsky.graph.verification record that names it, and whether Bluesky trusts its author."
+            ),
+        ])
     }
 
     // MARK: Input
@@ -516,32 +514,5 @@ private struct MembershipsVerificationRow: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 8)
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct MembershipsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }

@@ -89,7 +89,7 @@ export default function CollectionEditBar({
         <>
           <span className="fx-editbar-prompt" style={{ whiteSpace: 'nowrap' }}>
             {deleteWaitSec != null
-              ? `Paced under the rate limit, resuming in ${deleteWaitSec}s`
+              ? `Rate limited, resuming in ${deleteWaitSec}s`
               : 'Deleting…'}
           </span>
           <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />
@@ -102,7 +102,7 @@ export default function CollectionEditBar({
           <span className="fx-editbar-prompt">
             Delete {selectedSize} record{plural}? This cannot be undone.
             {willPace &&
-              ` Aturi will pace this under Bluesky's ~${HOURLY_POINT_BUDGET.toLocaleString()}/hour write limit, so it may pause partway.`}
+              ` It may pause partway to stay under Bluesky's ~${HOURLY_POINT_BUDGET.toLocaleString()}/hour write limit.`}
           </span>
           <button type="button" onClick={onConfirmDelete} className="fx-btn fx-btn-sm fx-btn-danger-solid">
             Confirm delete

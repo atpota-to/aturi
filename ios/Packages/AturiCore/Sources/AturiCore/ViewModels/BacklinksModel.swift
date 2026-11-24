@@ -45,16 +45,16 @@ extension BacklinkRelation {
         }
     }
 
-    /// The line under the list's heading.
+    /// The line under the list's heading, empty where the label says it all.
     public var about: String {
         switch self {
-        case .follow: return "Accounts that follow this one, in any app."
-        case .mention: return "Posts, documents and lists that mention this account."
-        case .list: return "Lists, starter packs and groups this account is in."
-        case .block: return "Accounts that block this one."
-        case .verify: return "Verification records that name this account, by others or by itself."
+        case .follow: return ""
+        case .mention: return ""
+        case .list: return "Lists, starter packs and groups."
+        case .block: return ""
+        case .verify: return "From others or the account itself."
         case .endorse: return "Endorsements, vouches, top-friends slots and contact cards."
-        case .embed: return "Records that keep a copy of this account\u{2019}s details, like a starter pack showing a feed it made."
+        case .embed: return "Records holding a copy of this account\u{2019}s details."
         case .other: return BacklinksModel.otherAbout
         }
     }
@@ -77,17 +77,17 @@ extension RecordBacklinkRelation {
         }
     }
 
-    /// The line under the list's heading.
+    /// The line under the list's heading, empty where the label says it all.
     public var about: String {
         switch self {
-        case .reply: return "Replies and comments that answer this record directly."
-        case .thread: return "Every reply in the thread this record started, at any depth."
-        case .quote: return "Posts that quote or embed this record."
-        case .repost: return "Accounts that reposted this record."
+        case .reply: return "Direct replies and comments."
+        case .thread: return "Every reply in its thread, at any depth."
+        case .quote: return ""
+        case .repost: return ""
         case .like: return "Likes, stars, votes and recommendations."
-        case .mention: return "Records that link to this one in their text."
-        case .item: return "Records filed under this one, like a list\u{2019}s members or a publication\u{2019}s documents."
-        case .subscribe: return "Subscriptions to this record."
+        case .mention: return "Links in a record\u{2019}s text."
+        case .item: return "Like a list\u{2019}s members or a publication\u{2019}s documents."
+        case .subscribe: return ""
         case .via: return "Follows and sign-ups made through this record."
         case .other: return BacklinksModel.otherAbout
         }
@@ -146,7 +146,7 @@ public struct BacklinkGroup: Hashable, Sendable, Identifiable {
         let sourceCount = sources.count
         let head = "\(BacklinksModel.grouped(count)) \(count == 1 ? "link" : "links") through \(sourceCount) \(sourceCount == 1 ? "source" : "sources")"
         if sourceCount > 1 {
-            return head + ". Accounts are counted per source, so one account linking through two counts twice."
+            return head + ". Accounts count once per source."
         }
         return head + "."
     }

@@ -318,8 +318,8 @@ export default function MutualBlocksOrbit({
             </div>
           ) : (
             <p className="fn-tool-note">
-              Point at an account on the outer ring to see which mutuals block it, or at a mutual on the inner ring to
-              see whom they block. Choose one to keep it lit.
+              Point at an outer account to see who blocks it, or an inner mutual to see whom they block. Choose one to
+              keep it lit.
             </p>
           )}
         </div>

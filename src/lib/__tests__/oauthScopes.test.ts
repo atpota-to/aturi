@@ -9,7 +9,11 @@ import {
   scopeIdsFromString,
   type ScopeId,
 } from '@/lib/oauth/scopes';
-import { buildClientMetadata } from '@/lib/oauth/clientMetadata';
+import {
+  BROWSER_CLIENT_METADATA_PATH,
+  CLIENT_METADATA_PATH,
+  buildClientMetadata,
+} from '@/lib/oauth/clientMetadata';
 
 /**
  * The backend sign-in path takes permission ids and rebuilds the scope string
@@ -84,7 +88,25 @@ test('the confidential redirect does not collide with the public client page', (
   // too would break that flow; /api/oauth/callback is this client's own.
   const m = buildClientMetadata('https://aturi.to');
   assert.deepEqual(m.redirect_uris, ['https://aturi.to/api/oauth/callback']);
-  assert.equal(m.client_id, 'https://aturi.to/oauth/client-metadata.json');
+  assert.equal(m.client_id, 'https://aturi.to/oauth-client-metadata.json');
+});
+
+test('the confidential client_id is the one the consent screen names by host', () => {
+  // The same test the reference authorization server's consent screen applies
+  // (`isConventionalOAuthClientId` in @atproto/oauth-provider-ui) before it
+  // shows a bare hostname instead of the full URL.
+  const url = new URL(buildClientMetadata('https://aturi.to').client_id);
+  assert.equal(url.protocol, 'https:');
+  assert.equal(url.pathname, '/oauth-client-metadata.json');
+  assert.equal(url.port, '');
+  assert.equal(url.search, '');
+});
+
+test('the two clients never share a client_id', () => {
+  // A client_id is the URL its document is served from. If both clients
+  // claimed one path, one route would shadow the other and every session of
+  // the shadowed client would fail at its next refresh.
+  assert.notEqual(CLIENT_METADATA_PATH, BROWSER_CLIENT_METADATA_PATH);
 });
 
 test('the picker defaults exclude every permissioned-data scope', () => {

@@ -457,28 +457,27 @@ export default function PostInspector() {
               term: 'Facets against the text',
               text: (
                 <>
-                  Each link, mention and tag says where it is in <code>byteStart</code> and <code>byteEnd</code>,
-                  counted in UTF-8 bytes. The ranges are cut from the text and checked, and offsets counted in the
-                  wrong unit are named.
+                  Each link, mention and tag’s <code>byteStart</code> and <code>byteEnd</code>, in UTF-8 bytes,
+                  checked against the text. Offsets in the wrong unit are named.
                 </>
               ),
             },
             {
               term: 'Three ways of counting',
-              text: 'The text’s length in graphemes, UTF-8 bytes and UTF-16 code units, against the limits in the lexicon.',
+              text: 'Length in graphemes, UTF-8 bytes and UTF-16 code units, against the lexicon’s limits.',
             },
             {
               term: 'When it was written',
               text: (
                 <>
-                  <code>createdAt</code> is whatever the client put there. It is compared with the time inside the
-                  record key and the time Bluesky indexed the post.
+                  <code>createdAt</code>, which the client sets, against the record key’s time and when Bluesky
+                  indexed it.
                 </>
               ),
             },
             {
               term: 'The rules beside it',
-              text: 'Who can reply and who can quote are separate records under the same key. Both are looked up, along with the embed, languages, tags and labels.',
+              text: 'Reply and quote rules, stored as separate records under the same key, plus the embed, languages, tags and labels.',
             },
           ]}
         />

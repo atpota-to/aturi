@@ -262,7 +262,7 @@ private struct XrpcMethodCatalog: View {
                 }
                 .cardBackground()
             }
-            Text("Queries from the atproto and Bluesky lexicons that a public host answers without signing in. Type a full NSID to open any other method; its parameters are read from its lexicon.")
+            Text("Queries a public host answers without signing in. Type a full NSID for any other method.")
                 .font(AturiFont.caption)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +305,7 @@ private struct XrpcRequestSection: View {
                     ToolCheckRow(
                         status: .warn,
                         title: "This is a \(type), not a query",
-                        detail: "The console sends queries, which only read. It does not send procedures or open subscriptions."
+                        detail: "The console only sends queries, not procedures or subscriptions."
                     )
                 }
                 hostBlock
@@ -368,7 +368,7 @@ private struct XrpcRequestSection: View {
                     text: Binding(get: { model.draft.acct }, set: { model.draft.acct = $0.trimmingCharacters(in: .whitespaces) })
                 )
                 .accessibilityLabel("Account whose PDS to ask")
-                Text("Left empty, the request goes to the PDS of the repo it asks about.")
+                Text("Leave empty to ask the PDS of the repo in the request.")
                     .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -734,7 +734,7 @@ private struct XrpcResponseSection: View {
     private var content: some View {
         switch model.run {
         case .idle:
-            EmptyState(title: "No response yet", detail: "Fill in the parameters and send the request. The response appears here.", systemImage: "arrow.up.circle")
+            EmptyState(title: "No response yet", detail: "Send the request to see it here.", systemImage: "arrow.up.circle")
         case .loading:
             SkeletonRows(count: 5)
                 .padding(14)
@@ -766,7 +766,7 @@ private struct XrpcResponseSection: View {
                 ToolCheckRow(
                     status: .info,
                     title: "The response is too large to show",
-                    detail: "It is over \(XrpcConsole.formatBytes(result.bytes ?? 0)), more than the console reads, so it was not kept. Ask for fewer results, or use the curl command for the whole of it."
+                    detail: "It is over \(XrpcConsole.formatBytes(result.bytes ?? 0)), more than the console reads. Ask for fewer results, or use the curl command."
                 )
                 CopyRow(label: "curl command", value: XrpcConsole.curl(for: result.url))
                 openButton(result)
@@ -844,7 +844,7 @@ private struct XrpcResponseSection: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if full.count > XrpcResponseSection.textMaxCharacters {
-                    Text("The response is longer than is drawn here. Copy it for the whole of it.")
+                    Text("Only part of it is shown. Copy it for all of it.")
                         .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                 }

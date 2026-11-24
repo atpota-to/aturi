@@ -94,15 +94,15 @@ struct PageToolView: View {
             ServicesIntro(items: [
                 ServicesIntroItem(
                     term: "The page can be fetched",
-                    text: "A client that draws a link card fetches the page itself. A page that refuses the request gets no card."
+                    text: "Clients fetch the page to draw a card. A page that refuses gets none."
                 ),
                 ServicesIntroItem(
                     term: "It offers a link card",
-                    text: "og:title, og:description and og:image, with the fallbacks a client reaches for when one is missing."
+                    text: "og:title, og:description and og:image, with their fallbacks."
                 ),
                 ServicesIntroItem(
                     term: "It names the record behind it",
-                    text: "at:canonical and the other AT Tags tie a page to an at:// record. Tags that are present but ignored are listed with the reason."
+                    text: "at:canonical and the other AT Tags. Ignored tags are listed with the reason."
                 ),
             ])
         }
@@ -114,7 +114,7 @@ struct PageToolView: View {
         return ToolSection("Records this page declares", detail: count) {
             VStack(alignment: .leading, spacing: 0) {
                 if records.isEmpty {
-                    Text("None. A page that is a view of an atproto record can say so with a tag such as <meta name=\"at:canonical\" content=\"at://…\">, and tools that are handed the link can then find the record.")
+                    Text("None. A page can name its record with <meta name=\"at:canonical\" content=\"at://…\">.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -188,7 +188,7 @@ struct PageToolView: View {
                 case .pending:
                     SkeletonRows(count: 2)
                 case .failed:
-                    Text("No record at this address could be read. It may have been deleted, or the tag may name it wrongly.")
+                    Text("No record could be read at this address. It may be deleted, or the tag may be wrong.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

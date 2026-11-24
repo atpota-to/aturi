@@ -217,9 +217,8 @@ export default function PageChecker() {
               ) : (
                 <ToolCard>
                   <p>
-                    None. A page that is a view of an atproto record can say so with a tag such as{' '}
-                    <code>&lt;meta name=&quot;at:canonical&quot; content=&quot;at://…&quot;&gt;</code>, and tools
-                    that are handed the link can then find the record.
+                    None. A page can name its record with{' '}
+                    <code>&lt;meta name=&quot;at:canonical&quot; content=&quot;at://…&quot;&gt;</code>.
                   </p>
                 </ToolCard>
               )}
@@ -265,14 +264,14 @@ export default function PageChecker() {
           items={[
             {
               term: 'The page can be fetched',
-              text: 'A client that draws a link card fetches the page itself. A page that refuses the request gets no card.',
+              text: 'Clients fetch the page to draw a card. A page that refuses gets none.',
             },
             {
               term: 'It offers a link card',
               text: (
                 <>
-                  <code>og:title</code>, <code>og:description</code> and <code>og:image</code>, with the
-                  fallbacks a client reaches for when one is missing.
+                  <code>og:title</code>, <code>og:description</code> and <code>og:image</code>, with their
+                  fallbacks.
                 </>
               ),
             },
@@ -280,8 +279,7 @@ export default function PageChecker() {
               term: 'It names the record behind it',
               text: (
                 <>
-                  <code>at:canonical</code> and the other AT Tags tie a page to an at:// record. Tags
-                  that are present but ignored are listed with the reason.
+                  <code>at:canonical</code> and the other AT Tags. Ignored tags are listed with the reason.
                 </>
               ),
             },

@@ -165,16 +165,6 @@ struct WaypointPickerView: View {
         }
     }
 
-    /// `getSubheadText`: what every option has in common.
-    private var subheadText: String {
-        switch type {
-        case .post: return "Pick an app. They all show the same post."
-        case .profile: return "Pick an app. They all show the same account."
-        case .list: return "Pick an app. They all show the same list."
-        case .record, .unknown: return "Pick an app. They all read the same record."
-        }
-    }
-
     /// The aturi.to universal link for this page.
     private var shareLink: String {
         generateAturiLink(AtUriComponents(identifier: handle, collection: collection, rkey: rkey))
@@ -207,15 +197,11 @@ struct WaypointPickerView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             /* The web's heading since its link-page rebuild (72e3ac2): who
-               and what, then what every option has in common. */
+               and what. */
             Text(contextText)
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(subheadText)
-                .font(AturiFont.body)
-                .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
@@ -235,7 +221,7 @@ struct WaypointPickerView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(openedFromLink
                      ? "Auto-redirect is on for \(family)."
-                     : "Auto-redirect is on for \(family). You were not sent to \(name) because this page was opened from inside the app.")
+                     : "Auto-redirect is on for \(family), but not for pages opened inside the app.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

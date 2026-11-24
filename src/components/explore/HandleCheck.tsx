@@ -17,15 +17,15 @@ import { useHandleVerification, type HandleVerification } from './useHandleVerif
 const WORDS: Record<Exclude<HandleVerification, 'pending' | 'unknown'>, { short: string; long: string }> = {
   verified: {
     short: 'Verified',
-    long: 'This handle resolves back to this DID, so the two point at each other.',
+    long: 'This handle resolves back to this DID.',
   },
   mismatch: {
     short: 'Belongs to another account',
-    long: 'This handle now resolves to a different DID. The account still claims it, but the domain points elsewhere.',
+    long: 'This handle now resolves to a different DID, though the account still claims it.',
   },
   unresolved: {
     short: 'Does not resolve',
-    long: 'This handle does not resolve to any DID, so apps show the account as handle.invalid.',
+    long: 'This handle resolves to no DID, so apps show handle.invalid.',
   },
 };
 
@@ -66,9 +66,9 @@ export function HandleCheckLine({ did, handle }: { did: string; handle: string }
         <code>@{handle}</code>
         <p>
           {state === 'pending'
-            ? 'Checking whether this handle resolves back to this DID…'
+            ? 'Checking the handle…'
             : state === 'unknown'
-              ? 'The resolvers could not be reached, so this handle was not checked.'
+              ? 'Couldn’t reach the resolvers, so this handle wasn’t checked.'
               : WORDS[state].long}
         </p>
       </div>

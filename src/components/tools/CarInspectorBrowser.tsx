@@ -262,8 +262,7 @@ export default function CarInspectorBrowser({ archive, name }: { archive: RepoAr
         </div>
       </div>
       <p className="fn-tool-note fn-tool-car-blobs">
-        Blobs are not part of a repository export. An image or video appears here as a link to its CID; the file
-        itself stays on the account’s PDS.
+        Blobs aren’t in an export. Images and video link to their CID on the account’s PDS.
       </p>
     </ToolSection>
   );

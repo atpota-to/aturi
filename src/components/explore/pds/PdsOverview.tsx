@@ -283,8 +283,8 @@ function AccountsGlance({
   useNamesVersion();
 
   const scope = listing.done
-    ? `All ${loaded.toLocaleString()} ${loaded === 1 ? 'account' : 'accounts'} the host lists.`
-    : `The first ${loaded.toLocaleString()} accounts the host lists${
+    ? `All ${loaded.toLocaleString()} listed.`
+    : `First ${loaded.toLocaleString()} listed${
         relayCount !== null ? ` of about ${relayCount.toLocaleString()} the relays count` : ''
       }.`;
 
@@ -333,8 +333,7 @@ function AccountsGlance({
 
       {failed && (
         <p className="fx-pd-note" title={listing.error ?? undefined}>
-          The host didn’t list its accounts. It may be offline, or it may not allow listing: an entryway like
-          bsky.social doesn’t, and the PDSs behind it do.
+          The host didn’t list its accounts. It may be offline or not allow listing, like the bsky.social entryway.
         </p>
       )}
 
@@ -376,7 +375,7 @@ function AccountsGlance({
           <section className="fx-lx-card" aria-label="Last commit">
             <h3 className="fx-lx-h">
               Last commit
-              <span className="fx-lx-h-count">each window includes the shorter ones</span>
+              <span className="fx-lx-h-count">cumulative</span>
             </h3>
             <ul className="fx-pd-bars">
               {COMMIT_ROWS.map((w) => {
@@ -498,9 +497,8 @@ export function PdsRelays({
               </button>
             </div>
             <p className="fx-pd-lead">
-              A relay crawls PDSs and passes their accounts’ changes on to the apps that read the network. This is what
-              each relay the explorer asks knows of <code>{hostname}</code>: whether it’s crawling it, how many of its
-              accounts it counts, and how far through its event stream it has read.
+              What each relay knows of <code>{hostname}</code>: whether it’s crawling it, how many accounts it counts,
+              and how far through its stream it has read.
             </p>
             <div className="fx-card fn-tool-relay-card" role="group" aria-label={`Relays crawling ${hostname}`}>
               <RelayStatusRows results={relays} />

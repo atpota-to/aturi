@@ -897,9 +897,9 @@ private struct StreamTokenField: View {
     private var hint: String {
         switch kind {
         case .accounts:
-            return "Handles or DIDs, for both sources. Jetstream sends only these accounts\u{2019} events."
+            return "Handles or DIDs, for both sources."
         case .collections:
-            return "NSIDs, or a namespace ending in .* (app.bsky.graph.*). Narrows Jetstream commits; identity and account events have no collection and still show."
+            return "NSIDs, or a namespace like app.bsky.graph.*. Identity and account events still show."
         }
     }
 
@@ -1104,7 +1104,7 @@ private struct StreamTextFilterField: View {
             .frame(minHeight: 40)
             .background(theme.bgSecondary, in: shape)
             .overlay(shape.strokeBorder(theme.borderStrong, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
-            Text("Matched anywhere in the event\u{2019}s JSON: post text, handles, URIs, PDS hosts.")
+            Text("Matched anywhere in the event\u{2019}s JSON.")
                 .font(AturiFont.caption)
                 .foregroundStyle(theme.textTertiary)
         }
