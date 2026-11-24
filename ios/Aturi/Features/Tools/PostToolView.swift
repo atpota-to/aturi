@@ -396,19 +396,19 @@ struct PostToolView: View {
         RecordToolsIntro(title: "What it reads", items: [
             (
                 "Facets against the text",
-                "Each link, mention and tag says where it is in byteStart and byteEnd, counted in UTF-8 bytes. The ranges are cut from the text and checked, and offsets counted in the wrong unit are named."
+                "Each link, mention and tag\u{2019}s byteStart and byteEnd, in UTF-8 bytes, checked against the text. Offsets in the wrong unit are named."
             ),
             (
                 "Three ways of counting",
-                "The text\u{2019}s length in graphemes, UTF-8 bytes and UTF-16 code units, against the limits in the lexicon."
+                "Length in graphemes, UTF-8 bytes and UTF-16 code units, against the lexicon\u{2019}s limits."
             ),
             (
                 "When it was written",
-                "createdAt is whatever the client put there. It is compared with the time inside the record key and the time Bluesky indexed the post."
+                "createdAt, which the client sets, against the record key\u{2019}s time and when Bluesky indexed it."
             ),
             (
                 "The rules beside it",
-                "Who can reply and who can quote are separate records under the same key. Both are looked up, along with the embed, languages, tags and labels."
+                "Reply and quote rules, stored as separate records under the same key, plus the embed, languages, tags and labels."
             ),
         ])
     }

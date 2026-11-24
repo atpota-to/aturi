@@ -151,7 +151,7 @@ export default function IdentifierDecoder() {
 
       {held && (
         <p className="fn-tool-note">
-          Tokens are decoded in this page and are not added to the link or sent anywhere.
+          Tokens are not added to the link or sent anywhere.
         </p>
       )}
 
@@ -161,24 +161,23 @@ export default function IdentifierDecoder() {
           items={[
             {
               term: 'Record keys and revisions',
-              text: 'A TID holds the microsecond it was made and a clock ID. A timestamp converts back to the TID for that instant.',
+              text: 'A TID’s timestamp and clock ID. A timestamp converts back to a TID.',
             },
             {
               term: 'Content identifiers',
-              text: 'A CID’s version, codec and hash: whether it addresses a record or a blob, and the digest itself.',
+              text: 'A CID’s version, codec and hash, and whether it addresses a record or a blob.',
             },
             {
               term: 'Addresses',
               text: (
                 <>
-                  An <code>at://</code> URI split into its authority, collection and record key, each decoded in
-                  turn. DIDs by method, and NSIDs with the domain that publishes them.
+                  An <code>at://</code> URI by part, DIDs by method, and NSIDs with the domain that publishes them.
                 </>
               ),
             },
             {
               term: 'Keys and tokens',
-              text: 'The curve behind a did:key or a DID document’s signing key, and the claims inside a session, OAuth or service token.',
+              text: 'The curve behind a did:key or signing key, and the claims in a session, OAuth or service token.',
             },
           ]}
         />

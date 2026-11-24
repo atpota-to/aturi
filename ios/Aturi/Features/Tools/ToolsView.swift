@@ -42,28 +42,15 @@ struct ToolsView: View {
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            /* The web's intro, less "on its own page": here each opens on
-               its own screen and keeps its input in the link it shares. */
-            Text("Single-purpose utilities for atproto: check a handle, validate a record, watch the network. Each one keeps its input in the link it shares, so a result can be passed on.")
-                .font(AturiFont.body)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func groupSection(_ group: ToolGroup, tools: [ToolEntry]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(group.title)
-                    .font(AturiFont.sans(.headline, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(group.blurb)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+            Text(group.title)
+                .font(AturiFont.sans(.headline, weight: .bold))
+                .foregroundStyle(theme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) {
                 ForEach(Array(tools.enumerated()), id: \.element.id) { index, tool in
                     if index > 0 {

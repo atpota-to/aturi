@@ -90,12 +90,6 @@
   color: var(--text-primary);
 }
 
-.fn-t-group-head p {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--text-tertiary);
-}
-
 /* ---------- Stream monitor: the frame ----------
    A dashboard that fills the window under the site header, so the page
    itself never scrolls; the list and the panels do. StreamMonitor measures

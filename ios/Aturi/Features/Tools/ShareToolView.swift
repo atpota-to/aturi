@@ -135,15 +135,15 @@ struct ShareToolView: View {
                 items: [
                     ServicesIntroItem(
                         term: "One link per client",
-                        text: "Each link opens that client’s composer with the text already in it. Nothing is posted until the person presses send, and someone who is signed out is asked to sign in first."
+                        text: "Each opens that client’s composer with the text filled in. Nothing posts until the person presses send."
                     ),
                     ServicesIntroItem(
                         term: "The text is the post",
-                        text: "A link, when there is one, goes on a line of its own after the text. The whole thing has to fit in \(ShareBuilder.postGraphemeLimit) characters."
+                        text: "A link goes on its own line after the text. All of it must fit in \(ShareBuilder.postGraphemeLimit) characters."
                     ),
                     ServicesIntroItem(
                         term: "Markup to paste",
-                        text: "Pick a client and copy a plain link, or a button that carries its own styling."
+                        text: "A plain link or a styled button, for any client."
                     ),
                 ]
             )
@@ -151,7 +151,7 @@ struct ShareToolView: View {
         let targets = model.targets
         ToolSection(
             "Links",
-            detail: "\(targets.count) clients. These are the clients in the universal links catalog with a confirmed compose route, Bluesky’s action intent link."
+            detail: "\(targets.count) clients with a confirmed compose route"
         ) {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(targets.enumerated()), id: \.element.id) { index, target in
@@ -189,7 +189,7 @@ struct ShareToolView: View {
             }
             CopyRow(label: "Link", value: target.url)
             if !target.prefillsText {
-                Text("Opens the composer, but does not fill in the text.")
+                Text("Doesn\u{2019}t fill in the text.")
                     .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)

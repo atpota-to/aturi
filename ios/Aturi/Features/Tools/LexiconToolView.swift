@@ -163,7 +163,7 @@ struct LexiconToolView: View {
             ),
             (
                 "The authority names a repository",
-                "A TXT record at _lexicon.<authority> holds did=<DID>. Each authority needs its own: a record on the domain above it is not consulted."
+                "A TXT record at _lexicon.<authority> holds did=<DID>. One on a parent domain doesn\u{2019}t count."
             ),
             (
                 "The repository holds the schema",

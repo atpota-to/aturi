@@ -95,8 +95,8 @@ public final class ShareBuilderModel {
         guard over > 0 else { return nil }
         return ServiceVerdict(
             tone: .warn,
-            title: "The post is too long to send as it is",
-            text: "It is \(graphemes) characters, \(over) over the limit of \(ShareBuilder.postGraphemeLimit). The composer still opens, but the post cannot be sent until it is cut down."
+            title: "The post is too long",
+            text: "\(graphemes) characters, \(over) over the limit of \(ShareBuilder.postGraphemeLimit). The composer opens, but the post can\u{2019}t be sent until it is shorter."
         )
     }
 }

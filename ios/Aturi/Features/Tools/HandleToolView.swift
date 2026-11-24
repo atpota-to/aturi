@@ -129,10 +129,10 @@ struct HandleToolView: View {
 
     private var intro: some View {
         ToolSection("What it checks") {
-            HandleIntroStep(number: 1, term: "The domain names a DID", text: "A TXT record at _atproto.<handle>, or a text file at /.well-known/atproto-did. Either is enough; both are read.")
-            HandleIntroStep(number: 2, term: "The DID claims the domain", text: "The DID document has to list at://<handle> first under alsoKnownAs. Without it, apps show handle.invalid.")
-            HandleIntroStep(number: 3, term: "The account is reachable", text: "Its PDS answers for the repository, reports it active, and agrees about the handle.")
-            HandleIntroStep(number: 4, term: "Bluesky has caught up", text: "The AppView keeps its own copy of each handle, which can lag behind a change.")
+            HandleIntroStep(number: 1, term: "The domain names a DID", text: "A TXT record at _atproto.<handle> or a file at /.well-known/atproto-did. Either is enough.")
+            HandleIntroStep(number: 2, term: "The DID claims the domain", text: "The DID document lists at://<handle> first under alsoKnownAs. Otherwise apps show handle.invalid.")
+            HandleIntroStep(number: 3, term: "The account is reachable", text: "Its PDS serves the repository, reports it active and agrees on the handle.")
+            HandleIntroStep(number: 4, term: "Bluesky has caught up", text: "The AppView\u{2019}s copy of the handle can lag behind a change.")
         }
     }
 }

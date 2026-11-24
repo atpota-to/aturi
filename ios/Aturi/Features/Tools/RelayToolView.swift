@@ -93,7 +93,7 @@ struct RelayToolView: View {
             RelayStatusRows(results: model.relays.results)
             Divider()
                 .padding(.vertical, 6)
-            Text("Account counts differ between relays: each counts the accounts it has seen itself, and the host may have more. The sequence number is how far through the host’s events a relay last recorded reading.")
+            Text("Each relay counts only the accounts it has seen. The sequence number is how far it has read.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -111,14 +111,14 @@ struct RelayToolView: View {
     private var crawlSection: some View {
         ToolSection("Asking to be crawled") {
             VStack(alignment: .leading, spacing: 10) {
-                Text("A relay starts reading a PDS when the PDS asks it to, with `com.atproto.sync.requestCrawl`. The reference PDS sends this itself to every relay in its `PDS_CRAWLERS` setting, so check that setting first. To ask by hand, send the request from anywhere:")
+                Text("A PDS asks relays to read it with `com.atproto.sync.requestCrawl`. The reference PDS sends it to every relay in `PDS_CRAWLERS`, so check that setting first. To ask by hand:")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let command = model.crawlCommand {
                     RelayCommandBlock(command: command)
                 }
-                Text("This page does not send it. The relay connects back to the hostname in the request, so the PDS has to be reachable over https at that name.")
+                Text("This page doesn\u{2019}t send it. The relay connects back to that hostname, so the PDS must answer over https there.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -177,10 +177,10 @@ struct RelayToolView: View {
     private var intro: some View {
         ToolSection("How it works") {
             VStack(alignment: .leading, spacing: 12) {
-                step(1, "A PDS asks to be crawled", Text("It sends `com.atproto.sync.requestCrawl` to a relay with its own hostname. Until it does, the relay does not know it exists."))
-                step(2, "The relay subscribes to it", Text("It connects to the host’s event stream and passes on every record written there. Apps read from relays, not from each PDS."))
-                step(3, "Each relay reports what it knows", Text("`com.atproto.sync.getHostStatus` returns a status, the number of accounts the relay has seen on the host, and how far it has read. \(RelayCheck.relays.count) relays are asked."))
-                step(4, "The host is asked too", Text("So a PDS that is down reads apart from one that is up but has never been crawled."))
+                step(1, "A PDS asks to be crawled", Text("It sends `com.atproto.sync.requestCrawl` with its hostname. Until then, the relay doesn\u{2019}t know it exists."))
+                step(2, "The relay subscribes to it", Text("It reads the host’s event stream and passes every record on. Apps read relays, not each PDS."))
+                step(3, "Each relay reports what it knows", Text("`com.atproto.sync.getHostStatus` gives a status, an account count and how far it has read. \(RelayCheck.relays.count) relays are asked."))
+                step(4, "The host is asked too", Text("To tell a PDS that is down from one that was never crawled."))
             }
         }
     }

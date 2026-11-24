@@ -160,9 +160,9 @@ export default function ShareBuilder() {
       }
     >
       {over > 0 && (
-        <ToolVerdict tone="warn" title="The post is too long to send as it is" icon={<TriangleAlert size={18} />}>
-          It is {graphemes} characters, {over} over the limit of {POST_GRAPHEME_LIMIT}. The composer
-          still opens, but the post cannot be sent until it is cut down.
+        <ToolVerdict tone="warn" title="The post is too long" icon={<TriangleAlert size={18} />}>
+          {graphemes} characters, {over} over the limit of {POST_GRAPHEME_LIMIT}. The composer opens, but the
+          post can’t be sent until it is shorter.
         </ToolVerdict>
       )}
 
@@ -174,9 +174,8 @@ export default function ShareBuilder() {
               term: 'One link per client',
               text: (
                 <>
-                  Each link opens that client’s composer with the text already in it. Nothing is
-                  posted until the person presses send, and someone who is signed out is asked to
-                  sign in first.
+                  Each opens that client’s composer with the text filled in. Nothing posts until the person
+                  presses send.
                 </>
               ),
             },
@@ -184,14 +183,14 @@ export default function ShareBuilder() {
               term: 'The text is the post',
               text: (
                 <>
-                  A link, when there is one, goes on a line of its own after the text. The whole
-                  thing has to fit in {POST_GRAPHEME_LIMIT} characters.
+                  A link goes on its own line after the text. All of it must fit in {POST_GRAPHEME_LIMIT}{' '}
+                  characters.
                 </>
               ),
             },
             {
               term: 'Markup to paste',
-              text: 'Pick a client and copy a plain link, or a button that carries its own styling.',
+              text: 'A plain link or a styled button, for any client.',
             },
           ]}
         />
@@ -212,7 +211,7 @@ export default function ShareBuilder() {
                   </span>
                   {!item.prefillsText && (
                     <span className="fn-tool-row-sub fn-tool-share-caveat">
-                      Opens the composer, but does not fill in the text.
+                      Doesn’t fill in the text.
                     </span>
                   )}
                   {item.appUrl && (
@@ -239,9 +238,8 @@ export default function ShareBuilder() {
           </ul>
         </ToolCard>
         <p className="fn-tool-note fn-tool-share-source">
-          These are the clients in the{' '}
-          <Link href="/waypoints#catalog">waypoints</Link> catalog with a confirmed compose route. The route is
-          Bluesky’s{' '}
+          Clients in the <Link href="/waypoints#catalog">waypoints</Link> catalog with a confirmed compose route,
+          using Bluesky’s{' '}
           <a href="https://docs.bsky.app/docs/advanced-guides/intent-links" target="_blank" rel="noreferrer">
             action intent link
           </a>

@@ -331,8 +331,7 @@ export default function CarInspector() {
           >
             <FileUp size={16} aria-hidden />
             <p>
-              Or open a <code>.car</code> file from this computer: drop it here or choose it. It is read in this page
-              and never uploaded.
+              Or drop a <code>.car</code> file here. It is never uploaded.
             </p>
             <label className="fx-btn fx-btn-sm fn-tool-car-pick">
               <input
@@ -373,8 +372,8 @@ export default function CarInspector() {
             </ToolFacts>
             {account.data.repoStatus && (
               <p className="fn-tool-note fn-tool-car-status">
-                The PDS reports this repository as {account.data.repoStatus.status ?? 'inactive'}, so it may refuse to
-                send the export.
+                The PDS reports this repository as {account.data.repoStatus.status ?? 'inactive'} and may refuse the
+                export.
               </p>
             )}
             <div className="fn-tool-actions fn-tool-car-go">
@@ -391,8 +390,7 @@ export default function CarInspector() {
                 <Download size={14} aria-hidden /> Save the .car file instead
               </a>
               <p className="fn-tool-note">
-                The export is every record in the repository in one file, which can run to many megabytes. It is
-                fetched straight from the PDS into this page; up to {formatBytes(MAX_ARCHIVE_BYTES)} can be opened.
+                Exports can run to many megabytes. Up to {formatBytes(MAX_ARCHIVE_BYTES)} can be opened here.
               </p>
             </div>
           </ToolCard>
@@ -413,19 +411,19 @@ export default function CarInspector() {
           items={[
             {
               term: 'The commit',
-              text: 'Whose repository this is, when it was last written, and the root of the tree that holds everything else.',
+              text: 'Whose repository it is, when it was last written, and its root.',
             },
             {
               term: 'Every record',
-              text: 'The tree is walked to list each collection and record key, and a record is decoded when it is opened. Any of it can be saved as JSON.',
+              text: 'Each collection and record key. Records decode when opened and save as JSON.',
             },
             {
               term: 'Whether the file is sound',
-              text: 'Parts of the tree that are missing, records it lists but does not hold, and, when asked, whether every block still hashes to its address.',
+              text: 'Missing parts of the tree, listed records it doesn’t hold, and, on request, whether every block matches its hash.',
             },
             {
               term: 'What it leaves out',
-              text: 'The commit’s signature is not verified, and blobs are not in an export: images and video appear as links, not files.',
+              text: 'The signature isn’t verified, and blobs aren’t in an export, so images and video show as links.',
             },
           ]}
         />

@@ -120,7 +120,7 @@ struct DecodeToolView: View {
             }
         }
         if isHeld {
-            Label("Tokens are decoded in this app and are not added to the link or sent anywhere.", systemImage: "lock")
+            Label("Tokens are not added to the link or sent anywhere.", systemImage: "lock")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -135,22 +135,22 @@ struct DecodeToolView: View {
             DecodeIntroStep(
                 number: 1,
                 term: "Record keys and revisions",
-                text: "A TID holds the microsecond it was made and a clock ID. A timestamp converts back to the TID for that instant."
+                text: "A TID\u{2019}s timestamp and clock ID. A timestamp converts back to a TID."
             )
             DecodeIntroStep(
                 number: 2,
                 term: "Content identifiers",
-                text: "A CID’s version, codec and hash: whether it addresses a record or a blob, and the digest itself."
+                text: "A CID’s version, codec and hash, and whether it addresses a record or a blob."
             )
             DecodeIntroStep(
                 number: 3,
                 term: "Addresses",
-                text: "An at:// URI split into its authority, collection and record key, each decoded in turn. DIDs by method, and NSIDs with the domain that publishes them."
+                text: "An at:// URI by part, DIDs by method, and NSIDs with the domain that publishes them."
             )
             DecodeIntroStep(
                 number: 4,
                 term: "Keys and tokens",
-                text: "The curve behind a did:key or a DID document’s signing key, and the claims inside a session, OAuth or service token."
+                text: "The curve behind a did:key or signing key, and the claims in a session, OAuth or service token."
             )
         }
     }

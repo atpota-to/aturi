@@ -19,13 +19,9 @@ export const metadata: Metadata = {
 const about = (
   <>
     <p>
-      Records being written across the Atmosphere, from Jetstream, and every <code>did:plc</code>{' '}
-      operation, from the PLC directory, as they happen.
+      Live records from Jetstream and every <code>did:plc</code> operation from the PLC directory.
     </p>
-    <p>
-      Pause holds new events above the list and stays connected. Stop disconnects from both streams.
-      Filters are kept in the link, so any view can be shared.
-    </p>
+    <p>Pause holds new events and stays connected. Stop disconnects. Filters are kept in the link.</p>
   </>
 );
 

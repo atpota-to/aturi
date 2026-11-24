@@ -198,8 +198,7 @@ export default function XrpcConsoleResponse({
 
       {result.truncated && (
         <p className="fn-tool-note">
-          The response was longer than the console reads, so it is cut short here. Ask for fewer results, or use the
-          curl command for the whole of it.
+          The response is cut short. Ask for fewer results, or use the curl command for all of it.
         </p>
       )}
 

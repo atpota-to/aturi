@@ -104,7 +104,7 @@ struct FeedToolView: View {
                 skeletonSection(skeleton)
             } else if model.skeleton != nil, model.needsViewer {
                 ToolSection("Skeleton") {
-                    Text("No skeleton to show. The generator returns one only to a signed-in viewer, and this tool asks without one.")
+                    Text("No skeleton. This generator only answers signed-in viewers, and this tool asks without signing in.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -115,19 +115,19 @@ struct FeedToolView: View {
             ServicesIntro(items: [
                 ServicesIntroItem(
                     term: "The record",
-                    text: "A feed is an app.bsky.feed.generator record. It gives the feed its name and names the service that computes it, by DID."
+                    text: "An app.bsky.feed.generator record names the feed and the DID of the service behind it."
                 ),
                 ServicesIntroItem(
                     term: "The service",
-                    text: "That DID has to resolve, and its document has to say where the generator is, in a #bsky_fg service."
+                    text: "The DID resolves and lists the generator as a #bsky_fg service."
                 ),
                 ServicesIntroItem(
                     term: "The skeleton",
-                    text: "The generator is asked for the feed with getFeedSkeleton. It answers with post addresses and nothing else, shown here in the order it gave them."
+                    text: "The post addresses getFeedSkeleton returns, in its order."
                 ),
                 ServicesIntroItem(
                     term: "The AppView",
-                    text: "Bluesky has to have indexed the feed before an app can open it. Its view is read too, and the skeleton’s posts are filled in from it."
+                    text: "Bluesky must index the feed before apps can open it. Posts are filled in from it."
                 ),
             ])
         }
