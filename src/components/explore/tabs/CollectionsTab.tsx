@@ -204,7 +204,8 @@ export default function CollectionsTab({
   const defaultOpen = !prefs.collectionGroupsCollapsedByDefault && !isPhone;
   // In the sidebar, beside a collection's records, only the groups on the
   // way to that collection start open: the tree is there to say where you
-  // are, and 39 open namespaces said nothing. `prefix` is the dotted
+  // are, and 39 open namespaces said nothing. Beside anything else (the
+  // account's other views) none do. `prefix` is the dotted
   // namespace a key stands for (a pinned group's key is not its prefix).
   // Opening a group unfolds it: the children grow to their height and the
   // first rows drift down into place (unfoldIn). Only for the group just
@@ -216,7 +217,7 @@ export default function CollectionsTab({
   function isOpen(key: string, prefix = key): boolean {
     return (
       openOverrides[key] ??
-      (sidebar && current ? current.startsWith(`${prefix}.`) : defaultOpen)
+      (sidebar ? Boolean(current?.startsWith(`${prefix}.`)) : defaultOpen)
     );
   }
   function toggle(key: string, prefix = key) {

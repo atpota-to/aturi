@@ -59,6 +59,164 @@
   }
 }
 
+/* --- the account frame --------------------------------------------------- */
+
+/* The account's sidebar beside every page of its repository: the repo page,
+   a collection, a record (AccountFrame). The frame is a layout Next keeps
+   mounted across those pages, so the sidebar stays put while the page beside
+   it changes; the pages inside draw only their head and main column.
+
+   The doubled class outranks the narrower containers the record page and
+   the one-column pages set on the same element. */
+.container-narrow.container-narrow:has(.fx-frame) {
+  max-width: 1600px;
+}
+@media (min-width: 769px) {
+  .container-narrow.container-narrow:has(.fx-frame) {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+.fx-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  font-family: var(--font-sans);
+  /* The tree in the sidebar is outside the page's .fx-explorer, so the
+     stripes it reads are set here too (see .fx-explorer below). */
+  --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
+  --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
+}
+/* Stacked, the page comes first: the trail stays the top of the screen, as
+   it is in every view on a phone, and a phone shouldn't scroll past a tree
+   to reach the list or the record it asked for. The repo page carries the
+   account card itself while stacked (RepoView). */
+.fx-frame {
+  grid-template-areas:
+    'page'
+    'rail';
+}
+.fx-stacked-only {
+  display: contents;
+}
+@media (min-width: 960px) {
+  .fx-stacked-only {
+    display: none;
+  }
+}
+.fx-frame-main {
+  grid-area: page;
+  min-width: 0;
+}
+/* The pages drop their own sidebar column inside the frame. */
+.fx-frame-main .fx-explorer[data-page] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  grid-template-areas:
+    'head'
+    'main';
+}
+
+/* One panel, with the workbench rail's rows on it (workbench.css): the
+   account laid flat, its views, the tools, then the collections tree.
+   `.fx-side` is on it for the classic sidebar's rules about the tree's
+   compact rows; the doubled selector keeps that class's grid area off it. */
+.fx-frame > .fx-rail {
+  grid-area: rail;
+}
+.fx-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+.fx-rail > :last-child {
+  border-bottom: 0;
+}
+.fx-rail .fx-wb-tree {
+  padding-bottom: 8px;
+}
+.fx-wb-acct-foot {
+  display: flex;
+  margin: 0 16px 14px;
+}
+.fx-wb-acct-foot .fx-textlink {
+  margin: -4px 0 0 -8px;
+}
+.fx-rail code.fx-mono,
+.fx-rail code.fx-row-text {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.fx-rail code.fx-row-text {
+  font-size: inherit;
+  color: inherit;
+}
+.fx-rail code.fx-mono {
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+/* Stacked on the repo page, the views would sit right over the tab strip
+   that names the same views. */
+@media (max-width: 959px) {
+  .fx-frame[data-level='repo'] .fx-rail-views {
+    display: none;
+  }
+}
+
+/* Beside the page, the sidebar holds still under the site header while the
+   page scrolls, and scrolls on its own if it runs longer than the window.
+   With the tree in it, it fills the window's height and the tree takes
+   what the rows above leave, scrolling there with its filter held above it,
+   as in the workbench. `data-crumbs`: the condensed breadcrumb has dropped
+   out of the header, and the sidebar moves down out from under it. */
+@media (min-width: 960px) {
+  .fx-frame {
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas: 'rail page';
+    gap: 24px;
+  }
+  .fx-rail {
+    --fx-rail-top: calc(57px + 1.5rem);
+    position: sticky;
+    top: var(--fx-rail-top);
+    max-height: calc(100dvh - var(--fx-rail-top) - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition:
+      top 0.2s ease-out,
+      max-height 0.2s ease-out,
+      height 0.2s ease-out;
+  }
+  .fx-rail[data-crumbs] {
+    --fx-rail-top: calc(57px + 32px + 16px);
+  }
+  .fx-rail[data-tree] {
+    height: calc(100dvh - var(--fx-rail-top) - 16px);
+  }
+  .fx-rail > .fx-wb-tree {
+    min-height: 240px;
+  }
+  .fx-rail .fx-wb-tree .fx-tree-scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 28px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+  }
+}
+
 .fx-head {
   grid-area: head;
   min-width: 0;

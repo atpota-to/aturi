@@ -44,7 +44,10 @@ const NSID_CRUMB = '11rem';
 const RKEY_CRUMB = '7rem';
 const SPACE_CRUMB = '3.25rem';
 
-/** `/explore/{repo}` — account sidebar; breadcrumb, glance, repository card. */
+/**
+ * `/explore/{repo}` — breadcrumb, glance, repository card. The account's
+ * sidebar is the frame's, beside this (AccountFrame), with its own skeleton.
+ */
 export function RepoSkeleton() {
   return (
     <div className="fx-explorer" data-page="repo">
@@ -55,11 +58,10 @@ export function RepoSkeleton() {
           <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} share={false} titled />
         </div>
       </div>
-      <div className="fx-side">
-        <SkeletonAccountCard />
-        <SkeletonViewSwitch width="7rem" />
-      </div>
       <div className="fx-main">
+        <div className="fx-stacked-only">
+          <SkeletonAccountCard />
+        </div>
         <div style={column('10px')}>
           <SkeletonHeading width="9rem" />
           <SkeletonStatTiles />
@@ -70,7 +72,7 @@ export function RepoSkeleton() {
   );
 }
 
-/** `/explore/{repo}/{collection}` — title bar, records card, sidebar. */
+/** `/explore/{repo}/{collection}` — title bar, records card. */
 export function CollectionSkeleton() {
   return (
     <div className="fx-explorer" data-page="collection">
@@ -82,10 +84,6 @@ export function CollectionSkeleton() {
           </div>
           <SkeletonChipRow widths={['4.5rem', '5.75rem', '4.25rem', '2.25rem']} />
         </div>
-      </div>
-      <div className="fx-side">
-        <SkeletonAccountCard />
-        <SkeletonRepoCard tabWidths={['4.5rem', '3rem', '1.5rem', '4rem']} rows={10} compact />
       </div>
       <div className="fx-main">
         <SkeletonPanel padding="0" style={{ overflow: 'hidden' }}>

@@ -61,12 +61,14 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  * mount of the children subtree.
  *
  * Two kinds of move keep the key they have: around one account's repository
- * in the explorer's workbench and Files views (ExplorerShell), and around the
- * lexicons explorer in the same two views (LexiconShell). Those rewrite
- * the address with the History API instead of navigating, precisely so the
- * shell stays mounted with the records it has fetched; a fresh mount here
- * would undo that. The key starts as the pathname either way, so the server
- * and the first client render agree whatever view the visitor has chosen.
+ * in the explorer, and around the lexicons explorer in its workbench and
+ * Files views (LexiconShell). The workbench and Files shells rewrite the
+ * address with the History API instead of navigating, precisely so the
+ * shell stays mounted with the records it has fetched; in Classic, the
+ * account's sidebar is a layout Next keeps mounted across its repo,
+ * collection and record pages (AccountFrame). A fresh mount here would undo
+ * either. The key starts as the pathname either way, so the server and the
+ * first client render agree whatever view the visitor has chosen.
  *
  * Tuned for subtlety:
  *
@@ -105,8 +107,8 @@ export default function PageTransition({ children }: PageTransitionProps) {
     const from = parseExplorerPath(keyed.path);
     const to = parseExplorerPath(pathname);
     const insideShell =
-      explorerView !== 'classic' &&
-      ((!!from && !!to && from.repo === to.repo) || (isLexiconPath(keyed.path) && isLexiconPath(pathname)));
+      (!!from && !!to && from.repo === to.repo) ||
+      (explorerView !== 'classic' && isLexiconPath(keyed.path) && isLexiconPath(pathname));
     if (!insideShell) pageKey = pathname;
     setKeyed({ path: pathname, key: pageKey });
   }

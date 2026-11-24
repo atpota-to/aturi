@@ -21,7 +21,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    // Unbounded, client-rendered inspection view — see `explore/[repo]/page.tsx`.
+    // Unbounded, client-rendered inspection view — see `explore/[repo]/(account)/page.tsx`.
     // The same record has a canonical, server-rendered home under `/profile/`.
     robots: { index: false, follow: true },
     openGraph: {

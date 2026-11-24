@@ -24,6 +24,12 @@ export function useIsNarrow(): boolean {
 }
 
 /**
+ * Below the explorer's two-column width (explorer.css): the account's
+ * sidebar stacks under the page instead of standing beside it.
+ */
+export const STACKED_QUERY = '(max-width: 959px)';
+
+/**
  * Whether `query` matches, subscribed the same way as {@link useIsNarrow}.
  * Also `false` on the server.
  */

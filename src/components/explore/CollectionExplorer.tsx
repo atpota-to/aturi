@@ -11,19 +11,16 @@ import {
   pointsAvailable,
 } from '@/utils/atproto/writeThrottle';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
-import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import type { IdentityBundle } from '@/utils/atproto/identity';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
 } from '@/utils/atproto/jetstream';
 import { appDomainFor, groupPrefix, lexiconPathFor } from '@/utils/ufos/nsid';
-import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
-import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import ShareLinkChip from './ShareLinkChip';
-import { AccountCard, RepoNavCard } from './RepoExplorer';
-import AccountToolLinks from './AccountToolLinks';
+import { useRepoIdentity } from './useRepoIdentity';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
 import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
@@ -102,24 +99,7 @@ export function CollectionPane({
 }
 
 export default function CollectionExplorer({ repo, collection }: Props) {
-  const [identity, setIdentity] = useState<IdentityBundle | null>(null);
-  const [identityError, setIdentityError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIdentity(null);
-    setIdentityError(null);
-    resolveIdentifier(repo)
-      .then((id) => {
-        if (!cancelled) setIdentity(id);
-      })
-      .catch((err) => {
-        if (!cancelled) setIdentityError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repo]);
+  const { identity, error: identityError } = useRepoIdentity(repo);
 
   if (identityError) {
     return (
@@ -155,10 +135,6 @@ function CollectionList({
   const paneRef = useRef(pane);
   paneRef.current = pane;
   const { agent, did: signedInDid, session, loading: sessionLoading } = useAtprotoSession();
-  const { prefs, loading: prefsLoading } = usePreferences();
-  // The sidebar's account card honours the repo page's section prefs (the
-  // rich preview and identity rows can each be hidden there).
-  const repoSections = prefsLoading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
   const [records, setRecords] = useState<AtRecord[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
@@ -974,22 +950,6 @@ function CollectionList({
 
         {editBlock}
       </div>
-
-      <aside className="fx-side" aria-label="Account and repository">
-        <AppearIn delay={0.08}>
-          <AccountCard
-            identity={identity}
-            profileHidden={sectionHidden(repoSections, 'profile')}
-            identityHidden={sectionHidden(repoSections, 'identity')}
-          />
-        </AppearIn>
-        <AppearIn delay={0.1}>
-          <AccountToolLinks did={identity.did} />
-        </AppearIn>
-        <AppearIn delay={0.12}>
-          <RepoNavCard identity={identity} collection={collection} />
-        </AppearIn>
-      </aside>
 
       <div className="fx-main">
         <AppearIn delay={0.05} id={CHROME_RESULTS_ID}>

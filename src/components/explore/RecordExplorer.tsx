@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, Copy, Eye, EyeOff, Pencil, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
-import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import type { IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
 import { getMarginLexiconDisplayName, getMarginLexiconType } from '@/utils/marginLexicons';
@@ -31,6 +31,7 @@ import SignInPanel from './SignInPanel';
 import LinkButton from './LinkButton';
 import { useChromeBarAction } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
+import { useRepoIdentity } from './useRepoIdentity';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import {
@@ -119,30 +120,13 @@ export function RecordPane({
 }
 
 export default function RecordExplorer({ repo, collection, rkey }: Props) {
-  const [identity, setIdentity] = useState<IdentityBundle | null>(null);
-  const [identityError, setIdentityError] = useState<string | null>(null);
+  const { identity, error: identityError } = useRepoIdentity(repo);
   const { prefs, loading: prefsLoading } = usePreferences();
   const skeletonShape = recordSkeletonShape(
     collection,
     decodeRkey(rkey),
     sectionHidden(prefsLoading ? DEFAULT_RECORD_SECTIONS : prefs.recordSections, 'richPreview'),
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    setIdentity(null);
-    setIdentityError(null);
-    resolveIdentifier(repo)
-      .then((id) => {
-        if (!cancelled) setIdentity(id);
-      })
-      .catch((err) => {
-        if (!cancelled) setIdentityError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repo]);
 
   if (identityError) {
     return (

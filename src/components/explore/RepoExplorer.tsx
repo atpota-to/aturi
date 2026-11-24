@@ -1,31 +1,27 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import type { IdentityBundle } from '@/utils/atproto/identity';
 import RepoStatusNotice from './RepoStatusNotice';
-import {
-  DEFAULT_REPO_SECTIONS,
-  sectionHidden,
-  type RepoSectionId,
-} from '@/utils/exploreSections';
+import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import { setSectionHidden } from '@/utils/preferences';
 import Link from 'next/link';
 import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
-import { encodeRepo } from '@/utils/atproto/urls';
 import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import { HandleCheckMark } from './HandleCheck';
-import AccountToolLinks from './AccountToolLinks';
 import AccountChecks, { CheckNavBadge } from './AccountChecks';
 import dynamic from 'next/dynamic';
 import { ToolSkeleton } from '@/components/tools/ToolFrame';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
+import { STACKED_QUERY, useMediaQuery } from './useIsNarrow';
 import RepoSpacesSection from './space/RepoSpacesSection';
+import { useRepoIdentity } from './useRepoIdentity';
 import AccountStats from '@/components/account/AccountStats';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
@@ -47,7 +43,21 @@ const TABS = [
   { id: 'graph', label: 'Graph' },
 ] as const;
 
-type TabId = (typeof TABS)[number]['id'];
+/**
+ * Two tools that read the whole account, opened from the sidebar's Tools
+ * list as tabs of this page. They join the strip only while one is open, so
+ * the strip keeps to the repository's own views.
+ */
+const TOOL_TABS = [
+  { id: 'lists', label: 'Lists and verifications' },
+  { id: 'activity', label: 'Activity calendar' },
+] as const;
+
+/** The page's tabs, as the account's sidebar (AccountFrame) lists them. */
+export const REPO_TABS = TABS;
+export const REPO_TOOL_TABS = TOOL_TABS;
+export type RepoTabId = (typeof TABS)[number]['id'] | (typeof TOOL_TABS)[number]['id'];
+type TabId = RepoTabId;
 
 /** The account card's two checks in full, as tabs carrying the checks' badges. */
 const CHECK_TABS: ReadonlySet<TabId> = new Set(['labels', 'visibility']);
@@ -56,26 +66,11 @@ const CHECK_TABS: ReadonlySet<TabId> = new Set(['labels', 'visibility']);
 const toolLoading = () => <ToolSkeleton rows={4} />;
 const LabelChecker = dynamic(() => import('@/components/tools/LabelChecker'), { loading: toolLoading });
 const ShadowbanChecker = dynamic(() => import('@/components/tools/ShadowbanChecker'), { loading: toolLoading });
+const Memberships = dynamic(() => import('@/components/tools/Memberships'), { loading: toolLoading });
+const ActivityCalendar = dynamic(() => import('@/components/tools/ActivityCalendar'), { loading: toolLoading });
 
 export default function RepoExplorer({ repo }: { repo: string }) {
-  const [identity, setIdentity] = useState<IdentityBundle | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIdentity(null);
-    setError(null);
-    resolveIdentifier(repo)
-      .then((id) => {
-        if (!cancelled) setIdentity(id);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repo]);
+  const { identity, error } = useRepoIdentity(repo);
 
   if (error) {
     return (
@@ -101,63 +96,23 @@ export default function RepoExplorer({ repo }: { repo: string }) {
  * loaded page are two states of one <SkeletonSwap> rather than two returns
  * that cut between each other.
  *
- * Two columns from 960px: the account (relationship strip, account card) in a
- * 300px sidebar, and the breadcrumb, glance stats and the tabbed repository
- * card in the main column. Stacked below that, sidebar first.
+ * The breadcrumb, the glance stats and the tabbed repository card. The
+ * account itself (its card, how the visitor relates to it, its tools) is in
+ * the sidebar the frame draws beside every page of the repository
+ * (AccountFrame), so it stays put as the visitor moves through it. Stacked,
+ * the sidebar goes under the page, so the card comes here instead, under
+ * the breadcrumb, where the account leads the page as it always has.
  */
 function RepoView({ identity }: { identity: IdentityBundle }) {
   const { prefs, update, loading } = usePreferences();
+  const stacked = useMediaQuery(STACKED_QUERY);
 
-  // The repo page renders the user's chosen sections in their chosen order
-  // (configurable in Settings → Sections). Until prefs settle we use the
-  // defaults so first paint matches SSR and avoids a hydration mismatch.
+  // Until prefs settle we use the defaults so first paint matches SSR and
+  // avoids a hydration mismatch.
   const settled = !loading;
   const repoSections = settled ? prefs.repoSections : DEFAULT_REPO_SECTIONS;
-  const profileHidden = sectionHidden(repoSections, 'profile');
-  const identityHidden = sectionHidden(repoSections, 'identity');
-
-  // The profile and the identity rows share one account card, placed where
-  // the first of the two sits in the visitor's order. Profile keeps its
-  // inline switch even when hidden, so it can be re-shown right on the page
-  // (mirrors the record page's rich preview).
-  const accountCard = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <AccountCard identity={identity} profileHidden={profileHidden} identityHidden={identityHidden} />
-      <ProfileViewSwitch
-        minimal={profileHidden}
-        onToggle={() =>
-          update((p) => setSectionHidden(p, 'repo', 'profile', !profileHidden))
-        }
-      />
-      <AccountToolLinks did={identity.did} />
-    </div>
-  );
-
-  const sideRenderers: Partial<Record<RepoSectionId, () => ReactNode>> = {
-    // Self-suppresses for own / signed-out visitors.
-    relationship: () => <RelationshipStrip target={identity} />,
-    profile: () => accountCard,
-    identity: () => accountCard,
-  };
-  let accountPlaced = false;
-  const sideNodes: ReactNode[] = [];
-  repoSections.forEach(({ id, hidden }, i) => {
-    const isAccount = id === 'profile' || id === 'identity';
-    if (isAccount) {
-      if (accountPlaced) return;
-      accountPlaced = true;
-    } else if (hidden) {
-      return;
-    }
-    const render = sideRenderers[id as RepoSectionId];
-    if (!render) return;
-    sideNodes.push(
-      <AppearIn key={isAccount ? 'account' : id} delay={Math.min(0.04 + i * 0.04, 0.2)}>
-        {render()}
-      </AppearIn>,
-    );
-  });
   const glanceSection = repoSections.find((s) => s.id === 'repoGlance');
+  const profileHidden = sectionHidden(repoSections, 'profile');
 
   return (
     <div className="fx-explorer" data-page="repo">
@@ -188,11 +143,23 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
         )}
       </div>
 
-      <aside className="fx-side" aria-label="Account">
-        {sideNodes}
-      </aside>
-
       <div className="fx-main">
+        {stacked && (
+          <AppearIn delay={0.04}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {!sectionHidden(repoSections, 'relationship') && <RelationshipStrip target={identity} />}
+              <AccountCard
+                identity={identity}
+                profileHidden={profileHidden}
+                identityHidden={sectionHidden(repoSections, 'identity')}
+              />
+              <ProfileViewSwitch
+                minimal={profileHidden}
+                onToggle={() => update((p) => setSectionHidden(p, 'repo', 'profile', !profileHidden))}
+              />
+            </div>
+          </AppearIn>
+        )}
         {glanceSection && !glanceSection.hidden && (
           <AppearIn delay={0.16}>
             <RepoGlanceSection
@@ -290,7 +257,7 @@ function RepoGlanceSection({
  * card leaves the always-present identity row. Persists the choice via the
  * preferences store so it carries across pages and devices.
  */
-function ProfileViewSwitch({
+export function ProfileViewSwitch({
   minimal,
   onToggle,
 }: {
@@ -357,7 +324,9 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = (searchParams.get('tab') || 'collections') as TabId;
-  const tab: TabId = TABS.find((t) => t.id === tabParam) ? tabParam : 'collections';
+  const openTool = TOOL_TABS.find((t) => t.id === tabParam);
+  const tab: TabId = TABS.find((t) => t.id === tabParam) || openTool ? tabParam : 'collections';
+  const strip: readonly { id: TabId; label: string }[] = openTool ? [...TABS, openTool] : TABS;
   // The open folder's sheet fades its new contents in as the tab rises.
   const panelRef = useRef<HTMLDivElement>(null);
   useFadeOnChange(panelRef, tab);
@@ -374,21 +343,21 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
   // the arrow keys, Home and End move between tabs, opening each as it takes
   // focus.
   function onTabKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    const at = TABS.findIndex((t) => t.id === tab);
+    const at = strip.findIndex((t) => t.id === tab);
     const next =
       e.key === 'ArrowRight'
-        ? (at + 1) % TABS.length
+        ? (at + 1) % strip.length
         : e.key === 'ArrowLeft'
-          ? (at - 1 + TABS.length) % TABS.length
+          ? (at - 1 + strip.length) % strip.length
           : e.key === 'Home'
             ? 0
             : e.key === 'End'
-              ? TABS.length - 1
+              ? strip.length - 1
               : -1;
     if (next < 0) return;
     e.preventDefault();
-    selectTab(TABS[next].id);
-    document.getElementById(`repo-tab-${TABS[next].id}`)?.focus();
+    selectTab(strip[next].id);
+    document.getElementById(`repo-tab-${strip[next].id}`)?.focus();
   }
 
   return (
@@ -399,7 +368,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         className="fx-tabs"
         onKeyDown={onTabKeyDown}
       >
-        {TABS.map((t) => {
+        {strip.map((t) => {
           const active = tab === t.id;
           return (
             <button
@@ -444,52 +413,16 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         {tab === 'audit' && <AuditTab identity={identity} />}
         {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
         {tab === 'graph' && <GraphTab key={identity.did} identity={identity} />}
-      </div>
-    </section>
-  );
-}
-
-/**
- * Graph stays off the sidebar copy below: its strip is sized for four labels
- * in the 300px column (explorer.css), and a fifth would scroll out of sight.
- * So do the two check tabs, which the account card's own rows link to.
- */
-const SIDEBAR_TABS = TABS.filter((t) => t.id !== 'graph' && !CHECK_TABS.has(t.id));
-
-/**
- * The collection page's sidebar copy of the repository card: the same four
- * views, as links back to the repo page's tabs, over a compact collections
- * tree with the current collection highlighted.
- */
-export function RepoNavCard({
-  identity,
-  collection,
-}: {
-  identity: IdentityBundle;
-  collection: string;
-}) {
-  const repoPath = `/explore/${encodeRepo(identity.handle || identity.did)}`;
-  return (
-    <section aria-label="Repository" className="fx-repo">
-      <nav aria-label="Repository views" className="fx-tabs">
-        {SIDEBAR_TABS.map((t) => (
-          <Link
-            key={t.id}
-            href={t.id === 'collections' ? repoPath : `${repoPath}?tab=${t.id}`}
-            prefetch={false}
-            className="fx-tab"
-            // The collection being viewed belongs to the Collections view, but
-            // the link leaves this page, so it's highlighted, not aria-current.
-            data-active={t.id === 'collections' || undefined}
-          >
-            <span className="fx-tab-label" data-label={t.label}>
-              {t.label}
-            </span>
-          </Link>
-        ))}
-      </nav>
-      <div className="fx-tabpanel">
-        <CollectionsTab identity={identity} variant="sidebar" current={collection} />
+        {tab === 'lists' && (
+          <div className="fx-tabpanel-tool">
+            <Memberships subject={identity.did} />
+          </div>
+        )}
+        {tab === 'activity' && (
+          <div className="fx-tabpanel-tool">
+            <ActivityCalendar subject={identity.did} />
+          </div>
+        )}
       </div>
     </section>
   );
