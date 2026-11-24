@@ -379,26 +379,24 @@ struct LabelsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                LabelsIntroItem(
-                    term: "Bluesky\u{2019}s own labeler",
-                    text: "Asked first, since every Bluesky user subscribes to it. Self-labels come with its answer."
-                )
-                LabelsIntroItem(
-                    term: "Every other labeler",
-                    text: "Then every account with an app.bsky.labeler.service record, through Bluesky\u{2019}s AppView."
-                )
-                LabelsIntroItem(
-                    term: "What each label means",
-                    text: "A label\u{2019}s name, description and what it hides come from its labeler\u{2019}s definitions."
-                )
-                LabelsIntroItem(
-                    term: "What it leaves out",
-                    text: "Only labels the AppView has indexed. A suspension isn\u{2019}t a label and is reported separately."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Bluesky\u{2019}s own labeler",
+                "Asked first, since every Bluesky user subscribes to it. Self-labels come with its answer."
+            ),
+            (
+                "Every other labeler",
+                "Then every account with an app.bsky.labeler.service record, through Bluesky\u{2019}s AppView."
+            ),
+            (
+                "What each label means",
+                "A label\u{2019}s name, description and what it hides come from its labeler\u{2019}s definitions."
+            ),
+            (
+                "What it leaves out",
+                "Only labels the AppView has indexed. A suspension isn\u{2019}t a label and is reported separately."
+            ),
+        ])
     }
 
     // MARK: Input
@@ -476,32 +474,5 @@ private struct FlowingChips<Item: View>: View {
                 item(value)
             }
         }
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct LabelsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }

@@ -160,40 +160,37 @@ struct ResolveToolView: View {
         }
     }
 
+    /* Wrapped rather than scrolled sideways, so the last button drops to a
+       second line on a narrow phone instead of being cut off at the edge. */
     private var exportButtons: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ResolveCopyButton(title: "Copy CSV", value: model.csv)
-                ResolveCopyButton(title: "Copy JSON", value: model.json)
-                ShareLink(item: model.csv, subject: Text("identities.csv")) {
-                    Label("Download CSV", systemImage: "square.and.arrow.down")
-                        .font(AturiFont.footnote)
-                }
-                .buttonStyle(.aturiSecondary)
-                .disabled(model.isRunning)
+        SettingsWrapLayout(spacing: 8) {
+            ResolveCopyButton(title: "Copy CSV", value: model.csv)
+            ResolveCopyButton(title: "Copy JSON", value: model.json)
+            ShareLink(item: model.csv, subject: Text("identities.csv")) {
+                Label("Download CSV", systemImage: "square.and.arrow.down")
+                    .font(AturiFont.footnote)
             }
-            .padding(.vertical, 1)
+            .buttonStyle(.aturiSecondary)
+            .disabled(model.isRunning)
         }
+        .padding(.vertical, 1)
     }
 
     private var intro: some View {
-        ToolSection("What it does") {
-            ResolveIntroStep(
-                number: 1,
-                term: "Reads the list",
-                text: "Handles, DIDs, at:// URIs or profile links, one per line or comma-separated, up to \(BulkResolve.maxIdentifiers)."
-            )
-            ResolveIntroStep(
-                number: 2,
-                term: "Resolves each one",
-                text: "Each to its DID, handle and PDS. A handle counts only when its DID points back."
-            )
-            ResolveIntroStep(
-                number: 3,
-                term: "Flags what is off",
-                text: "Handles that don\u{2019}t resolve, DIDs with no handle, handles now on another account, and anything that isn\u{2019}t an identifier."
-            )
-        }
+        ToolIntro("What it does", items: [
+            (
+                "Reads the list",
+                "Handles, DIDs, at:// URIs or profile links, one per line or comma-separated, up to \(BulkResolve.maxIdentifiers)."
+            ),
+            (
+                "Resolves each one",
+                "Each to its DID, handle and PDS. A handle counts only when its DID points back."
+            ),
+            (
+                "Flags what is off",
+                "Handles that don\u{2019}t resolve, DIDs with no handle, handles now on another account, and anything that isn\u{2019}t an identifier."
+            ),
+        ])
     }
 }
 
@@ -230,7 +227,9 @@ private struct ResolveRowView: View {
                 Text(row.input)
                     .font(AturiFont.monoFont(.footnote, weight: .medium))
                     .foregroundStyle(theme.textPrimary)
-                    .lineLimit(2)
+                    /* One line: a DID has no break points, so a second line
+                       splits it mid-identifier; the middle is what is cut. */
+                    .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 Spacer(minLength: 0)
@@ -330,36 +329,5 @@ private struct ResolveCopyButton: View {
             guard !Task.isCancelled else { return }
             copied = false
         }
-    }
-}
-
-/// One numbered line of "What it does", the web's `ToolIntro`.
-private struct ResolveIntroStep: View {
-    let number: Int
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(number)")
-                .font(AturiFont.sans(.caption, weight: .bold))
-                .foregroundStyle(theme.accentSoftFg)
-                .frame(width: 22, height: 22)
-                .background(theme.accentSoft, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(term)
-                    .font(AturiFont.sans(.subheadline, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(text)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
     }
 }

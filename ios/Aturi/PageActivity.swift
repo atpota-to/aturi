@@ -33,6 +33,8 @@ extension Route {
             return nsid
         case .lexiconGroup(let prefix):
             return "\(prefix).*"
+        case .lexicons:
+            return "Lexicons"
         case .preview(let components):
             let who = components.identifier.hasPrefix("did:") ? components.identifier : "@\(components.identifier)"
             guard let collection = components.collection, components.rkey != nil else { return who }
@@ -64,6 +66,8 @@ extension Route {
             return [nsid]
         case .lexiconGroup(let prefix):
             return [prefix]
+        case .lexicons:
+            return ["lexicons"]
         case .preview(let components):
             return Set([components.identifier, components.collection, components.rkey].compactMap { $0 })
         case .search:

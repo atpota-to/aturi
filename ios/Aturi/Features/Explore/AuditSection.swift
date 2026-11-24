@@ -34,9 +34,10 @@ struct AuditSection: View {
     private func entryCard(_ entry: PlcAuditEntryView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(entry.type)
-                    .aturiLabel()
-                    .foregroundStyle(theme.textSecondary)
+                /* The web shows the operation type as a lowercase pill;
+                   aturiLabel's uppercase tracking turned plc_operation
+                   into a shouted, hard-to-read heading. */
+                Chip(entry.type, style: .accent)
                 if entry.isNullified {
                     Chip("nullified", style: .danger)
                 }

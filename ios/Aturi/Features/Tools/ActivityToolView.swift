@@ -85,26 +85,24 @@ struct ActivityToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                ActivityIntroItem(
-                    term: "Record keys carry the time",
-                    text: "Most keys are TIDs, which hold when the record was made. Others fall back to createdAt."
-                )
-                ActivityIntroItem(
-                    term: "Every collection, newest first",
-                    text: "Each collection is read back from its newest record to the start of the calendar. Every app counts."
-                )
-                ActivityIntroItem(
-                    term: "A bounded number of requests",
-                    text: "To spare the account\u{2019}s PDS, \(ActivityCalendarScan.concurrency) collections are read at a time, up to \(ActivityCalendarScan.pagesPerCollection) pages each. Longer ones can be read further."
-                )
-                ActivityIntroItem(
-                    term: "What it cannot see",
-                    text: "Deleted records leave no key, and edits don\u{2019}t change one."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Record keys carry the time",
+                "Most keys are TIDs, which hold when the record was made. Others fall back to createdAt."
+            ),
+            (
+                "Every collection, newest first",
+                "Each collection is read back from its newest record to the start of the calendar. Every app counts."
+            ),
+            (
+                "A bounded number of requests",
+                "To spare the account\u{2019}s PDS, \(ActivityCalendarScan.concurrency) collections are read at a time, up to \(ActivityCalendarScan.pagesPerCollection) pages each. Longer ones can be read further."
+            ),
+            (
+                "What it cannot see",
+                "Deleted records leave no key, and edits don\u{2019}t change one."
+            ),
+        ])
     }
 
     /// The input a link handed the page, read once, and run when it is filled.
@@ -126,33 +124,6 @@ struct ActivityToolView: View {
         } else {
             model.clear()
         }
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct ActivityIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }
 

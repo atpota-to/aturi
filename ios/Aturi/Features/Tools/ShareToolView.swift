@@ -110,7 +110,9 @@ struct ShareToolView: View {
 
     private var linkField: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        return TextField("https://example.com/post", text: $model.url)
+        /* A String, not a localized key: a key is read as markdown, which
+           turns the URL into a link and tints the placeholder blue. */
+        return TextField("https://example.com/post" as String, text: $model.url)
             .font(AturiFont.body)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()

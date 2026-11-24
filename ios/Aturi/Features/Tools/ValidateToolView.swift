@@ -396,8 +396,8 @@ struct RecordToolsError: View {
     }
 }
 
-/// What a tool does, numbered, shown before it has any input: the web
-/// tools' `ToolIntro`.
+/// The record tools' intro, under the name their call sites use: the
+/// shared `ToolIntro`, so it looks like every other tool's.
 struct RecordToolsIntro: View {
     var title: String = "What it checks"
     let items: [(term: String, text: String)]
@@ -407,31 +407,7 @@ struct RecordToolsIntro: View {
         self.items = items
     }
 
-    @Environment(\.aturiTheme) private var theme
-
     var body: some View {
-        ToolSection(title) {
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(AturiFont.sans(.footnote, weight: .bold))
-                            .foregroundStyle(theme.textAccent)
-                            .frame(width: 18)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.term)
-                                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                                .foregroundStyle(theme.textPrimary)
-                            Text(item.text)
-                                .font(AturiFont.footnote)
-                                .foregroundStyle(theme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
-        }
+        ToolIntro(title, items: items)
     }
 }

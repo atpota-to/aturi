@@ -345,26 +345,24 @@ struct ShadowbanToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                ShadowbanIntroItem(
-                    term: "Posts on the PDS",
-                    text: "The account\u{2019}s 25 latest posts, read from its PDS. AppViews can\u{2019}t change this copy."
-                )
-                ShadowbanIntroItem(
-                    term: "Posts on the AppView",
-                    text: "Each of those posts from the AppView. One the PDS has and the AppView won\u{2019}t return is hidden. A linked post is checked too."
-                )
-                ShadowbanIntroItem(
-                    term: "Replies in threads",
-                    text: "Each recent reply under its parent. Bluesky\u{2019}s \u{201C}needs review\u{201D} shows as a reply that opens alone but is missing from the thread. Blocks and reply limits are ruled out first."
-                )
-                ShadowbanIntroItem(
-                    term: "Search",
-                    text: "The account by handle and its posts by author. Found by typeahead but not by full search means it is left out of search."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Posts on the PDS",
+                "The account\u{2019}s 25 latest posts, read from its PDS. AppViews can\u{2019}t change this copy."
+            ),
+            (
+                "Posts on the AppView",
+                "Each of those posts from the AppView. One the PDS has and the AppView won\u{2019}t return is hidden. A linked post is checked too."
+            ),
+            (
+                "Replies in threads",
+                "Each recent reply under its parent. Bluesky\u{2019}s \u{201C}needs review\u{201D} shows as a reply that opens alone but is missing from the thread. Blocks and reply limits are ruled out first."
+            ),
+            (
+                "Search",
+                "The account by handle and its posts by author. Found by typeahead but not by full search means it is left out of search."
+            ),
+        ])
     }
 
     // MARK: Input
@@ -516,32 +514,5 @@ private struct ShadowbanTargetPost: View {
             }
             .buttonStyle(.aturiSecondary)
         }
-    }
-}
-
-/// A term and its explanation, the web's `ToolIntro` row.
-private struct ShadowbanIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    init(term: String, text: String) {
-        self.term = term
-        self.text = text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }

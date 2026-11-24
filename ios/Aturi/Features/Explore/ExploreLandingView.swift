@@ -1,5 +1,7 @@
 import SwiftUI
+import UIKit
 import Observation
+import AppIntents
 import AturiCore
 
 /// The Explore tab's root. Reads the app's stores here and hands them to
@@ -30,6 +32,8 @@ private struct ExploreLandingScreen: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(history: SearchHistoryStore, sessionState: SessionState) {
         self.sessionState = sessionState
@@ -42,6 +46,7 @@ private struct ExploreLandingScreen: View {
                 header
                 searchArea
                 exampleChips
+                RecentLinksSection()
                 AtmosphericConditionsCard(model: conditions)
                 AtmospherePulseSection(model: pulse)
                 /* The explorer dashboard variant, as `ExploreLanding.tsx`
@@ -63,6 +68,12 @@ private struct ExploreLandingScreen: View {
                in. */
             ToolbarItem(placement: .topBarTrailing) {
                 SessionBadge()
+            }
+            /* The keyboard's own return key is Search, which submits; Done
+               closes the keyboard and the history card without searching. */
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { fieldFocused = false }
             }
         }
         .task {
@@ -92,6 +103,17 @@ private struct ExploreLandingScreen: View {
             guard model.showsRecommendations else { return }
             await model.enrichRecommendationAvatars()
         }
+        /* The "Open Copied Link" shortcut lands here. A cold launch shows
+           this screen before the app is active, so every one of the three
+           moments that could be the first with both (appearing, the
+           request, the scene becoming active) gets to try. */
+        .onAppear(perform: openRequestedClipboardLink)
+        .onChange(of: router.clipboardLinkRequested) { _, _ in
+            openRequestedClipboardLink()
+        }
+        .onChange(of: scenePhase) { _, _ in
+            openRequestedClipboardLink()
+        }
     }
 
     private var header: some View {
@@ -109,13 +131,30 @@ private struct ExploreLandingScreen: View {
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        /* Tapping the headline closes the keyboard and the history card,
+           as tapping outside a focused field does on the web. Only on this
+           static text: a gesture on the whole page would race the history
+           rows' and chips' own taps. */
+        .contentShape(Rectangle())
+        .onTapGesture {
+            fieldFocused = false
+            /* Also close the card directly: when the field is already
+               unfocused the line above changes nothing, so the onChange
+               that normally closes it never fires. */
+            model.dismissSuggestions()
+        }
     }
 
     private var searchArea: some View {
         @Bindable var model = model
         let fieldShape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        /* On a phone the button drops under the field, as the web's phone
+           rule for `.fn-searchbox` does (src/app/globals.css), so the
+           placeholder gets the full width instead of being cut short. */
+        let compact = sizeClass == .compact
+        let layout = compact ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+            layout {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(fieldFocused ? theme.textAccent : theme.textTertiary)
@@ -132,8 +171,14 @@ private struct ExploreLandingScreen: View {
                         ProgressView()
                             .controlSize(.small)
                     } else if !model.query.isEmpty {
+                        /* Clearing puts the cursor back in the field, as
+                           UIKit's clear button does. Setting the query also
+                           opens the history card (queryDidChange), so the
+                           focus has to follow or the card would stay open
+                           over an unfocused field. */
                         Button {
                             model.query = ""
+                            fieldFocused = true
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(theme.textTertiary)
@@ -159,9 +204,14 @@ private struct ExploreLandingScreen: View {
                 )
                 .animation(AturiMotion.animation(.easeOut(duration: AturiMotion.quick), reduceMotion: reduceMotion), value: fieldFocused)
 
-                Button(model.isResolving ? "Looking\u{2026}" : "Look up", action: submit)
-                    .buttonStyle(.aturiSecondary)
-                    .disabled(model.isResolving)
+                /* The width goes on the label, not the button: the button
+                   style draws its background around the label. */
+                Button(action: submit) {
+                    Text(model.isResolving ? "Looking\u{2026}" : "Look up")
+                        .frame(maxWidth: compact ? .infinity : nil)
+                }
+                .buttonStyle(.aturiSecondary)
+                .disabled(model.isResolving)
             }
 
             if model.showsSuggestionList {
@@ -212,27 +262,39 @@ private struct ExploreLandingScreen: View {
     private var recommendations: some View {
         VStack(alignment: .leading, spacing: 0) {
             if !model.recents.isEmpty {
-                recommendationSection("Recent", systemImage: "clock", entries: model.recents)
+                recommendationSection("Recent", systemImage: "clock", entries: model.recents, offersClear: true)
             }
             if !model.frequent.isEmpty {
                 if !model.recents.isEmpty {
                     Divider()
                 }
-                recommendationSection("Frequent", systemImage: "chart.line.uptrend.xyaxis", entries: model.frequent)
+                recommendationSection("Frequent", systemImage: "chart.line.uptrend.xyaxis", entries: model.frequent, offersClear: model.recents.isEmpty)
             }
         }
         .cardBackground()
     }
 
-    private func recommendationSection(_ title: String, systemImage: String, entries: [SearchHistoryEntry]) -> some View {
+    /// `offersClear` puts the Clear button in the first section's header,
+    /// so the whole history can go in one tap.
+    private func recommendationSection(_ title: String, systemImage: String, entries: [SearchHistoryEntry], offersClear: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Label(title, systemImage: systemImage)
-                .aturiLabel()
-                .foregroundStyle(theme.textTertiary)
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-                .padding(.bottom, 4)
-                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Label(title, systemImage: systemImage)
+                    .aturiLabel()
+                    .foregroundStyle(theme.textTertiary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 0)
+                if offersClear {
+                    Button("Clear") { model.history.clear() }
+                        .font(AturiFont.footnote)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.textSecondary)
+                        .accessibilityLabel("Clear search history")
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
             ForEach(entries) { entry in
                 Button {
                     pick(entry: entry)
@@ -268,6 +330,20 @@ private struct ExploreLandingScreen: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                /* The same long-press menu as the Links tab's recents, so a
+                   mistyped or unwanted search can go on its own. */
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = "https://aturi.to\(entry.path)"
+                    } label: {
+                        Label("Copy link", systemImage: "doc.on.doc")
+                    }
+                    Button(role: .destructive) {
+                        model.history.remove(entry)
+                    } label: {
+                        Label("Remove", systemImage: "trash")
+                    }
+                }
             }
         }
     }
@@ -278,6 +354,10 @@ private struct ExploreLandingScreen: View {
                 Text("Try:")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
+                    /* Like the headline, a dead spot that closes the keyboard;
+                       the chips keep their own taps. */
+                    .contentShape(Rectangle())
+                    .onTapGesture { fieldFocused = false }
                 if let mine = model.myRepo {
                     exampleChip(mine, systemImage: "person", accented: true)
                         .accessibilityLabel("Your repo, \(mine)")
@@ -321,6 +401,12 @@ private struct ExploreLandingScreen: View {
             guard let text = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return }
             Task { @MainActor in
                 model.query = text
+                if LinkInput.previewComponents(for: text) != nil {
+                    /* Tells Siri this is something the person does, so it
+                       can offer the "Open Copied Link" shortcut at the
+                       moments they tend to. */
+                    IntentDonationManager.shared.donate(intent: OpenCopiedLinkIntent())
+                }
                 if !text.contains(where: \.isWhitespace) {
                     submit()
                 }
@@ -332,11 +418,36 @@ private struct ExploreLandingScreen: View {
         .accessibilityLabel("Paste and go")
     }
 
+    /* A web link (bsky.app, an aturi.to universal link, any catalog
+       client) opens its preview and client list, the page the Links tab
+       used to give it. Handles, DIDs, at:// URIs and free text search the
+       explorer as before. */
     private func submit() {
         fieldFocused = false
+        if let components = LinkInput.previewComponents(for: model.query) {
+            model.dismissSuggestions()
+            LinkInput.openPreview(components, router: router)
+            return
+        }
         Task { @MainActor in
             guard let destination = await model.submit() else { return }
             ExploreNavigator.open(destination, router: router, openURL: openURL)
+        }
+    }
+
+    /* The shortcut's half of paste-and-go: the clipboard read, opened as a
+       link from outside the app (an auto-redirect preference applies, as
+       it does to the share sheet), and only once the app is active, since
+       iOS asks before the read. A clipboard the router cannot place is
+       left in the search box to be looked up or edited. */
+    private func openRequestedClipboardLink() {
+        guard scenePhase == .active, router.consumeClipboardLinkRequest() else { return }
+        let board = UIPasteboard.general
+        let text = (board.url?.absoluteString ?? board.string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return }
+        fieldFocused = false
+        if !router.openLink(text) {
+            model.query = text
         }
     }
 
@@ -593,7 +704,8 @@ private struct AtmospherePulseSection: View {
             } foot: {
                 cardFoot(
                     toggle: model.showsTopToggle ? (model.topToggleLabel, { self.model.topExpanded.toggle() }) : nil,
-                    linkLabel: "All lexicons"
+                    linkLabel: "All lexicons",
+                    lexiconList: "top"
                 )
             }
 
@@ -622,7 +734,7 @@ private struct AtmospherePulseSection: View {
                 cardFoot(
                     toggle: model.showsNewToggle ? (model.newToggleLabel, { self.model.newExpanded.toggle() }) : nil,
                     linkLabel: "All new lexicons",
-                    opensNewLexicons: true
+                    lexiconList: "new"
                 )
             }
 
@@ -692,9 +804,10 @@ private struct AtmospherePulseSection: View {
         }
     }
 
-    /// `opensNewLexicons` is the web's `/explore/lexicons#new`: the Lexicons
-    /// tab at its root with the New section showing.
-    private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String, opensNewLexicons: Bool = false) -> some View {
+    /// `lexiconList` names the lexicon browser's list to open on, the web's
+    /// `/explore/lexicons#new` and friends: "new" for the New section, any
+    /// other name for that list, nil for the browser as it opens by default.
+    private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String, lexiconList: String? = nil) -> some View {
         HStack(spacing: 12) {
             if let toggle {
                 Button(toggle.0, action: toggle.1)
@@ -704,10 +817,13 @@ private struct AtmospherePulseSection: View {
             }
             Spacer(minLength: 0)
             Button {
-                if opensNewLexicons {
+                switch lexiconList {
+                case nil:
+                    router.open(.lexicons, in: .explore)
+                case "new":
                     router.showNewLexicons()
-                } else {
-                    router.select(.lexicons)
+                case let list?:
+                    router.showLexicons(list: list)
                 }
             } label: {
                 Text(linkLabel)
@@ -715,7 +831,7 @@ private struct AtmospherePulseSection: View {
                     .foregroundStyle(theme.textAccent)
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Opens the Lexicons tab")
+            .accessibilityHint("Opens the lexicon browser")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

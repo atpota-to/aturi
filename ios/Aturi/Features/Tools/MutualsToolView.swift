@@ -62,13 +62,7 @@ struct MutualsToolView: View {
     }
 
     private func depth(of tab: Tab) -> Int {
-        switch tab {
-        case .explore: return router.explorePath.count
-        case .links: return router.linksPath.count
-        case .lexicons: return router.lexiconsPath.count
-        case .tools: return router.toolsPath.count
-        case .settings: return router.settingsPath.count
-        }
+        router.depth(of: tab)
     }
 
     // MARK: Form
@@ -235,23 +229,24 @@ struct MutualsToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                MutualsIntroItem(term: "Find the mutuals", text: "Everyone the account follows who follows back, from Bluesky\u{2019}s AppView.")
-                MutualsIntroItem(
-                    term: "Read their blocks",
-                    text: "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records and blocked lists are read from its own PDS."
-                )
-                MutualsIntroItem(
-                    term: "See where they agree",
-                    text: "How many mutuals block each account, and a ranked list, both set by one threshold."
-                )
-                MutualsIntroItem(
-                    term: "Save the ones you choose",
-                    text: "Sign in to save the ticked accounts as a moderation list on your account."
-                )
-            }
-        }
+        ToolIntro("How it works", items: [
+            (
+                "Find the mutuals",
+                "Everyone the account follows who follows back, from Bluesky\u{2019}s AppView."
+            ),
+            (
+                "Read their blocks",
+                "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records and blocked lists are read from its own PDS."
+            ),
+            (
+                "See where they agree",
+                "How many mutuals block each account, and a ranked list, both set by one threshold."
+            ),
+            (
+                "Save the ones you choose",
+                "Sign in to save the ticked accounts as a moderation list on your account."
+            ),
+        ])
     }
 }
 
@@ -330,26 +325,6 @@ private struct MutualsStat: View {
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .cardBackground()
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct MutualsIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
         .accessibilityElement(children: .combine)
     }
 }

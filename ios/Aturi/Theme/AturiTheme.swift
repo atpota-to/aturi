@@ -18,9 +18,11 @@ enum Appearance: String, CaseIterable, Identifiable {
     static let storageKey = "aturi.appearance"
 
     /// The suite `@AppStorage(Appearance.storageKey, store:)` should read.
-    static var defaults: UserDefaults {
-        PreferencesStore.appGroupDefaults()
-    }
+    /// One instance for the whole app: `@AppStorage` only hears writes made
+    /// through the `UserDefaults` object it holds, so the settings picker
+    /// and `ThemedRoot` must share it, or the root keeps the old appearance
+    /// until the next launch.
+    static let defaults = PreferencesStore.appGroupDefaults()
 
     var id: String { rawValue }
 

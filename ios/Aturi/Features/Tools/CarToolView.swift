@@ -78,13 +78,7 @@ struct CarToolView: View {
     }
 
     private func depth(of tab: Tab) -> Int {
-        switch tab {
-        case .explore: return router.explorePath.count
-        case .links: return router.linksPath.count
-        case .lexicons: return router.lexiconsPath.count
-        case .tools: return router.toolsPath.count
-        case .settings: return router.settingsPath.count
-        }
+        router.depth(of: tab)
     }
 
     // MARK: Form
@@ -92,7 +86,7 @@ struct CarToolView: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
             ToolInputBar(
-                placeholder: "alice.example.com or did:plc:\u{2026}",
+                placeholder: "Handle or DID",
                 text: $input,
                 buttonTitle: "Look up",
                 isRunning: model.account.isLoading
@@ -268,26 +262,24 @@ struct CarToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it shows") {
-            VStack(alignment: .leading, spacing: 12) {
-                CarIntroItem(
-                    term: "The commit",
-                    text: "Whose repository it is, when it was last written, and its root."
-                )
-                CarIntroItem(
-                    term: "Every record",
-                    text: "Each collection and record key. Records decode when opened and save as JSON."
-                )
-                CarIntroItem(
-                    term: "Whether the file is sound",
-                    text: "Missing parts of the tree, listed records it doesn\u{2019}t hold, and, on request, whether every block matches its hash."
-                )
-                CarIntroItem(
-                    term: "What it leaves out",
-                    text: "The signature isn\u{2019}t verified, and blobs aren\u{2019}t in an export, so images and video show as links."
-                )
-            }
-        }
+        ToolIntro("What it shows", items: [
+            (
+                "The commit",
+                "Whose repository it is, when it was last written, and its root."
+            ),
+            (
+                "Every record",
+                "Each collection and record key. Records decode when opened and save as JSON."
+            ),
+            (
+                "Whether the file is sound",
+                "Missing parts of the tree, listed records it doesn\u{2019}t hold, and, on request, whether every block matches its hash."
+            ),
+            (
+                "What it leaves out",
+                "The signature isn\u{2019}t verified, and blobs aren\u{2019}t in an export, so images and video show as links."
+            ),
+        ])
     }
 }
 
@@ -705,26 +697,5 @@ private struct CarFactLink: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens the repository")
-    }
-}
-
-/// One term of the intro and what it means.
-private struct CarIntroItem: View {
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(term)
-                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-            Text(text)
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
     }
 }

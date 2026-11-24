@@ -70,7 +70,7 @@ struct CustomWaypointsView: View {
                 remove(custom.id)
             }
         } message: { _ in
-            Text("It will be removed from any groups it is in.")
+            Text("It will be removed from any groups it is in. An empty \(Preferences.customGroupName) group is removed too.")
         }
     }
 
@@ -155,11 +155,21 @@ struct CustomWaypointsView: View {
         }
     }
 
+    /// Removing the last waypoint from My Waypoints also drops the group,
+    /// since save created it only to hold new customs and an empty one
+    /// would sit in the picker as a bare header. A group the person renamed
+    /// is theirs and stays, as does one that was already empty.
     private func remove(_ id: String) {
         preferences.update { prefs in
             prefs.customWaypoints.removeAll { $0.id == id }
+            let hadIt = prefs.waypointGroups.first { $0.id == Preferences.customGroupId }?.waypointIds.contains(id) ?? false
             for index in prefs.waypointGroups.indices {
                 prefs.waypointGroups[index].waypointIds.removeAll { $0 == id }
+            }
+            if hadIt {
+                prefs.waypointGroups.removeAll {
+                    $0.id == Preferences.customGroupId && $0.name == Preferences.customGroupName && $0.waypointIds.isEmpty
+                }
             }
         }
     }

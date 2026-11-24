@@ -57,7 +57,7 @@ struct OAuthToolView: View {
 
                 if model.mode == .client {
                     ToolInputBar(
-                        placeholder: "https://app.example.com/oauth-client-metadata.json",
+                        placeholder: "Client metadata URL",
                         text: $clientText,
                         isRunning: model.isRunning
                     ) {
