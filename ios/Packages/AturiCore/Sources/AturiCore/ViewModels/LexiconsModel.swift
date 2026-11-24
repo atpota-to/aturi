@@ -200,7 +200,7 @@ public final class LexiconsModel {
 
     // MARK: Freshness
 
-    /// "Firehose data current as of 12s ago", from `/meta`; nil until it
+    /// "Updated 12s ago", from `/meta`; nil until it
     /// answers, or when it does not carry a jetstream cursor.
     public private(set) var freshnessLabel: String?
 
@@ -804,7 +804,7 @@ public final class LexiconsModel {
         } else {
             rel = "\(Int((Double(agoSec) / 3600).rounded(.toNearestOrAwayFromZero)))h"
         }
-        return "Firehose data current as of \(rel) ago"
+        return "Updated \(rel) ago"
     }
 }
 

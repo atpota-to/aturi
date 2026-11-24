@@ -92,7 +92,7 @@ final class NewLexiconsModelTests: XCTestCase {
         await model.load().value
         XCTAssertEqual(
             model.note,
-            "First seen means no activity UFOs recorded between 2024-11-01, when its history begins, and the start of the window. Account counts are estimates, and a few accounts can still be one developer testing."
+            "First seen: no activity from 2024-11-01, when UFOs\u{2019} history begins, to the window\u{2019}s start. Account counts are estimates; a few may be one developer testing."
         )
 
         let undated = makeModel(NewLexiconsFakeTransport([
@@ -150,12 +150,12 @@ final class NewLexiconsModelTests: XCTestCase {
         await model.load().value
         XCTAssertEqual(model.visible, [])
         XCTAssertFalse(model.showsToggle)
-        XCTAssertEqual(NewLexiconsModel.emptyMessage, "Nothing new with three or more accounts in this window.")
+        XCTAssertEqual(NewLexiconsModel.emptyMessage, "Nothing new with 3+ accounts in this window.")
     }
 
     func testTheSectionCopy() {
         XCTAssertEqual(NewLexiconsModel.title, "New lexicons")
-        XCTAssertEqual(NewLexiconsModel.subtitle, "Record types seen for the first time in this window, with three or more accounts using them.")
+        XCTAssertEqual(NewLexiconsModel.subtitle, "First seen in this window, by 3+ accounts.")
         XCTAssertEqual(NewLexiconsModel.resultCount, 10)
         XCTAssertEqual(NewLexiconsModel.expandedCount, 25)
     }

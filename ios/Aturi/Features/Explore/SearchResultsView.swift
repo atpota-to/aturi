@@ -43,7 +43,7 @@ struct SearchResultsView: View {
                 case .nothing:
                     EmptyState(
                         title: "Nothing to open",
-                        detail: "That did not read as a handle, DID, AT URI or a link the explorer knows.",
+                        detail: "Not a handle, DID, AT URI or a link the explorer knows.",
                         systemImage: "questionmark.circle"
                     )
                 }

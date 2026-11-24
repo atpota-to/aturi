@@ -153,8 +153,7 @@ function Who({ did, handle }: { did: string; handle: string | null }) {
   if (!p) {
     return (
       <p className="fx-pd-note">
-        The Bluesky AppView has no profile for this account: it may be inactive, or it may use apps the AppView doesn’t
-        index.
+        No Bluesky profile. The account may be inactive or use other apps.
       </p>
     );
   }

@@ -47,9 +47,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
       return (
         <Panel icon={<Lock size={13} />} eyebrow="Sign in" headline="Permissioned records aren’t public">
           <p className="fx-sp-panel-body">
-            {capitalize(target)} lives outside the public repository, so there is
-            nothing here to read without an account. Sign in as a member of this
-            space to read {target}.
+            Sign in as a member of this space to read {target}.
           </p>
           <SignInPanel defaultInput={defaultAccount} />
           <p className="fx-sp-note">
@@ -68,9 +66,8 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           headline="Your sign-in didn’t include space access"
         >
           <p className="fx-sp-panel-body">
-            Permissioned data is a separate permission, and this session was
-            authorized without it, either because it wasn’t ticked or because
-            your server doesn’t support spaces yet and dropped it. Authorize
+            This session was authorized without the permissioned-data permission:
+            it wasn’t ticked, or your server doesn’t support spaces yet. Authorize
             again to try.
           </p>
           <SpaceReauthorizeButton />
@@ -132,9 +129,8 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           headline="Whole-space access not granted"
         >
           <p className="fx-sp-panel-body">
-            You granted read access to your own permissioned records, which is
-            enough to read your own repository in this space but not anyone
-            else’s. Reading {target} needs whole-space access.
+            Your grant covers only your own permissioned records. Reading {target}{' '}
+            needs whole-space access.
           </p>
           <SpaceReauthorizeButton />
         </Panel>
@@ -161,9 +157,8 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           headline="You don’t have access to this space"
         >
           <p className="fx-sp-panel-body">
-            The space authority hasn’t granted your account access. Membership
-            is the authority’s decision and there is nothing to retry from here;
-            ask whoever runs the space.
+            The space authority hasn’t granted your account access. Ask whoever
+            runs the space.
           </p>
           <Technical detail={state.message} />
         </Panel>
@@ -203,7 +198,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
             {state.code
               ? `The space host answered ${state.code}.`
               : 'The space host didn’t answer as expected.'}{' '}
-            It might be temporary; try again in a moment.
+            Try again in a moment.
           </p>
           <Technical detail={state.message} />
         </Panel>
@@ -260,10 +255,9 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
       return (
         <Panel icon={<Lock size={13} />} eyebrow="Nothing returned" headline={`Couldn’t read ${what}`}>
           <p className="fx-sp-panel-body">
-            The host answered <code>RepoNotFound</code>, which it uses for three
-            different situations on purpose: this member has never written to
-            the space, or their repository isn’t readable with this credential,
-            or they aren’t in this space at all. It won’t say which.
+            The host answered <code>RepoNotFound</code>: this member hasn’t written
+            here, their repository isn’t readable with this credential, or they
+            aren’t in this space. It won’t say which.
           </p>
           <Technical detail={detail} />
         </Panel>
@@ -273,8 +267,8 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Unavailable" headline={`This repository is ${failure.state}`}>
           <p className="fx-sp-panel-body">
-            The host is holding this member’s repository in a state that doesn’t
-            serve reads. Nothing is missing; it just isn’t being handed out.
+            The host isn’t serving reads for this member’s repository in this
+            state. Nothing is lost.
           </p>
           <Technical detail={detail} />
         </Panel>
@@ -297,7 +291,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
           <p className="fx-sp-panel-body">
             {failure.kind === 'invalid-credential' || failure.kind === 'credential-stale'
               ? 'The space credential was refused. Reloading the page mints a fresh one.'
-              : 'The host returned an error. It might be temporary; try again in a moment.'}
+              : 'The host returned an error. Try again in a moment.'}
           </p>
           <Technical detail={detail} />
         </Panel>
@@ -398,11 +392,9 @@ export function SpaceRepoAccessPanel({
           headline="The space doesn’t list this account"
         >
           <p className="fx-sp-panel-body">
-            The space host’s own record of who has written here doesn’t include
-            this DID, so there is nothing of theirs to read. Their server is not
-            one this space vouched for either, so no credential is sent to it. If
-            they are a member who has simply never written, this is what that
-            looks like from outside.
+            The space host has no writes from this DID, so there is nothing to read
+            and no credential is sent to their server. A member who has never
+            written looks the same.
           </p>
         </Panel>
       );
@@ -445,8 +437,4 @@ function Technical({ detail }: { detail: string }) {
       <p className="fx-sp-err">{detail}</p>
     </details>
   );
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }

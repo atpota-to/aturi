@@ -69,7 +69,7 @@ export default function AtmospherePulse() {
         <div className="fn-pulse-head">
           <div className="fn-pulse-heading">
             <h2 id="fn-pulse-title">{names.heading}</h2>
-            <span>Lexicon activity from UFOs, compared with the {names.noun} before</span>
+            <span>Compared with the {names.noun} before, via UFOs</span>
           </div>
           <div className="fn-pulse-controls">
             <Segmented
@@ -153,11 +153,7 @@ function RankingCard({
           {mode === 'top' ? 'Most active' : 'Rising'}
         </h3>
         <span className="fn-list-card-sub">
-          {mode === 'top'
-            ? metric === 'dids'
-              ? 'Accounts writing each lexicon'
-              : `${noun} in each lexicon`
-            : `${noun} ${WINDOW_NAMES[timeWindow].comparison}`}
+          {mode === 'top' ? `By ${unit}` : `${noun} ${WINDOW_NAMES[timeWindow].comparison}`}
         </span>
       </div>
       <div className="fn-list-card-body">
@@ -251,11 +247,9 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
     <section aria-labelledby="fn-pulse-new" className="fn-list-card fn-pulse-card">
       <div className="fn-list-card-head">
         <h3 id="fn-pulse-new" className="fn-list-card-title">
-          New this {noun}
+          {timeWindow === '1d' ? 'New today' : `New this ${noun}`}
         </h3>
-        <span className="fn-list-card-sub">
-          First seen in the last {WINDOWS[timeWindow].label}, by accounts
-        </span>
+        <span className="fn-list-card-sub">By accounts</span>
       </div>
       <div className="fn-list-card-body">
         {error ? (
@@ -263,7 +257,7 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
         ) : visible ? (
           visible.length === 0 ? (
             <p className="explore-placeholder fn-list-card-msg">
-              Nothing new with three or more accounts in this window.
+              Nothing new with 3+ accounts in this window.
             </p>
           ) : (
             <ol ref={listRef} className="fn-list-rows">

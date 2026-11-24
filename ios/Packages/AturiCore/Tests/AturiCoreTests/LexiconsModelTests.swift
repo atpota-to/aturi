@@ -732,15 +732,15 @@ final class LexiconsModelTests: XCTestCase {
         func label(_ secondsAgo: Double) -> String {
             LexiconsModel.freshnessLabel(cursorUs: (Self.now.timeIntervalSince1970 - secondsAgo) * 1_000_000, now: Self.now)
         }
-        XCTAssertEqual(label(12), "Firehose data current as of 12s ago")
-        XCTAssertEqual(label(89), "Firehose data current as of 89s ago")
-        XCTAssertEqual(label(90), "Firehose data current as of 2m ago")
-        XCTAssertEqual(label(5399), "Firehose data current as of 90m ago")
-        XCTAssertEqual(label(5400), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(7200), "Firehose data current as of 2h ago")
-        XCTAssertEqual(label(-30), "Firehose data current as of 0s ago", "a cursor ahead of the clock clamps to zero")
-        XCTAssertEqual(label(0.4), "Firehose data current as of 0s ago")
-        XCTAssertEqual(label(0.5), "Firehose data current as of 1s ago")
+        XCTAssertEqual(label(12), "Updated 12s ago")
+        XCTAssertEqual(label(89), "Updated 89s ago")
+        XCTAssertEqual(label(90), "Updated 2m ago")
+        XCTAssertEqual(label(5399), "Updated 90m ago")
+        XCTAssertEqual(label(5400), "Updated 2h ago")
+        XCTAssertEqual(label(7200), "Updated 2h ago")
+        XCTAssertEqual(label(-30), "Updated 0s ago", "a cursor ahead of the clock clamps to zero")
+        XCTAssertEqual(label(0.4), "Updated 0s ago")
+        XCTAssertEqual(label(0.5), "Updated 1s ago")
     }
 
     func testLoadFreshnessReadsTheJetstreamCursor() async {
@@ -751,7 +751,7 @@ final class LexiconsModelTests: XCTestCase {
         let model = makeModel(transport)
         XCTAssertNil(model.freshnessLabel)
         await model.loadFreshness().value
-        XCTAssertEqual(model.freshnessLabel, "Firehose data current as of 42s ago")
+        XCTAssertEqual(model.freshnessLabel, "Updated 42s ago")
 
         let missing = makeModel(LexiconsFakeTransport([
             (["/meta"], .init(status: 200, body: #"{"consumer":{"jetstream":{"latest_cursor":"soon"}},"storage_name":"x"}"#)),

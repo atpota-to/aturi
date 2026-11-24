@@ -103,8 +103,8 @@ private struct ExploreLandingScreen: View {
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
-            /* The web's intro, less "all from the browser". */
-            Text("Every account in the Atmosphere keeps its records in a public PDS. Browse collections, inspect identity history, follow backlinks, and edit your own records.")
+            /* The web's intro. */
+            Text("Records, identity history, and backlinks for any account.")
                 .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -418,17 +418,10 @@ private struct AtmosphericConditionsCard: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(AtmosphericConditionsModel.title)
-                    .font(AturiFont.subtitle)
-                    .foregroundStyle(theme.textPrimary)
-                Text(AtmosphericConditionsModel.subtitle)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+            Text(AtmosphericConditionsModel.title)
+                .font(AturiFont.subtitle)
+                .foregroundStyle(theme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 if let measuredAt = model.measuredAt {
                     updatedLabel(measuredAt)

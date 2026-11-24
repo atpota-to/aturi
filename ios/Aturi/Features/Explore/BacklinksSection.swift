@@ -266,10 +266,12 @@ struct BacklinksSection: View {
                     .font(AturiFont.subtitle)
                     .foregroundStyle(theme.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                Text(group.about)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !group.about.isEmpty {
+                    Text(group.about)
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             if model.showsAppFilter {
                 appFilter(group)

@@ -452,9 +452,8 @@ function SpaceBranch({
 
           {contents?.status === 'ready' && !contents.complete && (
             <p className="fx-sp-note">
-              Counted from the first {formatCount(RECORDS_PER_SPACE)} records in
-              this space, so these are lower bounds. Open a collection for its
-              full listing.
+              Lower bounds from the first {formatCount(RECORDS_PER_SPACE)} records.
+              Open a collection for its full listing.
             </p>
           )}
         </div>

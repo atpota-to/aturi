@@ -164,7 +164,7 @@ export function SchemaCheckResult({ check }: { check: RecordCheck }) {
         <strong>{summary(check, verdict)}</strong>
         <span>
           {verdict === 'no-schema'
-            ? `Nothing is published for ${check.nsid}, so there is nothing to check against.`
+            ? `No schema is published for ${check.nsid}.`
             : verdict === 'valid'
               ? `Checked against the published ${check.nsid} schema.`
               : `Against the published ${check.nsid} schema.`}

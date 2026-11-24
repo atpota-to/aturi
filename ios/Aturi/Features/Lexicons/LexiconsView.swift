@@ -132,14 +132,10 @@ struct LexiconsView: View {
             Label("Lexicon trends", systemImage: "square.stack.3d.up")
                 .aturiLabel()
                 .foregroundStyle(theme.textTertiary)
-            Text("Every lexicon in the Atmosphere.")
+            Text("Every lexicon in the Atmosphere")
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
-            Text("Search any collection NSID, watch what\u{2019}s trending, and browse the full catalog of record types seen across the AT Protocol firehose.")
-                .font(AturiFont.body)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -576,7 +572,7 @@ struct LexiconsView: View {
             } else if !UFOsClient.isSearchable(searchTerm) {
                 EmptyState(
                     title: "Search lexicons",
-                    detail: "Type a collection NSID such as app.bsky.feed.post, a namespace such as net.anisota, or a term such as grain.",
+                    detail: "An NSID like app.bsky.feed.post, a namespace like net.anisota, or a term like grain.",
                     systemImage: "magnifyingglass"
                 )
             } else if !model.isSearchPending {
@@ -603,16 +599,11 @@ struct LexiconsView: View {
                             .foregroundStyle(theme.textAccent)
                             .frame(width: 16)
                             .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Browse all of \(model.namespaceRowTerm)")
-                                .font(AturiFont.monoSmall)
-                                .foregroundStyle(theme.textPrimary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Text("Every collection under this namespace")
-                                .font(AturiFont.caption)
-                                .foregroundStyle(theme.textTertiary)
-                        }
+                        Text("Browse all of \(model.namespaceRowTerm)")
+                            .font(AturiFont.monoSmall)
+                            .foregroundStyle(theme.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 14)

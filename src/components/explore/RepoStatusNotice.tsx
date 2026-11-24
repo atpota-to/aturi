@@ -21,21 +21,21 @@ const STATUS_COPY: Record<string, { headline: string; detail: string }> = {
   takendown: {
     headline: 'This repo has been taken down.',
     detail:
-      'Its host refuses every record read. A takedown is the host’s own action and carries no public reason with it.',
+      'Its host refuses record reads. No public reason is given.',
   },
   suspended: {
     headline: 'This repo is suspended.',
     detail:
-      'Its host refuses every record read. The status is all the PDS reports — there is no duration or reason attached to it.',
+      'Its host refuses record reads. No reason or duration is given.',
   },
   deactivated: {
     headline: 'This account is deactivated.',
     detail:
-      'Deactivation is usually the account holder’s own switch: it is how you step away from a host, and how a repo looks part-way through migrating between two. Records return if it is reactivated.',
+      'Usually the account holder’s own choice, or a move between hosts in progress. Records return if it is reactivated.',
   },
   deleted: {
     headline: 'This repo has been deleted.',
-    detail: 'Its host reports the repo gone, so there are no records left to read from it.',
+    detail: 'Its host reports no records left to read.',
   },
 };
 
@@ -55,7 +55,7 @@ export default function RepoStatusNotice({ identity }: { identity: IdentityBundl
   const status = repo.status || 'inactive';
   const copy = STATUS_COPY[status] ?? {
     headline: `This repo is marked ${status}.`,
-    detail: 'Its host refuses record reads while the repo is in this state.',
+    detail: 'Its host refuses record reads in this state.',
   };
 
   return (
@@ -85,9 +85,8 @@ export default function RepoStatusNotice({ identity }: { identity: IdentityBundl
             {copy.detail}
           </p>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Its identity is untouched. The DID document, the PLC audit log and every record
-            elsewhere in the Atmosphere that points at this DID live outside the PDS, so the
-            ID, LOG and BACKLINKS tabs below all still work.
+            Its identity lives outside the PDS, so the Identity, Log and Backlinks tabs still
+            work.
           </p>
         </div>
         <StatusFacts
