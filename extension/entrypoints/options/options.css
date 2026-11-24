@@ -574,6 +574,21 @@
   max-width: 100%;
 }
 
+/* Import your declared clients: a handle field and its button on one line. */
+.defaults-import-form {
+  flex-wrap: nowrap;
+}
+
+.defaults-import-form .aturi-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.defaults-import-error {
+  color: var(--danger);
+  font-size: var(--fs-md);
+}
+
 /* Safari only: which redirect sources Aturi is allowed on. The missing hosts
    sit in a wrapping run of small mono tags under the description. */
 .site-access {

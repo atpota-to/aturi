@@ -1,0 +1,110 @@
+{
+  "lexicon": 1,
+  "id": "to.aturi.client.declaration",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "The clients an account prefers for opening each kind of atproto link, declared publicly so any app can read it and send that account's links straight to the client it actually uses. One per account.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["preferences"],
+        "properties": {
+          "preferences": {
+            "type": "array",
+            "description": "One entry per category. Readers take the first entry for a category and ignore any later duplicates.",
+            "maxLength": 32,
+            "items": { "type": "ref", "ref": "#preference" }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When this declaration was last written."
+          }
+        }
+      }
+    },
+    "preference": {
+      "type": "object",
+      "description": "The preferred client for one kind of link, optionally split by device. A reader that knows the viewer's device uses `mobile` or `desktop` when set and falls back to `client`; a reader that doesn't uses `client`. An entry with none of the three declares nothing.",
+      "required": ["category"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "The kind of link this preference covers. 'bluesky-social': Bluesky posts, profiles and lists (app.bsky.* records), opened in a Bluesky client. 'atproto-explorer': any record or repository, opened in a raw AT Protocol record explorer. Values match the compat family ids in Aturi's waypoint catalog.",
+          "maxLength": 64,
+          "knownValues": ["bluesky-social", "atproto-explorer"]
+        },
+        "client": {
+          "type": "ref",
+          "ref": "#client",
+          "description": "The client for this category on any device, unless `mobile` or `desktop` applies."
+        },
+        "mobile": {
+          "type": "ref",
+          "ref": "#client",
+          "description": "The client for this category on phones and tablets."
+        },
+        "desktop": {
+          "type": "ref",
+          "ref": "#client",
+          "description": "The client for this category on desktop and laptop computers."
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "description": "A client, described so that a reader with no catalog of its own can still link to it.",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The client's web address, e.g. https://blacksky.community. Identifies the client to apps that know nothing else about it.",
+          "maxLength": 512
+        },
+        "name": {
+          "type": "string",
+          "description": "The client's display name, e.g. 'Blacksky'.",
+          "maxLength": 640,
+          "maxGraphemes": 64
+        },
+        "waypoint": {
+          "type": "string",
+          "description": "The client's id in Aturi's waypoint catalog (the @aturi.to/waypoints package), e.g. 'blacksky'. Set only when this client is that catalog entry. Readers with the catalog can use it to fill in link shapes the templates leave out.",
+          "maxLength": 128
+        },
+        "templates": {
+          "type": "ref",
+          "ref": "#templates"
+        }
+      }
+    },
+    "templates": {
+      "type": "object",
+      "description": "URL templates for opening content in this client. Placeholders: {handle} (the handle, or the DID when no handle is known), {did}, {actor} (the DID, or the handle when no DID is known), {collection} and {rkey}. Substituted values are percent-encoded as URI components, except ':', which is left as is. A template whose placeholders can't all be filled produces no link. Readers must only follow http and https results.",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "description": "An account's profile or repository.",
+          "maxLength": 1024
+        },
+        "post": {
+          "type": "string",
+          "description": "An app.bsky.feed.post record.",
+          "maxLength": 1024
+        },
+        "list": {
+          "type": "string",
+          "description": "An app.bsky.graph.list record.",
+          "maxLength": 1024
+        },
+        "record": {
+          "type": "string",
+          "description": "Any record, by {collection} and {rkey}. Also used for posts and lists when their own template is absent.",
+          "maxLength": 1024
+        }
+      }
+    }
+  }
+}

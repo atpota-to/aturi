@@ -74,8 +74,12 @@ export default function TermsPage() {
                 These preferences are written to a record in your own atproto
                 repository (NSID <code>to.aturi.actor.preferences</code>, rkey{' '}
                 <code>self</code>) so they follow you across devices and
-                clients. Any other authenticated functionality offered through
-                aturi.to is also covered.
+                clients. You can also publish a public declaration of the
+                clients you prefer for opening links (NSID{' '}
+                <code>to.aturi.client.declaration</code>, rkey{' '}
+                <code>self</code>), which other apps may read. Any other
+                authenticated functionality offered through aturi.to is also
+                covered.
               </li>
               <li>
                 The <strong>Aturi browser extension</strong> for Chrome,
@@ -182,6 +186,23 @@ export default function TermsPage() {
                 anonymous use. You can delete the preferences record at any
                 time using the Service or any other atproto client. We do not
                 maintain a separate copy.
+              </li>
+              <li>
+                <strong>Preferred clients declaration.</strong> If you sign
+                in, you can publish which apps you prefer for opening each
+                kind of link (for example, your Bluesky client and your
+                record explorer, optionally different on mobile and desktop)
+                as a record in your own PDS (NSID{' '}
+                <code>to.aturi.client.declaration</code>, rkey{' '}
+                <code>self</code>). Unlike your preferences, this record is
+                written only when you choose to publish it, and it exists so
+                that other apps can read it: anyone can read it, and other
+                apps may use it to decide where to send your links. We do not
+                control how other apps use it. The Service also reads it to
+                apply your declared clients to auto-redirect wherever you
+                have not chosen a favorite. You can change or delete it at
+                any time using the Service or any other atproto client. We do
+                not maintain a separate copy.
               </li>
               <li>
                 <strong>Resolve API and oEmbed.</strong> Aturi exposes a
@@ -854,6 +875,25 @@ export default function TermsPage() {
               relays that ingest your repository.
             </p>
             <p>
+              <strong>Preferred clients declaration.</strong> If you are
+              signed in and choose to publish one, the clients you declare
+              (each one&rsquo;s web address, name, and link templates,
+              optionally separate for mobile and desktop) are written as a
+              record in your own PDS (NSID{' '}
+              <code>to.aturi.client.declaration</code>, rkey{' '}
+              <code>self</code>). The record is public by design: it is meant
+              to be read by other apps, and anyone with access to your PDS or
+              relays that ingest your repository can read it. While you are
+              signed in, the Service reads it from your PDS and keeps a copy
+              in your browser&rsquo;s local storage, tied to your account, so
+              auto-redirect can apply it before the page loads; that copy is
+              removed when you sign out. Whether you are on a mobile or
+              desktop device is determined in your browser from its user
+              agent and is not sent to us. The authoritative copy lives in
+              your repository, under your control; we do not maintain a
+              separate copy.
+            </p>
+            <p>
               <strong>Atmosphere data.</strong> When you use Explore, view a
               landing page, request an OG image, or call the Resolve or
               oEmbed APIs, the Service may fetch records, identity
@@ -899,8 +939,9 @@ export default function TermsPage() {
                 recipients) request;
               </li>
               <li>
-                Sync your preferences to and from your own PDS when you are
-                signed in;
+                Sync your preferences to and from your own PDS, and publish
+                and read your preferred clients declaration there, when you
+                are signed in;
               </li>
               <li>
                 Detect, prevent, and respond to abuse, fraud, security
@@ -935,9 +976,11 @@ export default function TermsPage() {
               Aturi does not use cookies for tracking or advertising.
               Vercel Analytics is cookieless. The Service does use your
               browser&rsquo;s local storage technologies (such as
-              localStorage and IndexedDB) to remember your preferences and,
-              with browser sign-in, to hold the OAuth session and the DPoP
-              key bound to it.
+              localStorage and IndexedDB) to remember your preferences,
+              to keep a copy of your published preferred clients
+              declaration while you are signed in, and, with browser
+              sign-in, to hold the OAuth session and the DPoP key bound to
+              it.
             </p>
             <p>
               Backend sign-in additionally sets cookies, none of which are
@@ -1036,8 +1079,11 @@ export default function TermsPage() {
               individual visitors.
             </p>
             <p>
-              <strong>Preferences.</strong> Preferences mirrored to your
-              PDS persist until you delete the record.
+              <strong>Preferences and declarations.</strong> Preferences
+              mirrored to your PDS, and any preferred clients declaration
+              you publish, persist until you delete the record; the local
+              copy of your declaration persists in your browser until you
+              sign out or clear your browser data.
             </p>
             <p>
               <strong>Browser sign-in.</strong> Session data persists in

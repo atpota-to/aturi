@@ -41,9 +41,10 @@ export default function ExtensionPrivacyPage() {
               Aturi-operated servers. The extension also makes anonymous
               lookups to public atproto services (Bluesky AppView, PLC
               directory, and the Personal Data Servers that hold the
-              records) when you open the popup on a page with records, or
-              use the waypoint picker. The details of every network request
-              and every part of the page that is read are described below.
+              records) when you open the popup on a page with records, use
+              the waypoint picker, or import your declared clients in its
+              settings. The details of every network request and every part
+              of the page that is read are described below.
             </p>
             <p>
               There is also a Safari version for Mac, iPhone and iPad, which
@@ -261,6 +262,19 @@ export default function ExtensionPrivacyPage() {
                 the open record itself, for its CID (one of the identifiers
                 the Copy list offers) and, for a record the page references,
                 a short preview.
+              </li>
+              <li>
+                <strong>Preferred clients import.</strong> When you press
+                Look up under &ldquo;Import your declared clients&rdquo; in the
+                extension&rsquo;s settings, the extension resolves the handle
+                or DID you entered (through the same AppView and DID document
+                lookups as above), calls{' '}
+                <code>com.atproto.repo.describeRepo</code> on that
+                account&rsquo;s PDS, and calls{' '}
+                <code>com.atproto.repo.getRecord</code> there for its{' '}
+                <code>to.aturi.client.declaration</code> record. Nothing
+                is fetched until you press the button, and nothing from the
+                record is kept beyond the favorites you choose to set.
               </li>
             </ul>
             <p>

@@ -22,6 +22,7 @@ import {
   type SiteAccessSummary,
 } from '../../../lib/siteAccess';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
+import DeclaredClientsImport from '../components/DeclaredClientsImport';
 
 type Props = {
   prefs: Prefs;
@@ -192,6 +193,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 })}
               </div>
             )}
+
+            <DeclaredClientsImport prefs={prefs} onChange={onChange} />
 
             <div className="options-card-subhead">
               <h3>When to leave a link alone</h3>

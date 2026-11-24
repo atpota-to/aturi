@@ -9,6 +9,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     case sections
     case waypoints
     case redirects
+    case clients
     case custom
     case account
     case safari
@@ -22,6 +23,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "Sections"
         case .waypoints: return "Waypoint groups"
         case .redirects: return "Redirects"
+        case .clients: return "Clients"
         case .custom: return "Custom waypoints"
         case .account: return "Account"
         case .safari: return "Safari extension"
@@ -35,6 +37,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "What explorer pages show"
         case .waypoints: return "Which clients the picker shows"
         case .redirects: return "Open links in a preferred client"
+        case .clients: return "Tell other apps your clients"
         case .custom: return "Your own URL templates"
         /* Not listed in Settings any more: the account page is its own tab,
            and `AppRouter.openSettings(.account)` sends links there. */
@@ -50,6 +53,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "rectangle.split.3x1"
         case .waypoints: return "square.grid.2x2"
         case .redirects: return "arrow.triangle.turn.up.right.diamond"
+        case .clients: return "megaphone"
         case .custom: return "link.badge.plus"
         case .account: return "person.crop.circle"
         case .safari: return "safari"
@@ -124,6 +128,7 @@ struct SettingsView: View {
                 pageLink(.sections)
                 pageLink(.waypoints)
                 pageLink(.redirects)
+                pageLink(.clients)
                 pageLink(.custom)
             }
 
@@ -156,6 +161,8 @@ struct SettingsPageDestination: View {
             WaypointGroupsView()
         case .redirects:
             RedirectsSettingsView()
+        case .clients:
+            ClientsSettingsView()
         case .custom:
             CustomWaypointsView()
         case .account:
