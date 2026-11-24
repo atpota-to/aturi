@@ -172,7 +172,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
         </Field>
       </div>
 
-      <Field group label="Handles" required hint="Which kinds of links this waypoint understands">
+      <Field group label="Handles" required hint="Kinds of link it can open">
         <div className="cw-chips">
           {TYPE_OPTIONS.map((t) => {
             const active = types.has(t.id);
@@ -217,7 +217,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       <Field
         group
         label="Auto-redirect families"
-        hint="Optional — lets this waypoint be picked as a redirect destination"
+        hint="Optional. Lets it be a redirect destination."
       >
         <div className="cw-chips">
           {COMPAT_FAMILY_ORDER.map((f) => {

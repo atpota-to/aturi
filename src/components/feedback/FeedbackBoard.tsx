@@ -128,8 +128,7 @@ export default function FeedbackBoard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span className="explore-small-caps">Sign in to post and vote</span>
             <p className="fn-fb-hint">
-              Your feedback is written to your own repo, so it travels with you and you can delete
-              it any time.
+              Posts are saved to your own repo, and you can delete them any time.
             </p>
           </div>
           <SignInPanel />

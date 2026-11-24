@@ -276,13 +276,13 @@ public final class LinkResolverModel {
     public nonisolated static func unavailableMessage(for type: WaypointType) -> String {
         switch type {
         case .profile:
-            return "We couldn't load a profile preview for this account. It may not be indexed by the Bluesky AppView, or the AppView may be temporarily unavailable. You can still open it in a client below."
+            return "The account may not be indexed by the Bluesky AppView yet, or the AppView may be down. You can still open it below."
         case .post:
-            return "We couldn't load a preview for this post. It may have been deleted, or the account's host server may be temporarily unavailable. You can still try opening it in a client below."
+            return "The post may be deleted, or its server may be down. You can still open it below."
         case .list:
-            return "We couldn't load a preview for this list. It may have been deleted, or the account's host server may be temporarily unavailable. You can still try opening it in a client below."
+            return "The list may be deleted, or its server may be down. You can still open it below."
         case .record, .unknown:
-            return "We couldn't load a preview for this record. It may have been deleted, or the account's host server may be temporarily unavailable. You can still try opening it in a client below."
+            return "The record may be deleted, or its server may be down. You can still open it below."
         }
     }
 

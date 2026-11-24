@@ -120,7 +120,7 @@ export default function WaypointGroupsManager() {
       <div className="settings-list-toolbar">
         <p className="settings-list-summary">
           {groups.length === 0
-            ? 'No groups yet. Create one to start surfacing waypoints.'
+            ? 'No groups yet.'
             : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${
                 hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''
               }`}
@@ -131,7 +131,7 @@ export default function WaypointGroupsManager() {
             onClick={() => {
               if (
                 !confirm(
-                  'Reset to the default groups? This will discard any custom groups you have created.',
+                  'Reset to the default groups? Groups you created will be discarded.',
                 )
               )
                 return;
@@ -175,7 +175,7 @@ export default function WaypointGroupsManager() {
                 onRemove={() => {
                   if (
                     !confirm(
-                      'Delete this group? Waypoints inside will remain available in any other groups they belong to.',
+                      'Delete this group? Its waypoints stay in any other groups.',
                     )
                   )
                     return;

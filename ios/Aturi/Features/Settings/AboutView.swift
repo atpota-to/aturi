@@ -66,10 +66,7 @@ struct AboutView: View {
                 }
             }
 
-            SettingsSection(
-                "Licence",
-                footer: "The iOS app, the web app and the extension share one codebase and one licence."
-            ) {
+            SettingsSection("Licence") {
                 Text("Aturi is free software, released under the GNU General Public License, version 3 or later. You may study, change and redistribute it under the same terms.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)

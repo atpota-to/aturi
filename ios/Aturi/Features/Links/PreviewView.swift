@@ -190,7 +190,7 @@ private struct PreviewScreen: View {
                 .font(AturiFont.title)
                 .tracking(AturiFont.titleTracking)
                 .foregroundStyle(theme.textPrimary)
-            Text("We tried to resolve \(components.identifier) as an Atmosphere handle and did not find anything. Try a different handle, DID or AT URI.")
+            Text("No account found for \u{201C}\(components.identifier)\u{201D}. Check the spelling, or try a DID or an at:// URI.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .textSelection(.enabled)
@@ -436,7 +436,7 @@ private struct AutoRedirectCountdownBar: View {
                     Text("Opening in \(name)")
                         .font(AturiFont.sans(.body, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
-                    Text("Your auto-redirect preference. Tap anywhere to stay.")
+                    Text("Tap anywhere to stay.")
                         .font(AturiFont.caption)
                         .foregroundStyle(theme.textSecondary)
                 }

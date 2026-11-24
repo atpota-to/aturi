@@ -46,10 +46,7 @@ export default function SectionsTab() {
         <div className="settings-card-head">
           <h2 className="settings-card-title">Record pages</h2>
           <p className="settings-card-sub">
-            Choose which sections appear on a record / Bluesky-post explorer
-            page, and drag to reorder them. The rich JSON preview and raw JSON
-            are the two data views; at least one always stays on so the
-            record is never blank.
+            At least one content section stays on.
           </p>
         </div>
         <SectionList page="record" />
@@ -58,17 +55,11 @@ export default function SectionsTab() {
       <section className="settings-card">
         <div className="settings-card-head">
           <h2 className="settings-card-title">Repo &amp; profile pages</h2>
-          <p className="settings-card-sub">
-            Choose which sections appear on a repo / profile explorer page,
-            and drag to reorder. The breadcrumb and the collections tabs stay
-            fixed.
-          </p>
         </div>
         <SectionList page="repo" />
         <Toggle
           id="repo-glance-collapsed"
           label="Start “Repo at a glance” collapsed"
-          description="When shown, the stats section starts folded; click its header to expand. No effect when hidden above."
           checked={prefs.repoGlanceCollapsedByDefault}
           onChange={(next) =>
             update((p) => ({ ...p, repoGlanceCollapsedByDefault: next }))

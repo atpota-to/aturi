@@ -31,16 +31,16 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 
     var detail: String {
         switch self {
-        case .general: return "Color scheme, dark or light, picker layout, pinned lexicons"
-        case .sections: return "What the record and repo pages show, and in what order"
-        case .waypoints: return "Which clients the picker shows, and in what groups"
-        case .redirects: return "Open links straight in a preferred client"
-        case .custom: return "Your own destinations, built from URL templates"
+        case .general: return "Theme, picker layout, pinned lexicons"
+        case .sections: return "What explorer pages show"
+        case .waypoints: return "Which clients the picker shows"
+        case .redirects: return "Open links in a preferred client"
+        case .custom: return "Your own URL templates"
         /* Not listed in Settings any more: the account page is its own tab,
            and `AppRouter.openSettings(.account)` sends links there. */
-        case .account: return "Sign in to sync settings to your PDS"
-        case .safari: return "Turn on Aturi in Safari on this device"
-        case .about: return "Version, links, licence and privacy"
+        case .account: return "Sign in to sync"
+        case .safari: return "Turn on Aturi in Safari"
+        case .about: return "Version, licence, privacy"
         }
     }
 
@@ -99,7 +99,7 @@ struct SettingsView: View {
                             Image(systemName: "icloud.slash")
                                 .foregroundStyle(theme.textAccent)
                                 .accessibilityHidden(true)
-                            Text("Settings are saved on this device only. Sign in on the Account tab to sync them to your PDS and carry them across devices.")
+                            Text("Settings are saved on this device only. Sign in on the Account tab to sync them.")
                                 .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)

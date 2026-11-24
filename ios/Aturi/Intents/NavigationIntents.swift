@@ -42,7 +42,7 @@ extension AppSection: AppEnum {
 struct OpenSectionIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Section in Aturi"
     static let description = IntentDescription(
-        "Opens Aturi on one of its sections, Explore, Links, Lexicons, Tools, Settings or Account, back at the top.",
+        "Opens Aturi on a section: Explore, Links, Lexicons, Tools, Settings or Account.",
         categoryName: "Navigation",
         searchKeywords: ["tab", "explore", "links", "lexicons", "tools", "settings", "account"]
     )

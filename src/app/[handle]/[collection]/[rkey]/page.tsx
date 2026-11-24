@@ -245,7 +245,7 @@ async function RecordContent({
             <NotFoundPanel
               eyebrow="Couldn’t resolve"
               headline="That handle didn’t resolve."
-              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
+              body={`No account found for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>
@@ -411,10 +411,10 @@ async function RecordContent({
             }}
           >
             <strong style={{ color: 'var(--text-primary)' }}>
-              We couldn&rsquo;t load a preview for this record.
+              Couldn&rsquo;t load a preview.
             </strong>{' '}
-            It may have been deleted, or the account&rsquo;s host server may be
-            temporarily unavailable. You can still try opening it in a client below.
+            The record may be deleted, or its server may be down. You can still
+            open it below.
           </div>
         )}
 

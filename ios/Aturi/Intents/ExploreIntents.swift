@@ -8,7 +8,7 @@ import AturiCore
 struct ExploreIntent: AppIntent {
     static let title: LocalizedStringResource = "Explore in Aturi"
     static let description = IntentDescription(
-        "Opens the Atmosphere Explorer on whatever you give it, routed the way the explorer's search box routes it: a handle or DID opens the repo, an at:// URI or a link from a supported app opens the record, and a PDS host opens the server.",
+        "Opens the explorer on a handle or DID (the repo), an at:// URI or link (the record), or a PDS host (the server).",
         categoryName: "Explore",
         searchKeywords: ["explorer", "repo", "pds", "search", "atproto"]
     )
@@ -42,7 +42,7 @@ struct ExploreIntent: AppIntent {
 struct GetRecordIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Record"
     static let description = IntentDescription(
-        "Fetches a record's JSON from the account's own server, falling back to the public Bluesky API when that server cannot be reached. Use Get Dictionary from Input to read its fields.",
+        "Fetches a record's JSON from the account's server, or the public Bluesky API if that server is down. Use Get Dictionary from Input to read its fields.",
         categoryName: "Explore",
         searchKeywords: ["json", "record", "at uri", "pds", "atproto"]
     )
@@ -79,7 +79,7 @@ struct GetRecordIntent: AppIntent {
 struct OpenLexiconIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Lexicon in Aturi"
     static let description = IntentDescription(
-        "Opens a lexicon's page in Aturi's explorer: its schema, where it is used and the records published under it. Give an NSID such as app.bsky.feed.post, or a namespace such as app.bsky to browse its group.",
+        "Opens a lexicon in the explorer. Give an NSID such as app.bsky.feed.post, or a namespace such as app.bsky.",
         categoryName: "Explore",
         searchKeywords: ["lexicon", "nsid", "schema", "collection", "atproto"]
     )
@@ -116,7 +116,7 @@ struct OpenLexiconIntent: AppIntent {
 struct OpenMyRepoIntent: AppIntent {
     static let title: LocalizedStringResource = "Open My Repo in Aturi"
     static let description = IntentDescription(
-        "Opens your own repo in the Atmosphere Explorer: the account you are signed in to Aturi with.",
+        "Opens the repo of the account you're signed in with.",
         categoryName: "Explore",
         searchKeywords: ["my account", "my repo", "pds", "records", "atproto"]
     )

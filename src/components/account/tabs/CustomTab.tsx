@@ -81,10 +81,7 @@ export default function CustomTab() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Custom waypoints</h2>
         <p className="settings-card-sub">
-          Add your own jump destinations using URL templates. Placeholders:{' '}
-          <code>{'{handle}'}</code>, <code>{'{did}'}</code>,{' '}
-          <code>{'{actor}'}</code>, <code>{'{collection}'}</code>,{' '}
-          <code>{'{rkey}'}</code>. New custom waypoints land in your{' '}
+          Built from URL templates. New ones join your{' '}
           <em>{CUSTOM_GROUP_NAME}</em> group.
         </p>
       </div>

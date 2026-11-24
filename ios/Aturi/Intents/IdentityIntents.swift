@@ -9,7 +9,7 @@ import AturiCore
 struct ResolveHandleIntent: AppIntent {
     static let title: LocalizedStringResource = "Resolve Handle"
     static let description = IntentDescription(
-        "Looks up the DID behind an Atmosphere handle. Also takes a link or AT URI and resolves the account it names.",
+        "Looks up the DID for a handle, or for the account a link or AT URI names.",
         categoryName: "Identity",
         searchKeywords: ["did", "handle", "lookup", "atproto", "identity"]
     )
@@ -39,7 +39,7 @@ struct ResolveHandleIntent: AppIntent {
 struct GetHandleIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Handle for DID"
     static let description = IntentDescription(
-        "Reads the handle a DID's document names, straight from plc.directory or the did:web host, with no Bluesky service involved.",
+        "Reads a DID's handle straight from plc.directory or the did:web host.",
         categoryName: "Identity",
         searchKeywords: ["did", "handle", "reverse lookup", "atproto", "plc"]
     )
@@ -76,7 +76,7 @@ struct GetHandleIntent: AppIntent {
 struct GetProfileIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Profile"
     static let description = IntentDescription(
-        "Gets an account's Bluesky profile from the public AppView: display name, description, avatar and banner, follower, following and post counts, and its aturi.to link.",
+        "Gets an account's Bluesky profile: display name, description, avatar, banner, counts and aturi.to link.",
         categoryName: "Identity",
         searchKeywords: ["profile", "followers", "bio", "bluesky", "account"]
     )
