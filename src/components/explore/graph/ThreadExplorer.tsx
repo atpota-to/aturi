@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Ban, Maximize2, Minus, Plus, RotateCcw, Scan, X } from 'lucide-react';
+import { Ban, Maximize2, Minus, Plus, RotateCcw, Scan, Search, SlidersHorizontal, X } from 'lucide-react';
+import PageToolbar from '@/components/PageToolbar';
 import {
   defaultFolds,
   flattenThread,
@@ -168,6 +169,8 @@ const PAGE = 8;
 const MAX_DEPTH = 40;
 /** The canvas's margin round the tree. */
 const PAD = 48;
+/** The search and filters, which a phone shows as a sheet (aria-controls). */
+const SHEET_ID = 'fx-tx-tools';
 
 const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? one : many}`;
 
@@ -302,6 +305,14 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
   const pinCursor = useRef(new Map<string, number>());
   const cutCursor = useRef(-1);
+  // On a phone the search and filters (ThreadToolbar) sit in a sheet that
+  // rises out of the bottom toolbar, and this is whether it's up. Wider, they
+  // stay under the header and this does nothing (graph.css).
+  const [sheet, setSheet] = useState(false);
+  const sheetRef = useRef(sheet);
+  useEffect(() => {
+    sheetRef.current = sheet;
+  }, [sheet]);
 
   // The page underneath stays put while the explorer is up. Escape closes
   // it, once any details open beside the canvas are closed, and / searches.
@@ -324,7 +335,8 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       }
       if (e.key !== 'Escape') return;
       e.preventDefault();
-      if (focusRef.current) close(true);
+      if (sheetRef.current) setSheet(false);
+      else if (focusRef.current) close(true);
       else onClose();
     };
     document.addEventListener('keydown', onKey);
@@ -333,6 +345,20 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       document.removeEventListener('keydown', onKey);
     };
   }, [onClose, close]);
+
+  // A tap anywhere but the sheet puts it away, as the site menu's sheet does;
+  // the toolbar's own button toggles it, so it's left to do that.
+  useEffect(() => {
+    if (!sheet) return undefined;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest(`#${SHEET_ID}, [aria-controls="${SHEET_ID}"]`)) return;
+      setSheet(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [sheet]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -1464,7 +1490,16 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const focusCut = focus?.kind === 'post' ? cutByUri.get(focus.post.uri) : undefined;
 
   return (
-    <div ref={dialogRef} className="fx-tx" data-pick role="dialog" aria-modal="true" aria-labelledby="fx-tx-title" tabIndex={-1}>
+    <div
+      ref={dialogRef}
+      className="fx-tx"
+      data-pick
+      data-sheet={sheet || undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fx-tx-title"
+      tabIndex={-1}
+    >
       <div className="fx-tx-head">
         <div className="fx-tx-title">
           <h2 id="fx-tx-title">Thread</h2>
@@ -1505,6 +1540,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       </div>
       {thread && (
         <ThreadToolbar
+          id={SHEET_ID}
           searchRef={searchRef}
           query={query}
           onQuery={onQuery}
@@ -1649,6 +1685,36 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           </div>
         )}
       </div>
+      {/* On a phone the header's controls move down here, under the thumb,
+          and the search and filters open from it as a sheet (graph.css).
+          Inside the dialog, so a screen reader can reach it. */}
+      <PageToolbar
+        label="Thread"
+        start={[
+          {
+            id: 'tools',
+            label: 'Search and filters',
+            wide: true,
+            icon: searching ? <Search size={17} aria-hidden /> : <SlidersHorizontal size={17} aria-hidden />,
+            text: searching ? query : undefined,
+            status: searching ? (matches.length ? `${matchAt < 0 ? '–' : fmt(matchAt + 1)}/${fmt(matches.length)}` : '0') : undefined,
+            badge: pins.length,
+            expanded: sheet,
+            controls: SHEET_ID,
+            disabled: !thread,
+            onClick: () => setSheet((v) => !v),
+          },
+        ]}
+        end={[
+          ...(motion.moved
+            ? [{ id: 'tidy', label: 'Put the cards you moved back in place', icon: <RotateCcw size={17} aria-hidden />, onClick: motion.tidy }]
+            : []),
+          { id: 'out', group: 'Zoom', label: 'Zoom out', icon: <Minus size={18} aria-hidden />, onClick: () => zoomTo(zoom / 1.25) },
+          { id: 'in', group: 'Zoom', label: 'Zoom in', icon: <Plus size={18} aria-hidden />, onClick: () => zoomTo(zoom * 1.25) },
+          { id: 'fit', label: 'Fit the thread to the screen', icon: <Scan size={17} aria-hidden />, onClick: fit },
+          { id: 'close', label: 'Close', icon: <X size={19} aria-hidden />, onClick: onClose },
+        ]}
+      />
     </div>
   );
 }

@@ -49,6 +49,7 @@ const ORDERS = Object.keys(REPLY_ORDER_LABELS) as ReplyOrder[];
  * draws the controls.
  */
 export default function ThreadToolbar({
+  id,
   searchRef,
   query,
   onQuery,
@@ -67,6 +68,8 @@ export default function ThreadToolbar({
   onLayer,
   summary,
 }: {
+  /** For aria-controls: on a phone this is a sheet opened from the bottom toolbar. */
+  id?: string;
   searchRef: RefObject<HTMLInputElement | null>;
   query: string;
   onQuery: (q: string) => void;
@@ -89,7 +92,7 @@ export default function ThreadToolbar({
   const byDid = useMemo(() => new Map(people.map((p) => [p.did, p])), [people]);
   const searching = query.trim().length > 0;
   return (
-    <div className="fx-tx-bar" role="toolbar" aria-label="Thread tools">
+    <div id={id} className="fx-tx-bar" role="toolbar" aria-label="Thread tools">
       <div className="fx-tx-search" data-active={searching || undefined}>
         <Search size={14} aria-hidden className="fx-tx-search-icon" />
         <input
