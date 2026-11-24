@@ -88,19 +88,19 @@ struct ActivityToolView: View {
         ToolIntro("How it works", items: [
             (
                 "Record keys carry the time",
-                "Most record keys are TIDs, which hold the moment they were made. A key such as 3lb2\u{2026} dates its record without the record being kept. Keys with no time in them fall back to the record\u{2019}s createdAt."
+                "Most keys are TIDs, which hold when the record was made. Others fall back to createdAt."
             ),
             (
                 "Every collection, newest first",
-                "Each collection in the repository is read from its newest record back, and reading stops at the first key older than the calendar. Posts, likes, and records from any other app count alike."
+                "Each collection is read back from its newest record to the start of the calendar. Every app counts."
             ),
             (
                 "A bounded number of requests",
-                "The account\u{2019}s own PDS answers every request, so only \(ActivityCalendarScan.concurrency) collections are read at a time and each stops after \(ActivityCalendarScan.pagesPerCollection) pages. A collection that runs longer says so, and can be read further."
+                "To spare the account\u{2019}s PDS, \(ActivityCalendarScan.concurrency) collections are read at a time, up to \(ActivityCalendarScan.pagesPerCollection) pages each. Longer ones can be read further."
             ),
             (
                 "What it cannot see",
-                "A deleted record leaves no key behind and an edit does not change one. The calendar shows records that still exist, on the day each was created."
+                "Deleted records leave no key, and edits don\u{2019}t change one."
             ),
         ])
     }
@@ -273,7 +273,7 @@ private struct ActivityResultsView: View {
                     progress
                 }
 
-                Text("Days are in your time zone (\(TimeZone.current.identifier)). Records that still exist are counted on the day each was created; deleted records and later edits leave no trace in a record key.")
+                Text("Days are in your time zone (\(TimeZone.current.identifier)). Deleted records are not counted.")
                     .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -283,7 +283,7 @@ private struct ActivityResultsView: View {
 
     private var legend: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Pick a day to see what was written on it.")
+            Text("Pick a day to see its records.")
                 .font(AturiFont.caption)
                 .foregroundStyle(theme.textSecondary)
             HStack(spacing: 3) {
@@ -458,7 +458,7 @@ private struct ActivityResultsView: View {
                 }
                 .pickerStyle(.segmented)
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Pick a row to show only its records on the calendar.")
+                    Text("Pick a row to filter the calendar.")
                         .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)

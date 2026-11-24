@@ -402,8 +402,8 @@ export default function OAuthCheckerScopes({
               term: 'atproto, always',
               text: (
                 <>
-                  Every atproto session asks for <code>atproto</code>. On its own it signs the account in
-                  and grants nothing else.
+                  Every session asks for <code>atproto</code>. Alone, it signs the account in and grants nothing
+                  else.
                 </>
               ),
             },
@@ -411,7 +411,7 @@ export default function OAuthCheckerScopes({
               term: 'Granular permissions',
               text: (
                 <>
-                  One item per thing the app does: <code>repo:</code> to write a record type,{' '}
+                  <code>repo:</code> to write a record type,{' '}
                   <code>rpc:</code> to call a service, <code>blob:</code> to upload, and{' '}
                   <code>account:</code> or <code>identity:</code> for the account itself.
                 </>
@@ -421,8 +421,8 @@ export default function OAuthCheckerScopes({
               term: 'Permission sets',
               text: (
                 <>
-                  <code>include:</code> names a bundle that a lexicon’s author published, so a consent
-                  screen can show one line instead of dozens.
+                  <code>include:</code> names a bundle a lexicon’s author published, shown as one line on a
+                  consent screen.
                 </>
               ),
             },
@@ -430,19 +430,19 @@ export default function OAuthCheckerScopes({
               term: 'Transitional scopes',
               text: (
                 <>
-                  <code>transition:generic</code> and its two companions give the broad access an app
-                  password had. They are meant to go away.
+                  <code>transition:generic</code> and its two companions give app-password access. They are
+                  meant to go away.
                 </>
               ),
             },
           ]}
         >
           <p className="fn-tool-note fn-tool-oauth-source">
-            The grammar is the{' '}
+            Grammar from the{' '}
             <a href="https://atproto.com/specs/permission" target="_blank" rel="noreferrer">
               atproto permission specification
             </a>
-            . A client’s metadata has to list every scope it might ask for.
+            . A client’s metadata must list every scope it might ask for.
           </p>
         </ToolIntro>
       )}

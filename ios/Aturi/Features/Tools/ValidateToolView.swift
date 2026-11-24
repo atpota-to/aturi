@@ -210,7 +210,7 @@ struct ValidateToolView: View {
             }
 
             if check.schema.isFound && !check.report.unresolved.isEmpty {
-                Text("Not checked, because these could not be found: \(check.report.unresolved.joined(separator: ", ")).")
+                Text("Not found, so not checked: \(check.report.unresolved.joined(separator: ", ")).")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -229,7 +229,7 @@ struct ValidateToolView: View {
         RecordToolsIntro(items: [
             (
                 "The schema is the published one",
-                "The record\u{2019}s $type names a lexicon. Its schema is found the way the network finds it: the _lexicon DNS record on its domain, then the schema record in that account\u{2019}s repository."
+                "The $type\u{2019}s schema, found as the network finds it: the _lexicon DNS record, then the schema record in that repository."
             ),
             (
                 "Every field is checked",
@@ -237,7 +237,7 @@ struct ValidateToolView: View {
             ),
             (
                 "References are followed",
-                "When a field\u{2019}s type lives in another lexicon, that one is fetched and checked too. Anything that could not be found is listed, not passed."
+                "Types from other lexicons are fetched and checked too. Anything not found is listed, not passed."
             ),
         ])
     }

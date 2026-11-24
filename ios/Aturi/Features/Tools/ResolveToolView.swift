@@ -117,19 +117,17 @@ struct ResolveToolView: View {
     }
 
     private var note: String {
-        var message = model.isTooLongToShare
-            ? "This list is too long to keep in the link, so it cannot be shared as one."
-            : "The list is kept in the link, so this table can be shared."
+        var parts: [String] = []
+        if model.isTooLongToShare { parts.append("Too long to share as a link.") }
         let duplicates = model.list.duplicates
         if duplicates > 0 {
-            let left = duplicates == 1 ? "duplicate was" : "duplicates were"
-            message += " \(duplicates.formatted()) \(left) left out."
+            parts.append("\(duplicates.formatted()) \(duplicates == 1 ? "duplicate" : "duplicates") left out.")
         }
         let dropped = model.list.dropped
         if dropped > 0 {
-            message += " Only the first \(BulkResolve.maxIdentifiers) are resolved; \(dropped.formatted()) more were left out."
+            parts.append("Only the first \(BulkResolve.maxIdentifiers) are resolved; \(dropped.formatted()) left out.")
         }
-        return message
+        return parts.joined(separator: " ")
     }
 
     private var identitiesSection: some View {
@@ -142,7 +140,7 @@ struct ResolveToolView: View {
                         .tint(theme.accent)
                         .accessibilityLabel("Identifiers resolved")
                         .accessibilityValue("\(counts.settled) of \(counts.total)")
-                } else {
+                } else if !note.isEmpty {
                     Text(note)
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
@@ -182,19 +180,15 @@ struct ResolveToolView: View {
         ToolIntro("What it does", items: [
             (
                 "Reads the list",
-                "Handles, DIDs, @handles, at:// URIs and profile links, one per line or separated by commas. Duplicates are dropped and the order is kept, up to \(BulkResolve.maxIdentifiers)."
+                "Handles, DIDs, at:// URIs or profile links, one per line or comma-separated, up to \(BulkResolve.maxIdentifiers)."
             ),
             (
                 "Resolves each one",
-                "A handle to its DID and a DID to its handle, with the PDS the account lives on. A handle only counts when its DID points back at it."
+                "Each to its DID, handle and PDS. A handle counts only when its DID points back."
             ),
             (
                 "Flags what is off",
-                "A handle that does not resolve, a DID with no handle, a handle that now belongs to a differently named account, and anything that is not an identifier at all."
-            ),
-            (
-                "Hands the table back",
-                "Copy it as CSV or JSON, or download the CSV. A short list is kept in the link, so the table can be shared."
+                "Handles that don\u{2019}t resolve, DIDs with no handle, handles now on another account, and anything that isn\u{2019}t an identifier."
             ),
         ])
     }

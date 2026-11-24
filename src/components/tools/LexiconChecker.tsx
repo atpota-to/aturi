@@ -291,8 +291,8 @@ export default function LexiconChecker() {
               term: 'The authority names a repository',
               text: (
                 <>
-                  A TXT record at <code>_lexicon.&lt;authority&gt;</code> holds <code>did=&lt;DID&gt;</code>. Each
-                  authority needs its own: a record on the domain above it is not consulted.
+                  A TXT record at <code>_lexicon.&lt;authority&gt;</code> holds <code>did=&lt;DID&gt;</code>. One on
+                  a parent domain doesn’t count.
                 </>
               ),
             },

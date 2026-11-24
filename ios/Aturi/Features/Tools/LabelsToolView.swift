@@ -106,7 +106,7 @@ struct LabelsToolView: View {
                     if let unavailable = base.unavailable {
                         AccountCheckVerdict(
                             title: "Bluesky will not show this",
-                            text: "The AppView answered \u{201C}\(unavailable)\u{201D}. That is not a label: it means there is no \(isPost(base) ? "post" : "profile") here for labels to appear on.",
+                            text: "The AppView answered \u{201C}\(unavailable)\u{201D}. That isn\u{2019}t a label: there is no \(isPost(base) ? "post" : "profile") here to label.",
                             tone: .warn
                         )
                     } else {
@@ -196,7 +196,7 @@ struct LabelsToolView: View {
 
     private func scanCard(_ base: LabelsClient.BaseResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Anyone can run a labeler, and an app only shows labels from the ones its user subscribes to. The checker asks every labeler the relay lists, \(Labels.labelersPerRequest) at a time.")
+            Text("Every labeler the relay lists is asked, \(Labels.labelersPerRequest) at a time.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -382,19 +382,19 @@ struct LabelsToolView: View {
         ToolIntro("How it works", items: [
             (
                 "Bluesky\u{2019}s own labeler",
-                "Asked first, because every Bluesky user is subscribed to it. Its answer comes with the labels the account put on itself."
+                "Asked first, since every Bluesky user subscribes to it. Self-labels come with its answer."
             ),
             (
                 "Every other labeler",
-                "Asked straight after. The checker lists every account with an app.bsky.labeler.service record and asks Bluesky\u{2019}s AppView which of them have labelled this."
+                "Then every account with an app.bsky.labeler.service record, through Bluesky\u{2019}s AppView."
             ),
             (
                 "What each label means",
-                "A label is a short value such as spam. Its name, description and what it hides come from the definitions its labeler publishes."
+                "A label\u{2019}s name, description and what it hides come from its labeler\u{2019}s definitions."
             ),
             (
                 "What it leaves out",
-                "Only labels the AppView has indexed are found, which is what Bluesky apps show. A suspension is not a label and is reported separately."
+                "Only labels the AppView has indexed. A suspension isn\u{2019}t a label and is reported separately."
             ),
         ])
     }

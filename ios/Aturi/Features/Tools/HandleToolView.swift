@@ -131,19 +131,19 @@ struct HandleToolView: View {
         ToolIntro("What it checks", items: [
             (
                 "The domain names a DID",
-                "A TXT record at _atproto.<handle>, or a text file at /.well-known/atproto-did. Either is enough; both are read."
+                "A TXT record at _atproto.<handle> or a file at /.well-known/atproto-did. Either is enough."
             ),
             (
                 "The DID claims the domain",
-                "The DID document has to list at://<handle> first under alsoKnownAs. Without it, apps show handle.invalid."
+                "The DID document lists at://<handle> first under alsoKnownAs. Otherwise apps show handle.invalid."
             ),
             (
                 "The account is reachable",
-                "Its PDS answers for the repository, reports it active, and agrees about the handle."
+                "Its PDS serves the repository, reports it active and agrees on the handle."
             ),
             (
                 "Bluesky has caught up",
-                "The AppView keeps its own copy of each handle, which can lag behind a change."
+                "The AppView\u{2019}s copy of the handle can lag behind a change."
             ),
         ])
     }

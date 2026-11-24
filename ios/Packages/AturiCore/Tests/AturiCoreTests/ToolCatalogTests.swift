@@ -72,7 +72,7 @@ final class ToolCatalogTests: XCTestCase {
     func testCopyDoesNotSendTheReaderToABrowser() {
         for tool in ToolCatalog.tools {
             XCTAssertFalse(tool.desc.contains("browser"), "\(tool.slug): \(tool.desc)")
-            XCTAssertFalse(tool.lead.contains("browser"), "\(tool.slug): \(tool.lead)")
+            XCTAssertFalse(tool.lead?.contains("browser") ?? false, "\(tool.slug): \(tool.lead ?? "")")
         }
     }
 }

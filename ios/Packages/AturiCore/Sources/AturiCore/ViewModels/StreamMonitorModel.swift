@@ -1113,7 +1113,7 @@ public final class StreamMonitorModel {
 
     /// The empty list's sentence.
     public var emptyMessage: String {
-        var message = "Waiting for matching events. With narrow filters this can take a while."
+        var message = "Waiting for matching events. Narrow filters can take a while."
         if !wants(.jetstream) && !wants(.plc) && !noAccountResolved { message = "Every event type is switched off." }
         if accountsPending && noAccountResolved {
             message = "Resolving handles\u{2026}"

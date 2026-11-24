@@ -111,7 +111,7 @@ struct OAuthToolView: View {
                 items: [
                     ServicesIntroItem(
                         term: "The document is served correctly",
-                        text: "A client_id is an https URL with no port. It has to answer 200 with application/json, without redirecting, and repeat its own URL as client_id."
+                        text: "The client_id is an https URL with no port that answers 200 with application/json, without redirecting, and repeats its own URL as client_id."
                     ),
                     ServicesIntroItem(
                         term: "The required fields are there",
@@ -119,14 +119,14 @@ struct OAuthToolView: View {
                     ),
                     ServicesIntroItem(
                         term: "Redirect URIs fit the client type",
-                        text: "A web client redirects to https URLs. A native client may use a scheme of its own, which must be the client_id’s hostname in reverse."
+                        text: "Web clients redirect to https. A native client may use a scheme of its own: the client_id’s hostname reversed."
                     ),
                     ServicesIntroItem(
                         term: "A confidential client publishes its key",
-                        text: "private_key_jwt needs a public key in jwks or at a jwks_uri, one or the other. The key set itself is not fetched."
+                        text: "private_key_jwt needs a public key in jwks or at a jwks_uri. The key set isn’t fetched."
                     ),
                 ],
-                note: "The rules are the Clients section of the atproto OAuth specification, atproto.com/specs/oauth."
+                note: "Rules from the Clients section of the atproto OAuth specification, atproto.com/specs/oauth."
             )
         } else if let reason = model.input?.reason {
             ServicesInputError(message: reason)
@@ -147,7 +147,7 @@ struct OAuthToolView: View {
                 ToolSection(model.loopback == nil ? "Document" : "Document a server derives") {
                     JSONTreeView(value: document, expandedDepth: 2)
                     if !model.otherFields.isEmpty {
-                        Text("Shown are the fields client metadata defines. The document also carries \(model.otherFields.joined(separator: ", ")), which a server ignores.")
+                        Text("The document also carries \(model.otherFields.joined(separator: ", ")), which servers ignore.")
                             .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -176,7 +176,7 @@ struct OAuthToolView: View {
                     CopyRow(label: "Client ID", value: clientId)
                 }
                 if model.loopback != nil {
-                    Text("A server that supports this form builds the document below from the URL, and adds a client_name of its own choosing.")
+                    Text("A server that supports this form builds the document below from the URL and adds its own client_name.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -206,22 +206,22 @@ struct OAuthToolView: View {
                 items: [
                     ServicesIntroItem(
                         term: "atproto, always",
-                        text: "Every atproto session asks for atproto. On its own it signs the account in and grants nothing else."
+                        text: "Every session asks for atproto. Alone, it signs the account in and grants nothing else."
                     ),
                     ServicesIntroItem(
                         term: "Granular permissions",
-                        text: "One item per thing the app does: repo: to write a record type, rpc: to call a service, blob: to upload, and account: or identity: for the account itself."
+                        text: "repo: to write a record type, rpc: to call a service, blob: to upload, and account: or identity: for the account itself."
                     ),
                     ServicesIntroItem(
                         term: "Permission sets",
-                        text: "include: names a bundle that a lexicon’s author published, so a consent screen can show one line instead of dozens."
+                        text: "include: names a bundle a lexicon’s author published, shown as one line on a consent screen."
                     ),
                     ServicesIntroItem(
                         term: "Transitional scopes",
-                        text: "transition:generic and its two companions give the broad access an app password had. They are meant to go away."
+                        text: "transition:generic and its two companions give app-password access. They are meant to go away."
                     ),
                 ],
-                note: "The grammar is the atproto permission specification, atproto.com/specs/permission. A client’s metadata has to list every scope it might ask for."
+                note: "Grammar from the atproto permission specification, atproto.com/specs/permission. A client’s metadata must list every scope it might ask for."
             )
         } else {
             ToolSection("Scopes", detail: analysis.notes.first ?? scopeCount(analysis.scopes.count)) {

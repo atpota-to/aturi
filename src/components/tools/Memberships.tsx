@@ -201,11 +201,11 @@ function VerificationRow({ item }: { item: Verification }) {
   );
 }
 
-function ListSection({ title, hint, items }: { title: string; hint: string; items: Membership[] }) {
+function ListSection({ title, hint, items }: { title: string; hint?: string; items: Membership[] }) {
   if (items.length === 0) return null;
   return (
     <ToolSection title={title} meta={`${items.length.toLocaleString()} loaded`}>
-      <p className="fn-tool-note fn-tool-memberships-hint">{hint}</p>
+      {hint && <p className="fn-tool-note fn-tool-memberships-hint">{hint}</p>}
       <ToolCard flush>
         <ul className="fn-tool-rows fn-tool-memberships-rows">
           {items.map((item) => (
@@ -288,10 +288,10 @@ export default function Memberships({ subject, heading }: { subject?: string; he
     ? account.verified
       ? 'Bluesky shows this account as verified.'
       : account.trustedVerifier
-        ? 'Bluesky treats this account as a trusted verifier, which can verify others.'
+        ? 'Bluesky treats this account as a trusted verifier.'
         : account.onBluesky
           ? 'Bluesky does not show this account as verified.'
-          : 'Bluesky’s AppView has no profile for this account, so only the records themselves are shown.'
+          : 'Bluesky’s AppView has no profile for this account. Only the records are shown.'
     : '';
 
   return (
@@ -395,12 +395,11 @@ export default function Memberships({ subject, heading }: { subject?: string; he
               />
               <ListSection
                 title="Starter packs"
-                hint="The member list behind a starter pack."
                 items={groups.reference}
               />
               <ListSection
                 title="Unavailable lists"
-                hint="The list was deleted, or the account behind it is gone. The index still counts the membership."
+                hint="Deleted, or the account behind it is gone. The index still counts the membership."
                 items={groups.unavailable}
               />
 
@@ -452,21 +451,20 @@ export default function Memberships({ subject, heading }: { subject?: string; he
               term: 'Lists that include the account',
               text: (
                 <>
-                  Every <code>app.bsky.graph.listitem</code> record that names it, wherever it was written,
-                  with the list each one belongs to.
+                  Every <code>app.bsky.graph.listitem</code> record that names it, with its list.
                 </>
               ),
             },
             {
               term: 'What each list is for',
-              text: 'Curation lists, moderation lists and the member lists behind starter packs are shown apart, with who made each one and how many are on it.',
+              text: 'Curation, moderation and starter pack lists, apart, with who made each and its size.',
             },
             {
               term: 'Who has verified it',
               text: (
                 <>
-                  Every <code>app.bsky.graph.verification</code> record that names it, and whether Bluesky
-                  trusts the account that wrote it.
+                  Every <code>app.bsky.graph.verification</code> record that names it, and whether Bluesky trusts
+                  its author.
                 </>
               ),
             },

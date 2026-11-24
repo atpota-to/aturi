@@ -134,8 +134,8 @@ export default function MutualBlocksSave({
         <div className="fn-tool-mutuals-save">
           <p>
             Sign in to save the {nf.format(selected.length)} ticked {selected.length === 1 ? 'account' : 'accounts'} as a
-            moderation list on your account. Signing in leaves this page and comes back to it; the scan is kept, so
-            nothing is read again. Allow <strong>Create</strong> when asked which permissions to grant.
+            moderation list on your account. The scan is kept while you sign in. Allow <strong>Create</strong> when asked
+            for permissions.
           </p>
           <SignInPanel defaultInput={scanned.handle ?? scanned.did} />
         </div>
@@ -282,7 +282,7 @@ export default function MutualBlocksSave({
               ? 'Tick at least one account above.'
               : `${nf.format(selected.length)} ${selected.length === 1 ? 'account' : 'accounts'}, ${nf.format(points)} write points.`}
             {points > HOURLY_POINT_BUDGET * 0.9 &&
-              ` Your PDS allows ${nf.format(HOURLY_POINT_BUDGET)} an hour, so this pauses partway and carries on by itself while the page stays open.`}
+              ` Your PDS allows ${nf.format(HOURLY_POINT_BUDGET)} an hour, so this pauses partway and resumes while the page stays open.`}
           </p>
           <button type="submit" className="fn-searchbox-submit fn-tool-mutuals-save-button" disabled={!ready}>
             <ListPlus size={16} aria-hidden /> Create list

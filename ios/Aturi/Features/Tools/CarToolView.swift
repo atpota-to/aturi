@@ -101,7 +101,7 @@ struct CarToolView: View {
                 Image(systemName: "doc.badge.arrow.up")
                     .foregroundStyle(theme.textTertiary)
                     .accessibilityHidden(true)
-                Text("Or open a .car file from this device. It is read in the app and never uploaded.")
+                Text("Or open a .car file from this device. It is never uploaded.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -230,7 +230,7 @@ struct CarToolView: View {
             }
             ToolFactRow(label: "PDS", value: PDSServer.pdsHostname(identity.pds))
             if let inactive = identity.repoStatus {
-                Text("The PDS reports this repository as \(inactive.status ?? "inactive"), so it may refuse to send the export.")
+                Text("The PDS reports this repository as \(inactive.status ?? "inactive") and may refuse the export.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -252,7 +252,7 @@ struct CarToolView: View {
                     .buttonStyle(.aturiSecondary)
                     .accessibilityHint("Opens outside the app")
                 }
-                Text("The export is every record in the repository in one file, which can run to many megabytes. It is fetched straight from the PDS into this app; up to \(CarFormat.bytes(CarFormat.maxArchiveBytes)) can be opened.")
+                Text("Exports can run to many megabytes. Up to \(CarFormat.bytes(CarFormat.maxArchiveBytes)) can be opened here.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -265,19 +265,19 @@ struct CarToolView: View {
         ToolIntro("What it shows", items: [
             (
                 "The commit",
-                "Whose repository this is, when it was last written, and the root of the tree that holds everything else."
+                "Whose repository it is, when it was last written, and its root."
             ),
             (
                 "Every record",
-                "The tree is walked to list each collection and record key, and a record is decoded when it is opened. Any of it can be saved as JSON."
+                "Each collection and record key. Records decode when opened and save as JSON."
             ),
             (
                 "Whether the file is sound",
-                "Parts of the tree that are missing, records it lists but does not hold, and, when asked, whether every block still hashes to its address."
+                "Missing parts of the tree, listed records it doesn\u{2019}t hold, and, on request, whether every block matches its hash."
             ),
             (
                 "What it leaves out",
-                "The commit\u{2019}s signature is not verified, and blobs are not in an export: images and video appear as links, not files."
+                "The signature isn\u{2019}t verified, and blobs aren\u{2019}t in an export, so images and video show as links."
             ),
         ])
     }
@@ -436,7 +436,7 @@ private struct CarRecordsBrowser: View {
                 if let collection {
                     recordsSection(collection)
                 }
-                Text("Blobs are not part of a repository export. An image or video appears here as a link to its CID; the file itself stays on the account\u{2019}s PDS.")
+                Text("Blobs aren\u{2019}t in an export. Images and video link to their CID on the account\u{2019}s PDS.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)

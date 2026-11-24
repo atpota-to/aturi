@@ -32,8 +32,8 @@ public enum XrpcLexiconSource: String, Hashable, Sendable {
     public var note: String? {
         switch self {
         case .published: return nil
-        case .repository: return "Parameters are read from the lexicon in the atproto repository."
-        case .names: return "This method\u{2019}s lexicon could not be found, so its parameters are plain text fields."
+        case .repository: return "Parameters from the lexicon in the atproto repository."
+        case .names: return "Lexicon not found, so parameters are plain text fields."
         }
     }
 }

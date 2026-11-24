@@ -147,7 +147,7 @@ struct MutualsToolView: View {
             }
         }
         if model.isDone {
-            Text("Being blocked by many of someone\u{2019}s mutuals is a signal, not proof of anything. People block for their own reasons, and a few friends who talk to each other can block the same account for the same one. Look before you add.")
+            Text("Many mutuals blocking an account is a signal, not proof. Friends often block for the same reason. Look before you add.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -159,8 +159,8 @@ struct MutualsToolView: View {
             MutualsVerdict(
                 title: model.progressLine,
                 text: model.phase == .blocks
-                    ? "Each mutual\u{2019}s block records are read from its own PDS. The results below fill in as they arrive."
-                    : "Finding the accounts that follow each other with this one.",
+                    ? "Results fill in as each mutual\u{2019}s PDS answers."
+                    : "Finding mutuals.",
                 running: true
             )
             HStack(spacing: 10) {
@@ -232,19 +232,19 @@ struct MutualsToolView: View {
         ToolIntro("How it works", items: [
             (
                 "Find the mutuals",
-                "Everyone the account follows who follows it back, from Bluesky\u{2019}s AppView."
+                "Everyone the account follows who follows back, from Bluesky\u{2019}s AppView."
             ),
             (
                 "Read their blocks",
-                "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records are read from its own PDS, every page of them, along with the moderation lists it blocks."
+                "Blocks are public. Each mutual\u{2019}s app.bsky.graph.block records and blocked lists are read from its own PDS."
             ),
             (
                 "See where they agree",
-                "How many mutuals block each account, and a list ranked by agreement. Move the threshold and everything follows."
+                "How many mutuals block each account, and a ranked list, both set by one threshold."
             ),
             (
                 "Save the ones you choose",
-                "Sign in and the ticked accounts become a moderation list on your account, which you can subscribe to, block, or share."
+                "Sign in to save the ticked accounts as a moderation list on your account."
             ),
         ])
     }
@@ -359,7 +359,7 @@ private struct MutualsWall: View {
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             if model.isDone, model.unreadableCount > 0 {
-                Text("\(Mutuals.count(model.unreadableCount)) \(model.unreadableCount == 1 ? "mutual" : "mutuals") could not be read, marked with a red ring. Press and hold one to see why.")
+                Text("\(Mutuals.count(model.unreadableCount)) \(model.unreadableCount == 1 ? "mutual" : "mutuals") could not be read (red ring). Press and hold one to see why.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -376,10 +376,9 @@ private struct MutualsWall: View {
     }
 
     private var note: String {
-        let lead = faces
-            ? "One face per mutual, in the order they were found. "
-            : "One dot per mutual, more strongly coloured the more accounts it blocks. "
-        return lead + "Choose one to see only the accounts it blocks."
+        faces
+            ? "Choose a mutual to see only its blocks."
+            : "One dot per mutual, darker the more it blocks. Choose one to see only its blocks."
     }
 
     private func tile(index: Int, person: MutualsPerson, most: Int) -> some View {
@@ -606,7 +605,7 @@ private struct MutualsAccountsSection: View {
         }
         let gone = model.goneCount
         if gone > 0 {
-            Text("\(Mutuals.count(gone)) \(gone == 1 ? "account that no longer exists is" : "accounts that no longer exist are") left out: deleted, deactivated or taken down since they were blocked.")
+            Text("\(Mutuals.count(gone)) \(gone == 1 ? "account that no longer exists is" : "accounts that no longer exist are") left out.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -764,7 +763,7 @@ private struct MutualsListsSection: View {
         let subscriptions = model.listSubscriptions
         let count = subscriptions.count
         ToolSection("Block lists your mutuals use", detail: "\(Mutuals.count(count)) \(count == 1 ? "list" : "lists")") {
-            Text("Moderation lists your mutuals block wholesale. Their members are not counted above; each list would take a request per hundred members to open.")
+            Text("Their members are not counted above.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -876,7 +875,7 @@ private struct MutualsSaveCard: View {
     private var signedOut: some View {
         let count = model.selected.count
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Sign in to save the \(Mutuals.count(count)) ticked \(count == 1 ? "account" : "accounts") as a moderation list on your account. Allow Create when asked which permissions to grant.")
+            Text("Sign in to save the \(Mutuals.count(count)) ticked \(count == 1 ? "account" : "accounts") as a moderation list on your account. Allow Create when asked for permissions.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -978,7 +977,7 @@ private struct MutualsSaveCard: View {
         guard selected > 0 else { return "Tick at least one account above." }
         var text = "\(Mutuals.count(selected)) \(selected == 1 ? "account" : "accounts"), \(Mutuals.count(points)) write points."
         if Double(points) > Double(WriteThrottle.hourlyPointBudget) * 0.9 {
-            text += " Your PDS allows \(Mutuals.count(WriteThrottle.hourlyPointBudget)) an hour, so this pauses partway and carries on by itself while this page stays open."
+            text += " Your PDS allows \(Mutuals.count(WriteThrottle.hourlyPointBudget)) an hour, so this pauses partway and resumes while this page stays open."
         }
         return text
     }

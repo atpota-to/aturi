@@ -477,8 +477,8 @@ export default function MutualBlocks() {
             <div className="fn-tool-mutuals-running">
               <ToolVerdict tone="info" title={progressLine} icon={<LoaderCircle size={18} className="fn-tool-spin" />}>
                 {scan.phase === 'blocks'
-                  ? 'Each mutual’s block records are read from its own PDS. The results below fill in as they arrive.'
-                  : 'Finding the accounts that follow each other with this one.'}
+                  ? 'Results fill in as each mutual’s PDS answers.'
+                  : 'Finding mutuals.'}
               </ToolVerdict>
               <div className="fn-tool-mutuals-running-bar">
                 <div className="fn-tool-progress" role="progressbar" aria-valuenow={Math.round(progressRatio * 100)} aria-valuemin={0} aria-valuemax={100}>
@@ -533,9 +533,9 @@ export default function MutualBlocks() {
 
           {scan.restored && (
             <p className="fn-tool-note">
-              Kept from the scan at{' '}
-              {new Date(scan.restored.savedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}, so
-              nothing was read again. Accounts blocked by a single mutual were not kept.{' '}
+              From the scan at{' '}
+              {new Date(scan.restored.savedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.
+              Accounts blocked by one mutual were not kept.{' '}
               <button type="button" className="fn-tool-link" onClick={rescan}>
                 Scan again
               </button>
@@ -559,14 +559,13 @@ export default function MutualBlocks() {
                 <MutualWall mutuals={scan.mutuals} states={scan.states} focus={focus} onFocus={focusOn} />
                 <p className="fn-tool-note fn-tool-mutuals-wall-note">
                   {scan.mutuals.length > 160
-                    ? 'One dot per mutual, more strongly coloured the more accounts it blocks. '
-                    : 'One face per mutual, in the order they were found. '}
-                  Choose one to see only the accounts it blocks.
+                    ? 'One dot per mutual, darker the more it blocks. Choose one to see only its blocks.'
+                    : 'Choose a mutual to see only its blocks.'}
                 </p>
                 {skipped.length > 0 && done && (
                   <p className="fn-tool-note">
-                    {nf.format(skipped.length)} {skipped.length === 1 ? 'mutual' : 'mutuals'} could not be read, marked
-                    with a red ring. Point at one to see why.
+                    {nf.format(skipped.length)} {skipped.length === 1 ? 'mutual' : 'mutuals'} could not be read (red
+                    ring). Point at one to see why.
                   </p>
                 )}
               </ToolCard>
@@ -700,7 +699,7 @@ export default function MutualBlocks() {
                   {gone.length > 0 && (
                     <p className="fn-tool-note fn-tool-mutuals-gone">
                       {nf.format(gone.length)} {gone.length === 1 ? 'account that no longer exists is' : 'accounts that no longer exist are'}{' '}
-                      left out: deleted, deactivated or taken down since they were blocked.
+                      left out.
                     </p>
                   )}
                 </>
@@ -711,8 +710,7 @@ export default function MutualBlocks() {
           {done && listSubs.length > 0 && (
             <ToolSection title="Block lists your mutuals use" meta={`${nf.format(listSubs.length)} ${listSubs.length === 1 ? 'list' : 'lists'}`}>
               <p className="fn-tool-note fn-tool-mutuals-hint">
-                Moderation lists your mutuals block wholesale. Their members are not counted above; each list would take
-                a request per hundred members to open.
+                Their members are not counted above.
               </p>
               <ToolCard flush>
                 <ul className="fn-tool-rows">
@@ -742,9 +740,7 @@ export default function MutualBlocks() {
 
           {done && (
             <p className="fn-tool-note fn-tool-mutuals-caveat">
-              Being blocked by many of someone’s mutuals is a signal, not proof of anything. People block for their own
-              reasons, and a few friends who talk to each other can block the same account for the same one. Look before
-              you add.
+              Many mutuals blocking an account is a signal, not proof. Friends often block for the same reason. Look before you add.
             </p>
           )}
 
@@ -758,24 +754,24 @@ export default function MutualBlocks() {
           items={[
             {
               term: 'Find the mutuals',
-              text: 'Everyone the account follows who follows it back, from Bluesky’s AppView.',
+              text: 'Everyone the account follows who follows back, from Bluesky’s AppView.',
             },
             {
               term: 'Read their blocks',
               text: (
                 <>
-                  Blocks are public. Each mutual’s <code>app.bsky.graph.block</code> records are read from its own PDS,
-                  every page of them, along with the moderation lists it blocks.
+                  Blocks are public. Each mutual’s <code>app.bsky.graph.block</code> records and blocked lists are read
+                  from its own PDS.
                 </>
               ),
             },
             {
               term: 'See where they agree',
-              text: 'How many mutuals block each account, a map of who blocks whom, and a list ranked by agreement. Move the threshold and everything follows.',
+              text: 'How many mutuals block each account, a map, and a ranked list, all set by one threshold.',
             },
             {
               term: 'Save the ones you choose',
-              text: 'Sign in and the ticked accounts become a moderation list on your account, which you can subscribe to, block, or share.',
+              text: 'Sign in to save the ticked accounts as a moderation list on your account.',
             },
           ]}
         />

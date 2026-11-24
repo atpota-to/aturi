@@ -161,9 +161,7 @@ export default function RelayCheck() {
               <RelayStatusRows results={relays.results} />
             </ToolCard>
             <p className="fn-tool-note fn-tool-relay-note">
-              Account counts differ between relays: each counts the accounts it has seen itself, and the host may
-              have more. The sequence number is how far through the host&rsquo;s events a relay last recorded
-              reading.
+              Each relay counts only the accounts it has seen. The sequence number is how far it has read.
             </p>
           </ToolSection>
 
@@ -171,17 +169,15 @@ export default function RelayCheck() {
             <ToolSection title="Asking to be crawled">
               <ToolCard>
                 <p>
-                  A relay starts reading a PDS when the PDS asks it to, with{' '}
-                  <code>com.atproto.sync.requestCrawl</code>. The reference PDS sends this itself to every relay in
-                  its <code>PDS_CRAWLERS</code> setting, so check that setting first. To ask by hand, send the
-                  request from anywhere:
+                  A PDS asks relays to read it with <code>com.atproto.sync.requestCrawl</code>. The reference PDS
+                  sends it to every relay in <code>PDS_CRAWLERS</code>, so check that setting first. To ask by hand:
                 </p>
                 <ToolCode copy={requestCrawlCommand(crawlRelay.host, target.host)} label="command">
                   {requestCrawlCommand(crawlRelay.host, target.host)}
                 </ToolCode>
                 <p className="fn-tool-note fn-tool-relay-note">
-                  This page does not send it. The relay connects back to the hostname in the request, so the PDS
-                  has to be reachable over https at that name.
+                  This page doesn’t send it. The relay connects back to that hostname, so the PDS must answer over
+                  https there.
                 </p>
               </ToolCard>
             </ToolSection>
@@ -238,27 +234,27 @@ export default function RelayCheck() {
               term: 'A PDS asks to be crawled',
               text: (
                 <>
-                  It sends <code>com.atproto.sync.requestCrawl</code> to a relay with its own hostname. Until it
-                  does, the relay does not know it exists.
+                  It sends <code>com.atproto.sync.requestCrawl</code> with its hostname. Until then, the relay
+                  doesn’t know it exists.
                 </>
               ),
             },
             {
               term: 'The relay subscribes to it',
-              text: 'It connects to the host’s event stream and passes on every record written there. Apps read from relays, not from each PDS.',
+              text: 'It reads the host’s event stream and passes every record on. Apps read relays, not each PDS.',
             },
             {
               term: 'Each relay reports what it knows',
               text: (
                 <>
-                  <code>com.atproto.sync.getHostStatus</code> returns a status, the number of accounts the relay
-                  has seen on the host, and how far it has read. {RELAYS.length} relays are asked.
+                  <code>com.atproto.sync.getHostStatus</code> gives a status, an account count and how far it has
+                  read. {RELAYS.length} relays are asked.
                 </>
               ),
             },
             {
               term: 'The host is asked too',
-              text: 'So a PDS that is down reads apart from one that is up but has never been crawled.',
+              text: 'To tell a PDS that is down from one that was never crawled.',
             },
           ]}
         />
