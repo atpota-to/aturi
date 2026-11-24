@@ -38,7 +38,7 @@ final class ToolCatalogTests: XCTestCase {
 
         let grouped = ToolCatalog.byGroup()
         XCTAssertEqual(grouped.map(\.group.id), [.network, .identity, .accounts, .records, .services])
-        XCTAssertEqual(grouped.first?.tools.map(\.slug), ["stream", "xrpc", "relay"])
+        XCTAssertEqual(grouped.first?.tools.map(\.slug), ["stream", "xrpc", "relay", "pds"])
         XCTAssertEqual(grouped.flatMap(\.tools).count, ToolCatalog.tools.count)
     }
 

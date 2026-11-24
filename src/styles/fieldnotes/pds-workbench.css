@@ -598,6 +598,26 @@ a.fx-lx-row[data-current] .fx-pd-handle {
   margin-right: 4px;
 }
 
+/* The mark beside a version (VersionBadge.tsx) is a link to the version
+   check. It keeps the standing's colour rather than a link's, on the server
+   card and on the classic page's header alike. */
+a.fx-pd-version,
+.fx-pd-facts dd a.fx-pd-version {
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+a.fx-pd-version[data-tone='warn'],
+.fx-pd-facts dd a.fx-pd-version[data-tone='warn'] {
+  color: var(--tool-warn);
+}
+
+a.fx-pd-version:hover,
+.fx-pd-facts dd a.fx-pd-version:hover {
+  text-decoration: underline;
+}
+
 .fx-pd-fact-quiet {
   font-size: 12px;
   font-variant-numeric: tabular-nums;

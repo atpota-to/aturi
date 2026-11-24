@@ -2,16 +2,8 @@
 
 import Link from 'next/link';
 import { Check, LoaderCircle, RadioTower, TriangleAlert, X } from 'lucide-react';
-import { describeServer, getServerHealth } from '@/utils/atproto/pdsServer';
-import { resolveMiniDoc, type MiniDoc } from '@/utils/atproto/slingshot';
-import {
-  RELAYS,
-  hostOfEndpoint,
-  normalizeRelayInput,
-  relayVerdict,
-  requestCrawlCommand,
-  type PdsProbe,
-} from '@/lib/tools/relay';
+import { RELAYS, normalizeRelayInput, relayVerdict, requestCrawlCommand } from '@/lib/tools/relay';
+import { resolvePdsTarget, type PdsTarget } from '@/lib/tools/pdsTargetClient';
 import { toolHref } from '@/lib/tools/catalog';
 import { RelayStatusRows, useRelayStatuses } from './RelayStatusList';
 import {
@@ -31,59 +23,6 @@ import { useToolQuery, useToolRun } from './useToolQuery';
 const SLUG = 'relay';
 const EXAMPLES = [{ value: 'blacksky.app' }, { value: 'eurosky.social' }, { value: '@bsky.app' }];
 
-/**
- * The host the relays are asked about, and how it was arrived at. `pds` is
- * what the host says for itself, undefined until it has been asked: the
- * relays are asked as soon as the hostname is known, not after.
- */
-type Target = {
-  host: string;
-  /** The account the host was looked up from, when the input was not a host. */
-  account: { did: string; handle: string | null } | null;
-  pds?: PdsProbe;
-};
-
-async function probePds(host: string): Promise<PdsProbe> {
-  const [server, health] = await Promise.all([
-    describeServer(host).catch(() => null),
-    getServerHealth(host).catch(() => null),
-  ]);
-  return { reachable: server !== null, did: server?.did, version: health?.version };
-}
-
-/**
- * Settle what was typed into a hostname. A URL is a host and a DID or
- * @handle is an account. A bare domain can be either, so both are asked at
- * once: if it answers as a PDS it is one, and otherwise, if it resolves as a
- * handle, the account's PDS is used. A domain that does neither is still
- * taken as a host, since a PDS that is down is exactly what someone would
- * come here to look into.
- */
-async function resolveTarget(
-  input: Extract<ReturnType<typeof normalizeRelayInput>, { ok: true }>,
-  signal: AbortSignal,
-  publish: (target: Target) => void,
-): Promise<Target> {
-  const fromAccount = async (mini: MiniDoc | null, identifier: string): Promise<Target> => {
-    const host = mini ? hostOfEndpoint(mini.pds) : null;
-    if (!mini || !host) throw new Error(`${identifier} could not be resolved to an account with a PDS.`);
-    const target: Target = { host, account: { did: mini.did, handle: mini.handle } };
-    publish(target);
-    return { ...target, pds: await probePds(host) };
-  };
-
-  if (input.kind === 'account') {
-    return fromAccount(await resolveMiniDoc(input.identifier, signal), input.identifier);
-  }
-  if (input.kind === 'host') {
-    publish({ host: input.host, account: null });
-    return { host: input.host, account: null, pds: await probePds(input.host) };
-  }
-  const [pds, mini] = await Promise.all([probePds(input.host), resolveMiniDoc(input.host, signal)]);
-  if (!pds.reachable && mini) return fromAccount(mini, input.host);
-  return { host: input.host, account: null, pds };
-}
-
 const VERDICT_ICON = {
   pass: <Check size={18} strokeWidth={2.6} />,
   warn: <TriangleAlert size={18} />,
@@ -101,8 +40,8 @@ export default function RelayCheck() {
   const valid = input?.ok ? input : null;
   const key = valid ? `${valid.kind}:${valid.kind === 'account' ? valid.identifier : valid.host}` : null;
 
-  const run = useToolRun<Target>(key, ({ signal, publish }) =>
-    resolveTarget(valid as NonNullable<typeof valid>, signal, publish),
+  const run = useToolRun<PdsTarget>(key, ({ signal, publish }) =>
+    resolvePdsTarget(valid as NonNullable<typeof valid>, signal, publish),
   );
   const target = run.data ?? null;
   const relays = useRelayStatuses(target?.host ?? null);

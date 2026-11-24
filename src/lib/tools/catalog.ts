@@ -26,6 +26,7 @@ import {
   RadioTower,
   Rss,
   ScanText,
+  ServerCog,
   Share2,
   SquareTerminal,
   Tags,
@@ -91,6 +92,15 @@ export const TOOLS: ToolEntry[] = [
     group: 'network',
     Icon: RadioTower,
     keywords: ['relay', 'crawl', 'pds', 'host', 'firehose', 'self-host', 'requestcrawl'],
+  },
+  {
+    slug: 'pds',
+    title: 'PDS version check',
+    desc: 'See whether a PDS runs the latest release of the reference PDS, how many releases behind it is, and since when.',
+    lead: 'A PDS reports the version it runs. This reads it, by hostname or from an account’s handle or DID, and compares it with the releases of the reference PDS.',
+    group: 'network',
+    Icon: ServerCog,
+    keywords: ['pds', 'version', 'update', 'up to date', 'outdated', 'release', 'self-host', 'pdsadmin', 'health'],
   },
   {
     slug: 'handle',

@@ -21,6 +21,7 @@ import { SkeletonBar } from '../skeletons/primitives';
 import type { AddressPatch } from './AccountsPane';
 import { AccountAvatar, CommitTime } from './parts';
 import { nameOf, useAccountRows, useLoadProfiles, useNamesVersion, usePdsRepos, usePdsServer } from './usePdsData';
+import VersionBadge from './VersionBadge';
 import { shortDid } from '@/utils/atproto/urls';
 
 const RECENT = 8;
@@ -126,6 +127,7 @@ function ServerCard({
         {health?.version && (
           <Fact label="Version">
             <code>{health.version}</code>
+            <VersionBadge host={pdsHostname(base)} version={health.version} />
           </Fact>
         )}
         {authServers && (
