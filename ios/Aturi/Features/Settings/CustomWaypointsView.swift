@@ -29,7 +29,7 @@ struct CustomWaypointsView: View {
         List {
             SettingsSection(
                 "Custom waypoints",
-                footer: "Add your own jump destinations using URL templates. Placeholders: {handle}, {did}, {actor}, {collection} and {rkey}. New custom waypoints land in your \(Preferences.customGroupName) group."
+                footer: "Built from URL templates. New ones join your \(Preferences.customGroupName) group."
             ) {
                 Button {
                     addingNew = true

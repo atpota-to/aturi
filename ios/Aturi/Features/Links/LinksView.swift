@@ -69,7 +69,7 @@ struct LinksView: View {
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
-            Text("Paste a link from any Atmosphere app, an at:// URI, a handle or a DID. You get a preview and a list of every client that can open it.")
+            Text("See every app that can open a link.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -103,7 +103,7 @@ struct LinksView: View {
                 }
             }
             if showsInvalidHint && !trimmed.isEmpty && !isValid {
-                Text("That is not a link this app can open. Try an at:// URI, a handle, a DID, or a link from a supported app.")
+                Text("Not a link Aturi can open. Try an at:// URI, a handle, a DID or a link from a supported app.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.danger)
                     .fixedSize(horizontal: false, vertical: true)
@@ -221,11 +221,7 @@ struct LinksView: View {
             Text("What is a universal link?")
                 .font(AturiFont.subtitle)
                 .foregroundStyle(theme.textPrimary)
-            Text("An aturi.to link names an account or a record on the AT Protocol rather than one app. Whoever opens it picks the client they prefer, and this app is one of the places it can land.")
-                .font(AturiFont.footnote)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("Every page you preview here has a share button with its aturi.to link, so the people you send it to get the same choice.")
+            Text("An aturi.to link points to an account or record, not one app. Whoever opens it picks their own client.")
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

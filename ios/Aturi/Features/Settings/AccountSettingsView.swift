@@ -78,10 +78,7 @@ private struct AccountSignedInView: View {
 
     var body: some View {
         List {
-            SettingsSection(
-                "Signed in",
-                footer: "Your account identity. Sign out clears the session from this device."
-            ) {
+            SettingsSection("Signed in") {
                 HStack(alignment: .center, spacing: 12) {
                     AvatarView(url: loadedProfile?.avatar, size: 48)
                     VStack(alignment: .leading, spacing: 2) {
@@ -121,8 +118,8 @@ private struct AccountSignedInView: View {
             SettingsSection(
                 "Permissions",
                 footer: grantedScopes.isEmpty
-                    ? "This sign-in can read your repo but not change it. Sign out and back in to grant write actions."
-                    : "What your PDS granted, read off the token rather than what was asked for. Reading records is always allowed: your repo is public."
+                    ? "Sign out and back in to grant write access."
+                    : "What your PDS granted. Reading records is always allowed: your repo is public."
             ) {
                 if grantedScopes.isEmpty {
                     Chip("Read only", systemImage: "eye")
@@ -251,7 +248,7 @@ private struct AccountSignInView: View {
         List {
             SettingsSection(
                 "Sign in to sync",
-                footer: "You can use Aturi without signing in: preferences stay on this device. Sign in and they sync to your PDS, so the same setup follows you across devices."
+                footer: "Optional. Without it, settings stay on this device."
             ) {
                 TextField("handle.bsky.social or did:plc:...", text: $handle)
                     .font(AturiFont.mono)
@@ -268,7 +265,7 @@ private struct AccountSignInView: View {
 
             SettingsSection(
                 "Permissions",
-                footer: "Reading records is always allowed: your repo is public. Untick an action to grant a narrower scope; your PDS only asks about what you request here."
+                footer: "Reading records is always allowed: your repo is public."
             ) {
                 ForEach(Scopes.granular) { scope in
                     Toggle(isOn: scopeBinding(scope.id)) {
@@ -310,7 +307,7 @@ private struct AccountSignInView: View {
                         .listRowInsets(EdgeInsets())
                 }
             } footer: {
-                Text("You will be sent to your PDS to authorize Aturi and brought back here. Reads always work because your repo is public.")
+                Text("You\u{2019}ll be sent to your PDS to authorize Aturi.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }

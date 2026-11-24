@@ -32,21 +32,14 @@ export default function WaypointsTab() {
       <section className="settings-card">
         <div className="settings-card-head">
           <h2 className="settings-card-title">Picker layout</h2>
-          <p className="settings-card-sub">
-            How the universal-link picker draws your waypoints. The same switch
-            sits above the picker itself, so you can change it while looking at
-            the result.
-          </p>
         </div>
 
         <div className="settings-toggle-row">
           <div className="settings-toggle-label">
             <span className="settings-toggle-label-text">Layout</span>
             <span className="settings-toggle-label-sub">
-              <em>Compact</em> gives each waypoint one line — mark, name, and
-              the host it opens. <em>Grid</em> drops to icon tiles, names only.
-              <em> Cards</em> is the original full-width list with descriptions
-              and collapsible group headers.
+              <em>Compact</em>: one line per waypoint. <em>Grid</em>: icon
+              tiles, names only. <em>Cards</em>: full cards with descriptions.
             </span>
           </div>
           <WaypointLayoutToggle variant="labels" />
@@ -57,10 +50,7 @@ export default function WaypointsTab() {
         <div className="settings-card-head">
           <h2 className="settings-card-title">Waypoint groups</h2>
           <p className="settings-card-sub">
-            Build your own groups for the universal-link picker. Drag groups
-            (or rows within a group) to reorder. Use <strong>+</strong> on a
-            group header to add waypoints from the catalog. The same waypoint
-            can live in multiple groups; anything not in a group is hidden.
+            Drag to reorder. Waypoints in no group are hidden from the picker.
           </p>
         </div>
         {newWaypoints.length > 0 && (

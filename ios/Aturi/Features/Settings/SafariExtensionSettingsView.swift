@@ -69,7 +69,7 @@ struct SafariExtensionSettingsView: View {
     var body: some View {
         List {
             SettingsSection {
-                Text("Aturi's Safari extension shows the other atproto clients that can open the page you are on, copies aturi.to links, and can send links straight to the client you prefer. It comes with this app, so there is nothing else to install.")
+                Text("Shows the clients that can open the page you\u{2019}re on, copies aturi.to links and redirects to your preferred client. Included with this app.")
                     .font(AturiFont.body)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -79,7 +79,7 @@ struct SafariExtensionSettingsView: View {
             if safariIsTooOld {
                 SettingsSection("Needs iOS 18.4") {
                     Label {
-                        Text("The extension needs Safari 18.4, which comes with iOS 18.4. Update in Settings > General > Software Update to use it.")
+                        Text("Update in Settings > General > Software Update.")
                             .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -104,12 +104,12 @@ struct SafariExtensionSettingsView: View {
             ) {
                 StepRow(number: 1, text: openExtensionsStep)
                 StepRow(number: 2, text: "Turn on Aturi.")
-                StepRow(number: 3, text: "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker.")
+                StepRow(number: 3, text: "Tap Aturi in \(pageMenu) on any page.")
             }
 
             SettingsSection(
                 "Site access",
-                footer: "The extension's own settings page lists the sites your redirects cover and can ask for all of them at once."
+                footer: "The extension\u{2019}s settings page can request every site your redirects cover at once."
             ) {
                 ForEach(Array(siteAccessParagraphs.enumerated()), id: \.offset) { _, paragraph in
                     Text(paragraph)
@@ -135,9 +135,9 @@ struct SafariExtensionSettingsView: View {
        redirected. */
     private var siteAccessParagraphs: [String] {
         [
-            "Safari lets an extension read a site only after you allow it there. Until you do, Aturi cannot see which page you are on, and links to that site are not redirected.",
-            "On a site Aturi has not been allowed on yet, tap Aturi in \(pageMenu) and Safari asks whether to allow it. Access allowed for one day runs out, and links to that site stop being redirected until you allow it again.",
-            "\(settingsPath) > Aturi lists the sites you have allowed, and changes them.",
+            "Safari lets an extension read a site only after you allow it. Until then, Aturi can\u{2019}t see the page and won\u{2019}t redirect links to that site.",
+            "To allow a site, tap Aturi in \(pageMenu) there. Access allowed for one day expires, and redirects stop until you allow it again.",
+            "\(settingsPath) > Aturi lists and changes allowed sites.",
         ]
     }
 
@@ -145,13 +145,13 @@ struct SafariExtensionSettingsView: View {
     private var statusRow: some View {
         switch status {
         case .checking:
-            statusLabel("Checking whether the extension is on", systemImage: "hourglass", tint: theme.textTertiary)
+            statusLabel("Checking", systemImage: "hourglass", tint: theme.textTertiary)
         case .on:
             statusLabel("On in Safari", systemImage: "checkmark.circle.fill", tint: theme.textAccent)
         case .off:
-            statusLabel("Off. Turn it on in Safari's extension settings.", systemImage: "circle", tint: theme.textTertiary)
+            statusLabel("Off", systemImage: "circle", tint: theme.textTertiary)
         case .unknown:
-            statusLabel("Safari did not report the extension's state. Follow the steps below to check it.", systemImage: "questionmark.circle", tint: theme.textTertiary)
+            statusLabel("Unknown. Check with the steps below.", systemImage: "questionmark.circle", tint: theme.textTertiary)
         }
     }
 

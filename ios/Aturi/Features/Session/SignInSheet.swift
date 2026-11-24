@@ -72,7 +72,7 @@ struct SignInSheet: View {
 
     private var handleStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Sign in with your handle to edit your own records, and to keep your settings on your PDS so they carry across devices.")
+            Text("Sign in to edit your records and sync settings across devices.")
                 .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

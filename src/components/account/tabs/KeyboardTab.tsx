@@ -45,11 +45,9 @@ export default function KeyboardTab() {
         <div className="settings-card-head">
           <h2 className="settings-card-title">Keyboard shortcuts</h2>
           <p className="settings-card-sub">
-            Fast keyboard access for desktop. Press{' '}
-            <kbd className="kbd">?</kbd> anywhere for the cheat sheet, or open the
-            command palette with <Kbd binding="mod+k" platform={platform} />.
-            These bindings are saved in this browser, not synced to your PDS —
-            keyboards and layouts differ per device.
+            Press <kbd className="kbd">?</kbd> for the cheat sheet and{' '}
+            <Kbd binding="mod+k" platform={platform} /> for the command palette.
+            Saved in this browser.
           </p>
         </div>
 
@@ -67,14 +65,13 @@ export default function KeyboardTab() {
         <Toggle
           id="keyboard-enabled"
           label="Enable keyboard shortcuts"
-          description="Master switch. When off, no global shortcut fires (the settings below are kept for when you turn it back on)."
           checked={state.enabled}
           onChange={setEnabled}
         />
         <Toggle
           id="keyboard-chords"
           label="Navigation chords"
-          description="Two-key sequences like “g then e” to jump around. Turn off if you'd rather only use single-key and modifier shortcuts."
+          description="Two-key sequences like “g then e”."
           checked={state.chords}
           onChange={setChords}
           disabled={!state.enabled}
@@ -88,10 +85,8 @@ export default function KeyboardTab() {
         <div className="settings-card-head">
           <h2 className="settings-card-title">Bindings</h2>
           <p className="settings-card-sub">
-            Click <em>Edit</em> and press the keys you want. Chords are supported
-            — press one key, then another. <kbd className="kbd">Enter</kbd> saves,{' '}
-            <kbd className="kbd">Esc</kbd> cancels, <kbd className="kbd">⌫</kbd>{' '}
-            removes the last key.
+            Click <em>Edit</em> and press the keys, one after another for a chord.{' '}
+            <kbd className="kbd">⌫</kbd> removes the last key.
           </p>
         </div>
 
