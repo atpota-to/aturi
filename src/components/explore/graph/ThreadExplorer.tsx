@@ -1,6 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { Ban, Maximize2, Minus, Plus, RotateCcw, Scan, Search, SlidersHorizontal, X } from 'lucide-react';
 import PageToolbar from '@/components/PageToolbar';
@@ -78,6 +87,30 @@ const hashFor = (rkey: string) => `#explore-${rkey}`;
 let pushedHash: string | null = null;
 let opener: HTMLElement | null = null;
 
+/**
+ * Whether to skip motion: the site's own setting (`data-reduce-motion` on
+ * <html>, globals.css), which starts from the OS's and can be flipped either
+ * way in settings.
+ */
+function still(): boolean {
+  const set = document.documentElement.dataset.reduceMotion;
+  return set ? set === 'true' : window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * The box of the button the explorer opens from, as the `clip-path` the
+ * explorer grows out of and shrinks back into (graph.css), or null when the
+ * button isn't on screen to grow out of.
+ */
+function insetOf(el: HTMLElement | null): string | null {
+  const r = el?.getBoundingClientRect();
+  const w = document.documentElement.clientWidth;
+  const h = document.documentElement.clientHeight;
+  if (!r || !r.width || r.bottom <= 0 || r.right <= 0 || r.top >= h || r.left >= w) return null;
+  const px = (n: number) => `${Math.round(Math.max(0, n))}px`;
+  return `inset(${px(r.top)} ${px(w - r.right)} ${px(h - r.bottom)} ${px(r.left)} round 10px)`;
+}
+
 function subscribeHash(onChange: () => void) {
   window.addEventListener('hashchange', onChange);
   return () => window.removeEventListener('hashchange', onChange);
@@ -112,9 +145,25 @@ export default function ThreadExplorer({ uri, rkey }: { uri: string; rkey: strin
     () => window.location.hash === hash,
     () => false,
   );
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // Closed, the explorer stays up a moment longer while it shrinks back
+  // into the button, then goes. Reduced motion makes that instant.
+  const [leaving, setLeaving] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setLeaving(!open);
+  }
+  useEffect(() => {
+    if (!leaving) return undefined;
+    // In case the animation never ends: a hidden tab doesn't run it.
+    const t = window.setTimeout(() => setLeaving(false), 600);
+    return () => window.clearTimeout(t);
+  }, [leaving]);
   return (
     <>
       <button
+        ref={buttonRef}
         type="button"
         className="fn-rec-btn"
         onClick={() => openExplorer(rkey)}
@@ -122,7 +171,17 @@ export default function ThreadExplorer({ uri, rkey }: { uri: string; rkey: strin
       >
         <Maximize2 size={14} aria-hidden /> Explore thread
       </button>
-      {open && createPortal(<Explorer uri={uri} onClose={() => closeExplorer(hash)} />, document.body)}
+      {(open || leaving) &&
+        createPortal(
+          <Explorer
+            uri={uri}
+            origin={buttonRef}
+            leaving={!open}
+            onLeft={() => setLeaving(false)}
+            onClose={() => closeExplorer(hash)}
+          />,
+          document.body,
+        )}
     </>
   );
 }
@@ -167,8 +226,13 @@ const REPLIES_AT_ONCE = 6;
 const PAGE = 8;
 /** No path through quotes of quotes goes deeper than this. */
 const MAX_DEPTH = 40;
-/** The canvas's margin round the tree. */
+/** The canvas's margin above and below the tree. */
 const PAD = 48;
+/**
+ * Its margin either side, wider, so the first and last columns of cards can
+ * be brought in from the screen's edge rather than pinned to it.
+ */
+const PAD_X = 160;
 /** The search and filters, which a phone shows as a sheet (aria-controls). */
 const SHEET_ID = 'fx-tx-tools';
 
@@ -271,7 +335,21 @@ function drawBadges(badges: Badge[], right: number, y: number): { nodes: React.R
  * a second click, their close button or Esc (a second Esc closes the
  * explorer). Pointing at a card only marks it.
  */
-function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
+function Explorer({
+  uri,
+  origin,
+  leaving,
+  onLeft,
+  onClose,
+}: {
+  uri: string;
+  /** The button it opened from: it grows out of it and shrinks back in. */
+  origin: RefObject<HTMLElement | null>;
+  /** Closed, and on its way out. */
+  leaving: boolean;
+  onLeft: () => void;
+  onClose: () => void;
+}) {
   const [thread, setThread] = useState<ThreadGraph | null>(null);
   const [failed, setFailed] = useState(false);
   const [relations, setRelations] = useState<Map<string, FollowRelation>>(() => new Map());
@@ -313,6 +391,20 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   useEffect(() => {
     sheetRef.current = sheet;
   }, [sheet]);
+  const leavingRef = useRef(leaving);
+  useEffect(() => {
+    leavingRef.current = leaving;
+  }, [leaving]);
+
+  // It grows out of the button it opened from, and shrinks back into it on
+  // the way out, wherever that button is now (graph.css).
+  useLayoutEffect(() => {
+    const el = dialogRef.current;
+    const from = insetOf(origin.current);
+    if (!el) return;
+    if (from) el.style.setProperty('--fx-tx-from', from);
+    else el.style.removeProperty('--fx-tx-from');
+  }, [origin, leaving]);
 
   // The page underneath stays put while the explorer is up. Escape closes
   // it, once any details open beside the canvas are closed, and / searches.
@@ -327,6 +419,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     // there: one Esc used to close both the explorer and the record under it.
     // What the key does by default (Tab, scrolling, typing) is untouched.
     const onKey = (e: KeyboardEvent) => {
+      if (leavingRef.current) return;
       e.stopPropagation();
       if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditable(e.target)) {
         e.preventDefault();
@@ -682,7 +775,12 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     if (!loaded) {
       if (subtrees.has(post.uri)) return;
       setSubtrees((m) => new Map(m).set(post.uri, 'loading'));
-      void loadReplies(post.uri).then((tree) => setSubtrees((m) => new Map(m).set(post.uri, tree ?? 'failed')));
+      // The view follows the replies in once they're read, as it followed
+      // the note that says they're being read.
+      void loadReplies(post.uri).then((tree) => {
+        setSubtrees((m) => new Map(m).set(post.uri, tree ?? 'failed'));
+        setReveal(nodeKey);
+      });
     } else {
       const showing = !foldedNow.has(post.uri) || forcedOpen.has(post.uri);
       setFolded(() => {
@@ -738,7 +836,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           if (hidden > 0) {
             more = note(`${key}>more`, `${plural(hidden, 'more reply', 'more replies')}`, () => {
               setExpanded((e) => new Set(e).add(post.uri));
-              setReveal(`${key}>more`);
+              setReveal(key);
             });
           }
         }
@@ -863,7 +961,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     started.current = true;
     const p = placeOf(focusKey);
     if (p) {
-      box.scrollLeft = Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3);
+      box.scrollLeft = Math.max(0, (p.x + PAD_X) * zoom - box.clientWidth / 3);
       box.scrollTop = Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2);
       autoScroll.current = { left: box.scrollLeft, top: box.scrollTop };
     }
@@ -882,11 +980,10 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     if (Math.abs(box.scrollLeft - at.left) > 2 || Math.abs(box.scrollTop - at.top) > 2) return;
     const p = placeOf(focusKey);
     if (!p) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     box.scrollTo({
-      left: Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3),
+      left: Math.max(0, (p.x + PAD_X) * zoom - box.clientWidth / 3),
       top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
-      behavior: reduce ? 'auto' : 'smooth',
+      behavior: still() ? 'auto' : 'smooth',
     });
   }, [cutsKnown, focusKey, placeOf, zoom]);
 
@@ -895,27 +992,58 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     zoomRef.current = zoom;
   }, [zoom]);
 
-  // After a branch opens, bring it into view, moving no further than needed.
+  // After a branch opens or closes, the view follows it. The post and its
+  // replies come into view, moving no further than needed, when they fit.
+  // When they don't (at full size on a phone, a post and its replies never
+  // do), the replies that just appeared win, with the end of the post they
+  // hang off still showing at the left. The view glides as the cards do.
+  const shownBefore = useRef<ReadonlySet<string>>(new Set());
   useEffect(() => {
     const box = boxRef.current;
     if (!box || !reveal) return;
+    setReveal(null);
     const p = placeOf(reveal);
     if (!p) return;
     const kids = shownItems.filter((n) => n.parent === reveal);
-    const right = Math.max(p.x + p.w, ...kids.map((k) => k.x + k.w));
-    const top = Math.min(p.y, ...kids.map((k) => k.y));
-    const bottom = Math.max(p.y + p.h, ...kids.map((k) => k.y + k.h));
-    let left = box.scrollLeft;
-    let scrollTop = box.scrollTop;
+    const fresh = kids.filter((k) => !shownBefore.current.has(k.key));
+    const show = fresh.length ? fresh : kids;
     const z = zoom;
-    if ((right + PAD) * z + 40 > left + box.clientWidth) left = (right + PAD) * z + 40 - box.clientWidth;
-    if ((p.x + PAD) * z - 40 < left) left = (p.x + PAD) * z - 40;
-    if ((bottom + PAD) * z + 40 > scrollTop + box.clientHeight) scrollTop = (bottom + PAD) * z + 40 - box.clientHeight;
-    if ((top + PAD) * z - 40 < scrollTop) scrollTop = (top + PAD) * z - 40;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    box.scrollTo({ left: Math.max(0, left), top: Math.max(0, scrollTop), behavior: reduce ? 'auto' : 'smooth' });
-    setReveal(null);
+    const margin = 40;
+    /** Scroll along one axis so a..b (on screen) is in view, or if it can't all be, to `lead`. */
+    const along = (pos: number, size: number, a: number, b: number, lead: number) => {
+      if (b - a + margin * 2 > size) return lead;
+      if (b + margin > pos + size) pos = b + margin - size;
+      if (a - margin < pos) pos = a - margin;
+      return pos;
+    };
+    const kidsLeft = show.length ? Math.min(...show.map((k) => k.x)) : p.x;
+    const right = Math.max(p.x + p.w, ...show.map((k) => k.x + k.w));
+    const top = Math.min(p.y, ...show.map((k) => k.y));
+    const bottom = Math.max(p.y + p.h, ...show.map((k) => k.y + k.h));
+    const sx = (x: number) => (x + PAD_X) * z;
+    const sy = (y: number) => (y + PAD) * z;
+    const left = along(
+      box.scrollLeft,
+      box.clientWidth,
+      sx(p.x),
+      sx(right),
+      show.length ? sx(kidsLeft) - Math.min(96, box.clientWidth / 4) : sx(p.x) - margin,
+    );
+    const scrollTop = along(
+      box.scrollTop,
+      box.clientHeight,
+      sy(top),
+      sy(bottom),
+      sy(show.length ? Math.min(...show.map((k) => k.y)) : p.y) - margin,
+    );
+    box.scrollTo({ left: Math.max(0, left), top: Math.max(0, scrollTop), behavior: still() ? 'auto' : 'smooth' });
   }, [reveal, shownItems, placeOf, zoom]);
+  // What was drawn before this render, for the effect above to tell the
+  // replies that just appeared from those already there. Declared after it,
+  // so it runs after it.
+  useEffect(() => {
+    shownBefore.current = new Set(shownItems.map((n) => n.key));
+  }, [shownItems]);
 
   // A post stepped to (a search hit, a pinned person's next post, someone
   // named in the details) comes to the middle of the screen.
@@ -926,11 +1054,10 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     const p = key ? placeOf(key) : null;
     setGoto(null);
     if (!p) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     box.scrollTo({
-      left: Math.max(0, (p.x + PAD + p.w / 2) * zoom - box.clientWidth / 2),
+      left: Math.max(0, (p.x + PAD_X + p.w / 2) * zoom - box.clientWidth / 2),
       top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
-      behavior: reduce ? 'auto' : 'smooth',
+      behavior: still() ? 'auto' : 'smooth',
     });
   }, [goto, keyOfUri, placeOf, zoom]);
 
@@ -990,7 +1117,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     setDragging(false);
   };
 
-  const width = layout ? Math.max(layout.width, motion.bounds.right) + PAD * 2 : 0;
+  const width = layout ? Math.max(layout.width, motion.bounds.right) + PAD_X * 2 : 0;
   const height = layout ? Math.max(layout.height, motion.bounds.bottom) + PAD * 2 : 0;
 
   const fit = () => {
@@ -1495,6 +1622,11 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       className="fx-tx"
       data-pick
       data-sheet={sheet || undefined}
+      data-leaving={leaving || undefined}
+      inert={leaving}
+      onAnimationEnd={(e) => {
+        if (leaving && e.target === e.currentTarget) onLeft();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="fx-tx-title"
@@ -1583,7 +1715,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             <svg
               width={width * zoom}
               height={height * zoom}
-              viewBox={`${-PAD} ${-PAD} ${width} ${height}`}
+              viewBox={`${-PAD_X} ${-PAD} ${width} ${height}`}
               className="fx-graph-svg"
               role="group"
               aria-label="The thread, its quotes, likes, reposts and links"

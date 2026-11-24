@@ -922,6 +922,41 @@ g[data-moving] .fx-graph-mark,
   background: var(--bg-primary);
   padding-top: env(safe-area-inset-top, 0px);
   outline: none;
+  /* Opening, it grows out of the "Explore thread" button it was opened
+     from, and closing, it shrinks back into it: ThreadExplorer sets this to
+     the button's box. Opened any other way, it grows from a little inside
+     the screen's edges. A clip rather than a transform, so the toolbar and
+     sheet pinned inside it stay pinned to the screen. Reduced motion makes
+     both instant (globals.css). */
+  --fx-tx-from: inset(4% 4% 4% 4% round 16px);
+  animation: fx-tx-open 340ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+.fx-tx[data-leaving] {
+  pointer-events: none;
+  animation: fx-tx-close 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes fx-tx-open {
+  from {
+    clip-path: var(--fx-tx-from);
+    opacity: 0.4;
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+    opacity: 1;
+  }
+}
+
+@keyframes fx-tx-close {
+  from {
+    clip-path: inset(0 0 0 0 round 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: var(--fx-tx-from);
+    opacity: 0;
+  }
 }
 
 .fx-tx-head {
