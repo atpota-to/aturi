@@ -75,6 +75,14 @@ public enum ToolCatalog {
             keywords: ["relay", "crawl", "pds", "host", "firehose", "self-host", "requestcrawl"]
         ),
         ToolEntry(
+            slug: "pds",
+            title: "PDS version check",
+            desc: "Check whether a PDS runs the latest release.",
+            lead: "Knows the releases of the reference PDS, Tranquil, Cirrus, Cocoon and Tangled knots.",
+            group: .network,
+            keywords: ["pds", "version", "update", "up to date", "outdated", "release", "self-host", "pdsadmin", "health", "tranquil", "cirrus", "cocoon", "knot"]
+        ),
+        ToolEntry(
             slug: "handle",
             title: "Handle debugger",
             desc: "Find the step where a handle stops resolving.",

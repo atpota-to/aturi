@@ -30,6 +30,7 @@ import { Segmented } from './lexicons/primitives';
 import AccountsList, { AccountsSkeleton, useAccountsView } from './pds/AccountsList';
 import { LoadMore } from './pds/AccountsPane';
 import { SORT_CHOICES } from './pds/parts';
+import VersionBadge from './pds/VersionBadge';
 import {
   nameOf,
   useAccountRows,
@@ -377,6 +378,7 @@ function PdsHeader({
             <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
               {health.version}
             </code>
+            <VersionBadge host={pdsHostname(pdsBase)} version={health.version} />
           </Cell>
         )}
 
