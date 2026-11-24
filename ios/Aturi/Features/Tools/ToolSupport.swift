@@ -389,6 +389,64 @@ struct ToolSection<Content: View>: View {
     }
 }
 
+/// What a tool does, numbered, shown before it has any input: the web
+/// tools' `ToolIntro`. Every tool draws its intro through this one view, so
+/// the numbers sit in the same circles from tool to tool.
+struct ToolIntro: View {
+    var title: String = "What it checks"
+    let items: [(term: String, text: Text)]
+    var note: String? = nil
+
+    @Environment(\.aturiTheme) private var theme
+
+    /// Items as `Text`, for copy that carries markdown (code spans) or is
+    /// built from values.
+    init(_ title: String = "What it checks", items: [(term: String, text: Text)], note: String? = nil) {
+        self.title = title
+        self.items = items
+        self.note = note
+    }
+
+    /// Plain items, drawn verbatim so a stray `*` or `_` in an identifier is
+    /// not read as markdown.
+    init(_ title: String = "What it checks", items: [(term: String, text: String)], note: String? = nil) {
+        self.init(title, items: items.map { (term: $0.term, text: Text(verbatim: $0.text)) }, note: note)
+    }
+
+    var body: some View {
+        ToolSection(title) {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(verbatim: "\(index + 1)")
+                            .font(AturiFont.monoSmall)
+                            .foregroundStyle(theme.textSecondary)
+                            .frame(width: 22, height: 22)
+                            .background(theme.bgTertiary, in: Circle())
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.term)
+                                .font(AturiFont.sans(.subheadline, weight: .semibold))
+                                .foregroundStyle(theme.textPrimary)
+                            item.text
+                                .font(AturiFont.footnote)
+                                .foregroundStyle(theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+                if let note {
+                    Text(note)
+                        .font(AturiFont.caption)
+                        .foregroundStyle(theme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
 /// How one step of a check came out, the web tools' `CheckStatus`.
 enum ToolCheckStatus: Hashable {
     case pass

@@ -45,6 +45,10 @@ struct SafariExtensionSettingsView: View {
         return "In Safari, tap the page menu in the address bar, then Manage Extensions."
     }
 
+    private var useItStep: String {
+        "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker."
+    }
+
     /// Where Settings keeps Safari's extensions. iOS 18 moved the apps'
     /// settings under Apps.
     private var settingsPath: String {
@@ -92,19 +96,32 @@ struct SafariExtensionSettingsView: View {
             }
 
             if #available(iOS 26.2, *) {
-                SettingsSection("Status") {
-                    statusRow
-                }
-                openSettingsSection
+                statusSection
             }
 
-            SettingsSection(
-                "Turn it on",
-                footer: "Or turn it on in \(settingsPath) > Aturi."
-            ) {
-                StepRow(number: 1, text: openExtensionsStep)
-                StepRow(number: 2, text: "Turn on Aturi.")
-                StepRow(number: 3, text: "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker.")
+            /* Once Safari reports the extension on, the steps to turn it on
+               are done, so only the last one, how to use it, is left. Every
+               other state, including no report at all, keeps the steps. */
+            if status == .on {
+                SettingsSection(
+                    "Use it",
+                    footer: "To turn it off, use \(settingsPath) > Aturi."
+                ) {
+                    Text(useItStep)
+                        .font(AturiFont.body)
+                        .foregroundStyle(theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 2)
+                }
+            } else {
+                SettingsSection(
+                    "Turn it on",
+                    footer: "Or turn it on in \(settingsPath) > Aturi."
+                ) {
+                    StepRow(number: 1, text: openExtensionsStep)
+                    StepRow(number: 2, text: "Turn on Aturi.")
+                    StepRow(number: 3, text: useItStep)
+                }
             }
 
             SettingsSection(
@@ -168,22 +185,33 @@ struct SafariExtensionSettingsView: View {
         .padding(.vertical, 2)
     }
 
+    /// The status card with the button to Settings beneath it. The button
+    /// sits in the section's footer, not in a row of its own: inset grouped
+    /// rows clip their content to the section's rounded corners, which are
+    /// far larger than the button's, so a row the button fills edge to edge
+    /// cuts its corners off.
     @available(iOS 26.2, *)
-    private var openSettingsSection: some View {
+    private var statusSection: some View {
         Section {
-            Button("Open Safari Extension Settings", action: openSettings)
-                .buttonStyle(.aturiPrimary)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
+            statusRow
+                .listRowBackground(theme.bgSecondary)
+        } header: {
+            Text("Status")
+                .foregroundStyle(theme.textTertiary)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Open Safari Extension Settings", action: openSettings)
+                    .buttonStyle(.aturiPrimary)
 
-            if openFailed {
-                Text("Settings did not open. Use the steps below instead.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                if openFailed {
+                    Text("Settings did not open. Use the steps below instead.")
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .textCase(nil)
+            .padding(.top, 12)
         }
     }
 

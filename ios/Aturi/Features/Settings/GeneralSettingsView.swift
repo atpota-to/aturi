@@ -82,7 +82,7 @@ struct GeneralSettingsView: View {
 
             SettingsSection(
                 "Pinned lexicons",
-                footer: "Pin lexicons (or entire NSID groups like app.bsky.feed.*) from any repo\u{2019}s Lexicons tab to surface them at the top of the list. Useful for jumping straight to the records you touch most."
+                footer: "Pin lexicons (or entire NSID groups like app.bsky.feed.*) from any repo\u{2019}s Collections tab to surface them at the top of the list. Useful for jumping straight to the records you touch most. Pins you make in the lexicon browser on Explore are a separate list, kept in that browser\u{2019}s Pinned card."
             ) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Show pinned section on")
@@ -101,7 +101,7 @@ struct GeneralSettingsView: View {
                 .padding(.vertical, 4)
                 SettingsToggleRow(
                     "Start lexicon groups collapsed",
-                    detail: "When on, every group on the explorer\u{2019}s Lexicons tab starts folded. Use the toggle next to the filter bar to flip everything at once.",
+                    detail: "When on, every group on a repo\u{2019}s Collections tab starts folded. Use the toggle next to the filter bar to flip everything at once.",
                     isOn: preferences.settingsBinding({ $0.collectionGroupsCollapsedByDefault }, { $0.collectionGroupsCollapsedByDefault = $1 })
                 )
             }
@@ -165,8 +165,10 @@ struct GeneralSettingsView: View {
 }
 
 /// The web's two-tone chip: the dark variant on the left, the light one on
-/// the right, each showing its background with a dot of its accent, so
-/// both are visible whichever one is active.
+/// the right, each showing its background with a dot of its text accent, so
+/// both are visible whichever one is active. Trans is the exception, as in
+/// globals.css: its light half takes the pink accent instead of the deep
+/// blue text accent, so the chip shows the flag's sky blue and pink.
 private struct SchemeSwatch: View {
     let scheme: AturiColorScheme
 
@@ -176,8 +178,8 @@ private struct SchemeSwatch: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         HStack(spacing: 0) {
-            half(scheme.darkPalette)
-            half(scheme.lightPalette)
+            half(scheme.darkPalette, dot: scheme.darkPalette.textAccent)
+            half(scheme.lightPalette, dot: scheme == .trans ? scheme.lightPalette.accentMoss : scheme.lightPalette.textAccent)
         }
         .frame(width: 48, height: 30)
         .clipShape(shape)
@@ -185,11 +187,11 @@ private struct SchemeSwatch: View {
         .accessibilityHidden(true)
     }
 
-    private func half(_ palette: Palette) -> some View {
+    private func half(_ palette: Palette, dot: String) -> some View {
         ZStack {
             Color(hex: palette.bgPrimary)
             Circle()
-                .fill(Color(hex: palette.accentMoss))
+                .fill(Color(hex: dot))
                 .frame(width: 10, height: 10)
         }
     }
@@ -263,7 +265,7 @@ private struct PinnedListSection: View {
         SettingsSection(
             "\(title) (\(list.count))",
             footer: list.isEmpty
-                ? "Nothing pinned yet. Add an NSID or a group wildcard (e.g. app.bsky.feed.*) above, or use the pin button on rows and group headers in any repo\u{2019}s Lexicons tab."
+                ? "Nothing pinned yet. Add an NSID or a group wildcard (e.g. app.bsky.feed.*) above, or use the pin button on rows and group headers in any repo\u{2019}s Collections tab."
                 : nil
         ) {
             HStack(spacing: 8) {

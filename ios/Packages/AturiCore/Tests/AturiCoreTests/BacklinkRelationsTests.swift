@@ -170,6 +170,8 @@ final class BacklinkRelationsTests: XCTestCase {
         ("app.bsky.graph.starterpack", ".feeds[].uri", "app.bsky.feed.generator", .other),
         ("app.bsky.graph.referencelistoptout", ".subject", "app.bsky.graph.list", .other),
         ("app.standard-reader.read", ".subject", "site.standard.document", .other),
+        ("app.bsky.feed.threadgate", ".post", "app.bsky.feed.post", .other),
+        ("app.bsky.feed.postgate", ".post", "app.bsky.feed.post", .other),
     ]
 
     func testRecordSourcesLandInTheirRelationship() {

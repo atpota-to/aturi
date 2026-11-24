@@ -744,6 +744,14 @@ public final class RepoModel {
     }
 
     private func run(generation gen: Int) async {
+        // Text that can never be a handle or a DID ("coffee cake") would
+        // otherwise go out to the resolver and come back as "couldn't
+        // find an account", which reads as if the account might exist.
+        // Saying so locally is both quicker and more honest.
+        if isMalformedInput {
+            identity = .failed("Not a handle or DID: \(repoCandidate)")
+            return
+        }
         let bundle: IdentityBundle
         do {
             bundle = try await resolver.resolveIdentifier(input)
@@ -950,8 +958,37 @@ public final class RepoModel {
     /// details".
     public var notFoundMessage: String? {
         identity.errorMessage.map { _ in
-            "We couldn\u{2019}t find an account for \u{201C}\(input)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
+            if isMalformedInput {
+                if repoCandidate.contains(where: \.isWhitespace) {
+                    return "Handles can\u{2019}t contain spaces. Full-text search isn\u{2019}t supported; enter a handle (alice.bsky.social), a DID or an at:// URI."
+                }
+                return "\u{201C}\(repoCandidate)\u{201D} isn\u{2019}t a valid handle or DID. Handles look like alice.bsky.social."
+            }
+            return "We couldn\u{2019}t find an account for \u{201C}\(input)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         }
+    }
+
+    /// The not-found panel's headline when the input could never resolve.
+    public static let malformedInputHeadline = "That isn\u{2019}t a handle or DID."
+
+    /// True when the input, read the way the resolver reads it, is neither
+    /// a handle nor a DID, so no lookup could ever succeed. Empty input is
+    /// left to the resolver, which already fails it without a request.
+    public var isMalformedInput: Bool {
+        let candidate = repoCandidate
+        return !candidate.isEmpty && !isValidHandle(candidate) && !isValidDid(candidate)
+    }
+
+    /// The identifier the resolver would look up: trimmed, the repo segment
+    /// of an at:// URI, and without the presentation-only leading "@".
+    private var repoCandidate: String {
+        var target = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if target.hasPrefix("at://") {
+            let repo = target.dropFirst("at://".count).prefix { $0 != "/" }
+            if !repo.isEmpty { target = String(repo) }
+        }
+        if target.hasPrefix("@") { target.removeFirst() }
+        return target
     }
 
     /// The banner for an inactive repo; nil in the ordinary case.
@@ -1073,7 +1110,19 @@ public final class RepoModel {
     /// in `collections.errorMessage`.
     public var collectionsInactiveNotice: String? {
         guard collections.errorMessage != nil, let status = identity.value?.repoStatus else { return nil }
-        return "No collections: this repo is \(status.status ?? "inactive")."
+        // The raw status is a protocol token ("takendown"); the sentence
+        // needs it as English.
+        let s = RepoStatusNotice(status: status.status).status
+        let clause: String
+        switch s {
+        case "takendown": clause = "has been taken down"
+        case "deleted": clause = "has been deleted"
+        case "suspended": clause = "is suspended"
+        case "deactivated": clause = "is deactivated"
+        case "inactive": clause = "is inactive"
+        default: clause = "is marked \(s)"
+        }
+        return "No collections: this repo \(clause)."
     }
 
     /// Placeholder copy when the tab has nothing to list.

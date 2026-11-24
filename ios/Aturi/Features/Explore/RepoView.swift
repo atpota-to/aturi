@@ -87,15 +87,17 @@ private struct RepoScreen: View {
                 case .idle, .loading:
                     SkeletonRows(count: 6)
                 case .failed(let message):
+                    /* Input that can never resolve gets its own headline and
+                       no retry: trying again would fail the same way, and
+                       the prefilled search box is the way forward. */
                     ExploreNotFoundPanel(
                         eyebrow: RecordModel.identityFailureEyebrow,
-                        headline: RecordModel.identityFailureHeadline,
+                        headline: model.isMalformedInput ? RepoModel.malformedInputHeadline : RecordModel.identityFailureHeadline,
                         message: model.notFoundMessage ?? message,
                         details: message,
-                        query: model.input
-                    ) {
-                        model.load()
-                    }
+                        query: model.input,
+                        retry: model.isMalformedInput ? nil : { _ = model.load() }
+                    )
                 case .loaded(let identity):
                     loadedContent(identity)
                 }
@@ -433,15 +435,15 @@ struct RepoProfileCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if header.hasStats {
-                HStack(spacing: 16) {
-                    if let count = header.profile.followersCount {
-                        stat("heart", count, "followers")
+                /* Big counts at large Dynamic Type no longer fit one row;
+                   stacking them keeps each label whole instead of
+                   wrapping "followers" mid-word. */
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) {
+                        statItems
                     }
-                    if let count = header.profile.followsCount {
-                        stat("person.2", count, "following")
-                    }
-                    if let count = header.profile.postsCount {
-                        stat("text.bubble", count, "posts")
+                    VStack(alignment: .leading, spacing: 6) {
+                        statItems
                     }
                 }
             }
@@ -488,6 +490,19 @@ struct RepoProfileCard: View {
         }
     }
 
+    @ViewBuilder
+    private var statItems: some View {
+        if let count = header.profile.followersCount {
+            stat("heart", count, "followers")
+        }
+        if let count = header.profile.followsCount {
+            stat("person.2", count, "following")
+        }
+        if let count = header.profile.postsCount {
+            stat("text.bubble", count, "posts")
+        }
+    }
+
     private func stat(_ systemImage: String, _ value: Int, _ label: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage)
@@ -500,6 +515,7 @@ struct RepoProfileCard: View {
             Text(label)
                 .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
+                .lineLimit(1)
         }
         .accessibilityElement(children: .combine)
     }
@@ -604,13 +620,18 @@ private struct RepoGlanceGrid: View {
                 hint: "Earliest PLC operation timestamp"
             )
             scoreTile
-            RepoStatTile(
-                systemImage: "waveform.path.ecg",
-                label: "Last active",
-                value: stats.map { $0.lastActiveDate.map { Formatting.relative($0) } ?? Self.dash },
-                sublabel: stats?.headRevFromRelay == true ? "via relay" : nil,
-                hint: stats?.lastActiveHint
-            )
+            /* A relative time frozen at first render goes stale while the
+               page stays open ("just now" an hour later), so the tile
+               re-reads the clock once a minute. */
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                RepoStatTile(
+                    systemImage: "waveform.path.ecg",
+                    label: "Last active",
+                    value: stats.map { $0.lastActiveDate.map { Formatting.relative($0, now: context.date) } ?? Self.dash },
+                    sublabel: stats?.headRevFromRelay == true ? "via relay" : nil,
+                    hint: stats?.lastActiveHint
+                )
+            }
             exportTile
         }
     }
@@ -815,13 +836,21 @@ private struct RepoCollectionsTab: View {
                 }
                 .pickerStyle(.segmented)
             }
-            if let status = model.collectionsStatusLabel {
-                Text(status)
+            if let count = collectionCountLabel {
+                Text(count)
                     .font(AturiFont.monoSmall)
                     .foregroundStyle(theme.textTertiary)
-                    .accessibilityLabel("\(status) collections shown")
+                    .accessibilityLabel(model.narrowed ? "\(count) shown" : count)
             }
         }
+    }
+
+    /// The count under the filter, spelled out: a bare "12/40" read as a
+    /// ratio or a date rather than how many collections are listed.
+    private var collectionCountLabel: String? {
+        guard let total = model.collections.value?.count else { return nil }
+        let noun = total == 1 ? "collection" : "collections"
+        return model.narrowed ? "\(model.shownCount) of \(total) \(noun)" : "\(total) \(noun)"
     }
 
     private var pinnedSection: some View {

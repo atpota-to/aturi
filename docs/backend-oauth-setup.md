@@ -1,8 +1,10 @@
 # Turning backend OAuth on
 
 A runbook. The code ships **inert**: until the steps below are done every
-backend route answers 503 or 404, and sign-in keeps using the browser client
-exactly as it does today. Merging it changes nothing anyone can see.
+backend route answers 503 or 404, and new sign-ins keep using the browser
+client. One exception: the release that moves the browser client off
+`/oauth-client-metadata.json` (fact 3 below) signs out everyone signed in
+through the browser client once, whether or not the backend is switched on.
 
 The order is staging first, then production. Staging is `testing.aturi.to`;
 production is `aturi.to`. Every step until the last one in each part changes
@@ -14,33 +16,40 @@ production once you are happy with it.
 
 ---
 
-## Where things stand (checked 27 October 2026)
+## Where things stand (checked 24 November 2026)
 
 | | Staging (`testing.aturi.to`) | Production (`aturi.to`) |
 | --- | --- | --- |
-| Code deployed | When this branch merges into `testing` | When `testing` merges into `main` |
-| Database schema | `aturi_staging`: **not applied yet** (step A1) | `aturi`: **done**: 7 tables, sweep job active |
-| Schema exposed to the Data API | **No** (step A2) | **No** (step A2, same setting) |
-| Keys generated | No (A3) | No (B1) |
-| Vercel variables | None set (A4) | None set (B2) |
-| Switched on | No (A6) | No (B4) |
+| Code deployed | **Done** | When `testing` merges into `main` |
+| Database schema | `aturi_staging`: **done**: 7 tables, sweep job active | `aturi`: **done**: 7 tables, sweep job active |
+| Schema exposed to the Data API | **Done** | **Done** |
+| Keys generated | **Done** (`aturi-staging-2026-10`) | No (B1) |
+| Vercel variables | **Done**, on the `testing` custom environment | `ATURI_DB_URL` and `ATURI_DB_SCHEMA` set; the three secrets are not (B2) |
+| Switched on | **Yes** | No (B4) |
 
-The exposed-schemas list on the Supabase project is currently
-`public, graphql_public, trackerapp, credblue, typesapp, turtleme, mod`.
+Both `aturi` and `aturi_staging` are on the Supabase project's exposed-schemas
+list, and both refuse the public key, as they should.
 
-### Two facts that shape everything below
+### Three facts that shape everything below
 
-**1. `testing.aturi.to` is a branch domain, not a separate project.** It is
-attached to the `aturi` Vercel project with Git branch `testing`, so its
-deployments run in Vercel's **Preview** environment, not Production. That means:
+**1. `testing.aturi.to` has its own Vercel custom environment.** It is a
+custom environment named `testing` in the `aturi` project, tracking the
+`testing` branch, and the domain is attached to it. Deployments of that branch
+build there, not in Preview or Production. That means:
 
-- Staging's variables go under **Preview**, restricted to the **`testing`**
-  branch. Variables marked "Production only" never reach it.
-- Never scope a secret to *all* Preview branches. Every pull-request preview,
-  including previews of forks' pull requests, would then hold your signing key.
+- Staging's variables go on the **`testing`** custom environment. A variable
+  scoped only to Preview never reaches it, even Preview restricted to the
+  `testing` branch, and nor does one marked "Production only".
+- Never scope a secret to Preview without a branch. That is every pull-request
+  preview, including previews of forks' pull requests, and each would then hold
+  your signing key and database credential.
 - Staging and production can still have different keys: same variable name,
-  one value for Preview (`testing`) and another for Production. Do that. Sharing
-  one means a staging compromise is a production compromise.
+  one value for the `testing` environment and another for Production. Do that.
+  Sharing one means a staging compromise is a production compromise.
+
+Until 23 November 2026 `testing.aturi.to` was a branch domain in Preview, and
+the steps below were written for that. If you ever move it back, the staging
+variables have to move back with it.
 
 **2. Staging needs its own database schema.** `oauth_sessions` is keyed by
 account and client type (`web` or `extension`), with no notion of which site
@@ -48,6 +57,28 @@ issued the grant. If staging and production shared the `aturi` tables, signing
 in on `testing.aturi.to` would overwrite that person's production grant, and
 they would be signed out of `aturi.to`. So staging uses `aturi_staging`, set
 with `ATURI_DB_SCHEMA`. Same Supabase project, separate tables.
+
+**3. The backend client owns `/oauth-client-metadata.json`.** The reference
+PDS's consent screen names a client by its bare hostname only when the
+`client_id` is exactly `https://<host>/oauth-client-metadata.json`; any other
+path is shown as the full URL. So that path belongs to the backend client, and
+the browser client, which only serves sign-ins while `NEXT_PUBLIC_AUTH_MODE`
+is not `bff`, lives at `/oauth/browser-client-metadata.json`.
+
+The browser client held the short path until November 2026. A `client_id` is
+the URL of its document, and the PDS refuses to refresh a session for any
+client but the one it was issued to, so the release that moved it signs out
+every browser-client session on that site once, within about an hour (the
+next time each access token needs refreshing). Nobody is signed out again
+after that: flipping the flag, in either direction, moves neither path. On
+staging that release went out on 24 November 2026. On production it is the
+merge of `testing` into `main`; Part B covers the order.
+
+PDSes also cache client metadata for ten minutes. For up to ten minutes after
+that release, a PDS that fetched the old document may refuse backend sign-ins
+with a client authentication mismatch. Wait it out. Setting
+`NEXT_PUBLIC_AUTH_MODE` back does not help, since the paths stay put, and
+reverting the code would sign everyone out a second time.
 
 ### What you need
 
@@ -165,10 +196,10 @@ Vercel → `aturi` → Settings → **Environment Variables** → Add.
 
 For **each** variable below:
 
-1. Untick **Production** and **Development**. Leave only **Preview** ticked.
-2. In the Preview branch field, choose **`testing`**. Not "All Preview
-   branches": that puts the key in every pull-request preview.
-3. Mark the four secrets **Sensitive**.
+1. Untick **Production**, **Preview** and **Development**. Tick only the
+   **`testing`** custom environment. Not Preview: without a branch that puts the
+   key in every pull-request preview, and with one it does not reach staging.
+2. Mark the four secrets **Sensitive**.
 
 | Variable | Staging value | Notes |
 | --- | --- | --- |
@@ -230,7 +261,7 @@ Nothing user-visible changes yet. What you now have is a second OAuth client
 that an authorization server can validate.
 
 ```bash
-curl -s https://testing.aturi.to/oauth/client-metadata.json | jq
+curl -s https://testing.aturi.to/oauth-client-metadata.json | jq
 curl -s https://testing.aturi.to/oauth/jwks.json | jq
 ```
 
@@ -238,7 +269,7 @@ Both must be **200**. The metadata must contain:
 
 ```json
 {
-  "client_id": "https://testing.aturi.to/oauth/client-metadata.json",
+  "client_id": "https://testing.aturi.to/oauth-client-metadata.json",
   "token_endpoint_auth_method": "private_key_jwt",
   "token_endpoint_auth_signing_alg": "ES256",
   "redirect_uris": ["https://testing.aturi.to/api/oauth/callback"],
@@ -247,12 +278,14 @@ Both must be **200**. The metadata must contain:
 }
 ```
 
-Check four things:
+Check five things:
 
 1. **`client_id` equals the URL you just fetched.** That is what makes it a
-   valid client id, and why the document is served per host.
+   valid client id, and why the document is served per host. Its path being
+   exactly `/oauth-client-metadata.json` is what lets the consent screen show
+   just the host (fact 3).
 2. **`redirect_uris` says `/api/oauth/callback`**, with the `/api/`. The
-   existing public client's `/oauth/callback` page is untouched.
+   browser client's `/oauth/callback` page is untouched.
 3. **The JWKS lists your `kid`** with `"crv":"P-256"`.
 4. **The JWKS has no `d` field.** This must print nothing:
 
@@ -262,6 +295,13 @@ Check four things:
 
    Anything printed is the private half: stop, rotate the key, and work out how
    it got published.
+5. **The browser client is at its own path**, still a public client. This must
+   print the same URL you fetched, then `"none"`:
+
+   ```bash
+   curl -s https://testing.aturi.to/oauth/browser-client-metadata.json \
+     | jq -r '.client_id, .token_endpoint_auth_method'
+   ```
 
 Then:
 
@@ -275,14 +315,14 @@ configuration counts as unconfigured on purpose.
 
 | Symptom | Cause |
 | --- | --- |
-| Metadata and JWKS both 404, session 503 | A variable is missing from this deployment. Usually it was scoped to Production, or to all Preview branches but added after this deployment was built. Check the scope, then redeploy. |
+| Metadata and JWKS both 404, session 503 | A variable is missing from this deployment. Usually it was scoped to Production or Preview rather than the `testing` environment, or added after this deployment was built. Check the scope, then redeploy. |
 | Either endpoint 400 "Unknown host" | You fetched a deployment's own `*.vercel.app` URL. Only `aturi.to`, `www.aturi.to` and `testing.aturi.to` can serve the client, because a `client_id` must equal the URL it is served from. |
 | Metadata 200, JWKS 500 | The origin is not `https://`. Only happens locally; add `-H 'x-forwarded-proto: https'`. |
 
 ## A6. Switch staging's sign-ins over
 
-Add one more variable, with the same scope as the others (Preview, branch
-`testing`):
+Add one more variable, with the same scope as the others (the `testing` custom
+environment):
 
 ```
 NEXT_PUBLIC_AUTH_MODE = bff
@@ -296,7 +336,9 @@ browser client.
 **Verify, in a private window on `testing.aturi.to`:**
 
 1. Sign in. Your PDS's consent screen should appear. It always does for this
-   client, by design.
+   client, by design. On a PDS running the reference software (bsky.social
+   included) it should name the app `testing.aturi.to`, not the full metadata
+   URL.
 2. You land back where you started, signed in.
 3. `/account` shows a **Where you're signed in** card listing this browser.
 4. Read a record, edit one, then change a preference and confirm it reaches your
@@ -315,8 +357,26 @@ a row per signed-in browser, and `aturi.app_sessions` should still be empty.
 
 # Part B: production on aturi.to
 
-Do this once staging has soaked and `testing` has merged into `main`, so the
-code is live on `aturi.to` (and still inert there).
+Do this once staging has soaked.
+
+The merge of `testing` into `main` is the release that moves the browser
+client off `/oauth-client-metadata.json` on `aturi.to` (fact 3), so it signs
+out everyone signed in there through the browser client, once, whatever else
+is set. That makes the order matter:
+
+- **Recommended: switch at the merge.** Do B1 and B2 with
+  `NEXT_PUBLIC_AUTH_MODE = bff` included, then merge. The merge deploy is B3
+  and B4 at once, and people sign back in on the backend client under the
+  short name. Every variable is inert until then, because `main` does not have
+  the code.
+- **If you want to check the client before switching**, leave
+  `NEXT_PUBLIC_AUTH_MODE` unset, merge, run B3, then B4. People still get
+  signed out at the merge. They sign back in through the browser client at its
+  new path, which the consent screen shows as the full URL, and B4 does not
+  sign them out again.
+
+Either way, expect backend sign-ins to fail for up to ten minutes after the
+merge deploy while PDSes drop their cached copy of the old document.
 
 ## B1. Generate production's keys
 
@@ -339,28 +399,34 @@ which Vercel ticks by default. Mark the secrets Sensitive.
 | --- | --- |
 | `ATURI_OAUTH_JWK_ACTIVE` | the JWK from B1 |
 | `ATURI_SESSION_ENC_KEY` | the hex key from B1 |
-| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` |
+| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co`. **Already set** (24 November 2026). |
 | `ATURI_DB_SERVICE_KEY` | the service-role key |
-| `ATURI_DB_SCHEMA` | leave unset (defaults to `aturi`), or set `aturi` explicitly |
-| `NEXT_PUBLIC_AUTH_MODE` | **leave unset for now** |
+| `ATURI_DB_SCHEMA` | `aturi`. **Already set** (24 November 2026). |
+| `NEXT_PUBLIC_AUTH_MODE` | `bff` if you are switching at the merge; otherwise **leave unset** until B4 |
+
+The two that are already set do nothing on their own: the backend stays off
+until all four required variables reach a deployment, and the code is not on
+`main` yet.
 
 Run the same preflight as A4 against a local copy of these values. It should
 report `aturi.app_sessions reachable` and so on.
 
 ## B3. Redeploy production, and check the client
 
-Redeploy production, then run the A5 checks against `https://aturi.to`. The
-`client_id` must be `https://aturi.to/oauth/client-metadata.json`,
-`/api/oauth/session` must answer 401, and the JWKS must list
-`aturi-prod-2026-10` with no `d`.
+Once the merge has deployed (redeploy if you set any variable after it), run
+the A5 checks against `https://aturi.to`. The `client_id` must be
+`https://aturi.to/oauth-client-metadata.json`, `/api/oauth/session` must answer
+401, and the JWKS must list the `kid` from B1 with no `d`.
 
 ## B4. Switch production's sign-ins over
 
-Add `NEXT_PUBLIC_AUTH_MODE = bff`, **Production only**, and redeploy. Run the A6
-checks on `aturi.to`.
+Already done if you set `NEXT_PUBLIC_AUTH_MODE` before the merge: run the A6
+checks on `aturi.to` and stop.
 
-Anyone already signed in through the browser client keeps that session until
-they sign out. New sign-ins go through the backend.
+Otherwise add `NEXT_PUBLIC_AUTH_MODE = bff`, **Production only**, and redeploy.
+Run the A6 checks on `aturi.to`. Anyone who signed in through the browser
+client since the merge keeps that session until they sign out. New sign-ins go
+through the backend.
 
 ---
 
@@ -427,7 +493,9 @@ unconfirmed.
 | --- | --- |
 | Every route 404/503, metadata absent | A required variable is not reaching this deployment. Check its environment scope and branch, then redeploy. |
 | PostgREST 404s everywhere, code looks right | The schema is not in the Data API's exposed schemas (A2). |
-| Signed in on staging, then signed out of production | Staging is on the `aturi` schema. Set `ATURI_DB_SCHEMA=aturi_staging` for Preview (`testing`) and redeploy. |
+| Backend sign-in refused with a client authentication mismatch, just after a deploy | The PDS still holds the browser client's old document for `/oauth-client-metadata.json` (fact 3). It drops it within ten minutes. |
+| Everyone signed in through the browser client was signed out at once | Expected once, at the release that moved the browser client's path (fact 3). If it happens again, something changed one of the two metadata paths. |
+| Signed in on staging, then signed out of production | Staging is on the `aturi` schema. Set `ATURI_DB_SCHEMA=aturi_staging` on the `testing` environment and redeploy. |
 | `Sign-in must start from the app` | The sign-in did not begin as a same-origin navigation. Deliberate: it stops a hostile page starting a flow. Use the sign-in button. |
 | `This sign-in did not start in this browser` | The flow cookie is missing or stale: cookies blocked, or more than ten minutes between starting and finishing. |
 | Signed in, but writes fail | The permissions ticked at sign-in did not include them. Check `scope` on `/api/oauth/session`. |

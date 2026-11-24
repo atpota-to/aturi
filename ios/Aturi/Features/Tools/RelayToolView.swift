@@ -174,35 +174,26 @@ struct RelayToolView: View {
         return probe.reachable ? "Yes" : "No. It did not answer describeServer."
     }
 
+    /* Text items, so the method names keep their code spans. */
     private var intro: some View {
-        ToolSection("How it works") {
-            VStack(alignment: .leading, spacing: 12) {
-                step(1, "A PDS asks to be crawled", Text("It sends `com.atproto.sync.requestCrawl` to a relay with its own hostname. Until it does, the relay does not know it exists."))
-                step(2, "The relay subscribes to it", Text("It connects to the host’s event stream and passes on every record written there. Apps read from relays, not from each PDS."))
-                step(3, "Each relay reports what it knows", Text("`com.atproto.sync.getHostStatus` returns a status, the number of accounts the relay has seen on the host, and how far it has read. \(RelayCheck.relays.count) relays are asked."))
-                step(4, "The host is asked too", Text("So a PDS that is down reads apart from one that is up but has never been crawled."))
-            }
-        }
-    }
-
-    private func step(_ number: Int, _ term: String, _ text: Text) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(verbatim: String(number))
-                .font(AturiFont.monoSmall)
-                .foregroundStyle(theme.textAccent)
-                .frame(width: 18, alignment: .leading)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(term)
-                    .font(AturiFont.sans(.subheadline, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-                text
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
+        ToolIntro("How it works", items: [
+            (
+                term: "A PDS asks to be crawled",
+                text: Text("It sends `com.atproto.sync.requestCrawl` to a relay with its own hostname. Until it does, the relay does not know it exists.")
+            ),
+            (
+                term: "The relay subscribes to it",
+                text: Text("It connects to the host’s event stream and passes on every record written there. Apps read from relays, not from each PDS.")
+            ),
+            (
+                term: "Each relay reports what it knows",
+                text: Text("`com.atproto.sync.getHostStatus` returns a status, the number of accounts the relay has seen on the host, and how far it has read. \(RelayCheck.relays.count) relays are asked.")
+            ),
+            (
+                term: "The host is asked too",
+                text: Text("So a PDS that is down reads apart from one that is up but has never been crawled.")
+            ),
+        ])
     }
 }
 

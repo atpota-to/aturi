@@ -65,6 +65,19 @@ rewrite of privacy/terms copy that currently promises none of those exist.
 
 > Turning it on is a separate document: **[backend-oauth-setup.md](backend-oauth-setup.md)**.
 
+> **Update, 24 November 2026.** The two clients swapped metadata paths. The
+> confidential client is now `/oauth-client-metadata.json` and the public
+> browser client is `/oauth/browser-client-metadata.json`. The reference
+> PDS's consent screen names a client by its bare hostname only for the first
+> of those paths, so it had been showing the confidential client's full URL.
+> The cost is that the release carrying the swap signs out every
+> browser-client session on that site once; after it, neither path changes
+> when the flag flips. Where this document says the public client's document
+> at `/oauth-client-metadata.json` is never touched, or gives the confidential
+> client's path as `/oauth/client-metadata.json`, read it as the plan before
+> this change. `src/lib/oauth/clientMetadata.ts` and fact 3 in the setup
+> document describe the layout now.
+
 
 Built, and green through `npm run lint && npm run typecheck && npm test &&
 npm run build`, the extension suite (305 tests) and the packages suite:
@@ -400,6 +413,11 @@ aturi.to  (one Vercel project, one deploy)
 └─ src/lib/oauth/server/**                       NEW — server-only, never client-reachable
 ```
 
+> **Update, 24 November 2026.** The two metadata routes have since swapped
+> paths: the confidential client is `src/app/oauth-client-metadata.json/` and
+> the public one is `src/app/oauth/browser-client-metadata.json/`. See
+> Implementation status.
+
 Everything under `src/lib/oauth/server/**` and `src/app/api/oauth/**` sits
 outside the `@aturi/*` alias the extension resolves (`extension/wxt.config.ts`
 aliases `@aturi` → `../src/utils`) and outside the six files
@@ -509,6 +527,9 @@ All BFF routes: `export const runtime = 'nodejs'`, `export const dynamic = 'forc
 Config validated **inside the handler**, never at module scope — see Risk 6.
 
 ### `GET /oauth/client-metadata.json` *(edge — static JSON)*
+
+> **Update, 24 November 2026.** Now served at `/oauth-client-metadata.json`,
+> and `client_id` below is that URL. See Implementation status.
 
 Host-keyed off the existing `isAllowedHost` helper (`aturi.to`, `www.aturi.to`,
 `testing.aturi.to`), so staging keeps its own client identity.
@@ -1403,8 +1424,8 @@ JavaScript.
 
 | Environment | Origin | client_id | redirect_uri | Session presentation |
 | --- | --- | --- | --- | --- |
-| Production | `https://aturi.to` (+ `www.aturi.to`, `aturi.app`, `www.aturi.app`, `altsky.app` — the last already 301s in `vercel.json`) | `https://aturi.to/oauth/client-metadata.json` | `https://aturi.to/api/oauth/callback` | `__Host-` cookie, same-origin |
-| Staging | `https://testing.aturi.to` | `https://testing.aturi.to/oauth/client-metadata.json` — host-keyed, so staging stays a separate OAuth client with separate consent records | same shape on that host | cookie |
+| Production | `https://aturi.to` (+ `www.aturi.to`, `aturi.app`, `www.aturi.app`, `altsky.app` — the last already 301s in `vercel.json`) | `https://aturi.to/oauth-client-metadata.json` (was `/oauth/client-metadata.json` until 24 November 2026) | `https://aturi.to/api/oauth/callback` | `__Host-` cookie, same-origin |
+| Staging | `https://testing.aturi.to` | `https://testing.aturi.to/oauth-client-metadata.json` — host-keyed, so staging stays a separate OAuth client with separate consent records | same shape on that host | cookie |
 | Vercel previews | per-deploy `*.vercel.app` | **none** — signed out, **and no BFF secrets present** | — | — |
 | localhost | `http://localhost:3000` | none of its own | — | bearer against staging, or legacy browser client |
 | Extension | `chrome-extension://…` / `moz-extension://…` | reuses the web client_id | web `/api/oauth/callback` → app-level hand-off | bearer in `Authorization` |
@@ -1490,7 +1511,10 @@ Four things cannot be reversed once code exists.
 - **Lock the client_id path:** `https://aturi.to/oauth/client-metadata.json`,
   redirect at `/api/oauth/callback`. The existing
   `https://aturi.to/oauth-client-metadata.json` is not touched in this or any
-  later phase.
+  later phase. **Changed (24 November 2026):** reversed, so that the consent
+  screen names the confidential client by host. It now holds
+  `/oauth-client-metadata.json`, and the public client moved to
+  `/oauth/browser-client-metadata.json`. See Implementation status.
 - **Sign-off on the spaces split** (AGENTS.md security-sensitive list): DPoP key
   and credential stay in the browser; only `getDelegationToken` is proxied,
   behind a server-side consent record.
@@ -1732,6 +1756,9 @@ Each has a recommendation, but each is genuinely the maintainer's.
    can still have its own key: set staging's values for Preview scoped to the
    `testing` branch, and production's for Production. It also needs its own
    schema — see `sql/staging/aturi_staging.sql` for why.
+   **Changed (November 2026):** `testing.aturi.to` now has its own Vercel custom
+   environment, `testing`, and staging's values are set there instead of on
+   Preview. `docs/backend-oauth-setup.md` has the current steps.
 
 7. **`prompt: 'consent'` always, or only on widening?** **Recommendation: always
    in v1**, revisit in Phase 7.

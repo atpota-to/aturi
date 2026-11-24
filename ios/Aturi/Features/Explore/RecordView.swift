@@ -588,9 +588,17 @@ private struct LexiconUsageCardView: View {
                         UsageSparkline(data: summary.series, label: summary.sparklineLabel)
                     }
                 }
-                Label(LexiconUsageSummary.linkLabel, systemImage: "arrow.up.right")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textAccent)
+                /* A chevron, not an outbound arrow: the card opens the
+                   lexicon's page inside the app, like RepoIdentityRow's
+                   "Browse <host>" row. */
+                HStack(spacing: 4) {
+                    Text(LexiconUsageSummary.linkLabel)
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.textAccent)
+                    Image(systemName: "chevron.right")
+                        .font(AturiFont.caption2)
+                        .foregroundStyle(theme.textTertiary)
+                }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)

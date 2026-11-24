@@ -498,7 +498,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertEqual(facts?.handleVerified, true)
 
         XCTAssertTrue(model.collections.errorMessage?.contains("RepoTakendown") ?? false)
-        XCTAssertEqual(model.collectionsInactiveNotice, "No collections: this repo is takendown.")
+        XCTAssertEqual(model.collectionsInactiveNotice, "No collections: this repo has been taken down.")
         XCTAssertTrue(model.groups.isEmpty)
         XCTAssertNil(model.collectionsStatusLabel)
 
@@ -529,6 +529,7 @@ final class RepoModelTests: XCTestCase {
         XCTAssertNil(model.statusFacts?.rev, "the relay answered 404")
         XCTAssertEqual(model.statusFacts?.revNote(), "no rev available")
         XCTAssertNil(model.headRev.value ?? nil)
+        XCTAssertEqual(model.collectionsInactiveNotice, "No collections: this repo is deactivated.")
     }
 
     func testUnresolvableInputFailsIdentityOnly() async {
@@ -546,6 +547,38 @@ final class RepoModelTests: XCTestCase {
         XCTAssertNil(model.did)
         XCTAssertTrue(model.groups.isEmpty)
         if case .idle = model.collections {} else { XCTFail("collections never start without an identity") }
+    }
+
+    func testMalformedInputFailsWithoutARequest() async {
+        for input in ["coffee cake", "!!!@@@", "not a uri"] {
+            let transport = RepoRoutedTransport(healthyRoutes())
+            let model = makeModel(transport, input: input)
+            XCTAssertTrue(model.isMalformedInput, input)
+            await model.load().value
+            XCTAssertNotNil(model.identity.errorMessage, input)
+            XCTAssertEqual(transport.urls, [], "\(input) never reaches the network")
+        }
+    }
+
+    func testMalformedInputMessagesNameTheProblem() async {
+        let spaced = makeModel(RepoRoutedTransport([]), input: "coffee cake")
+        await spaced.load().value
+        XCTAssertEqual(
+            spaced.notFoundMessage,
+            "Handles can\u{2019}t contain spaces. Full-text search isn\u{2019}t supported; enter a handle (alice.bsky.social), a DID or an at:// URI."
+        )
+        let symbols = makeModel(RepoRoutedTransport([]), input: "!!!@@@")
+        await symbols.load().value
+        XCTAssertEqual(
+            symbols.notFoundMessage,
+            "\u{201C}!!!@@@\u{201D} isn\u{2019}t a valid handle or DID. Handles look like alice.bsky.social."
+        )
+    }
+
+    func testWellFormedInputIsNotMalformed() async {
+        for input in ["alice.bsky.social", "@alice.bsky.social", "did:plc:abc"] {
+            XCTAssertFalse(makeModel(RepoRoutedTransport([]), input: input).isMalformedInput, input)
+        }
     }
 
     func testDidWebSkipsThePlcDirectory() async {
