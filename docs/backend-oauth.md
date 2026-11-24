@@ -1732,6 +1732,9 @@ Each has a recommendation, but each is genuinely the maintainer's.
    can still have its own key: set staging's values for Preview scoped to the
    `testing` branch, and production's for Production. It also needs its own
    schema — see `sql/staging/aturi_staging.sql` for why.
+   **Changed (November 2026):** `testing.aturi.to` now has its own Vercel custom
+   environment, `testing`, and staging's values are set there instead of on
+   Preview. `docs/backend-oauth-setup.md` has the current steps.
 
 7. **`prompt: 'consent'` always, or only on widening?** **Recommendation: always
    in v1**, revisit in Phase 7.
