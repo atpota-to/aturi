@@ -60,6 +60,7 @@ export default function LexiconRail({
   navigate,
   files,
   onDone,
+  lists = true,
 }: {
   loc: LexiconLocation;
   addressFor: AddressFor;
@@ -67,6 +68,11 @@ export default function LexiconRail({
   /** The Files view draws namespaces as folders and lexicons as files. */
   files: boolean;
   onDone: () => void;
+  /**
+   * The four lists of the whole network. Classic's sidebar leaves them
+   * out: its landing page shows them together (LexiconFrame).
+   */
+  lists?: boolean;
 }) {
   const { pins, isPinned, toggle } = useLexiconPins();
   const listOpen = loc.scope.kind === 'list' ? loc.scope.list : null;
@@ -90,23 +96,25 @@ export default function LexiconRail({
 
       <LexiconFind addressFor={addressFor} navigate={navigate} />
 
-      <nav aria-label="Lists" className="fx-wb-views">
-        {LEXICON_LISTS.map((list) => {
-          const Icon = LIST_ICONS[list];
-          return (
-            <Link
-              key={list}
-              href={addressFor({ scope: { kind: 'list', list } })}
-              prefetch={false}
-              className="fx-wb-view"
-              aria-current={listOpen === list ? 'page' : undefined}
-            >
-              <Icon size={14} aria-hidden />
-              {LEXICON_LIST_LABELS[list]}
-            </Link>
-          );
-        })}
-      </nav>
+      {lists && (
+        <nav aria-label="Lists" className="fx-wb-views">
+          {LEXICON_LISTS.map((list) => {
+            const Icon = LIST_ICONS[list];
+            return (
+              <Link
+                key={list}
+                href={addressFor({ scope: { kind: 'list', list } })}
+                prefetch={false}
+                className="fx-wb-view"
+                aria-current={listOpen === list ? 'page' : undefined}
+              >
+                <Icon size={14} aria-hidden />
+                {LEXICON_LIST_LABELS[list]}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="fx-wb-tree fx-lx-tree">
         {pins.length > 0 && (

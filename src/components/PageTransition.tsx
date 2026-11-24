@@ -11,7 +11,6 @@ import {
 import { animate, MOTION } from '@/lib/motion';
 import { parseExplorerPath } from '@/lib/explorerView';
 import { isLexiconPath } from '@/lib/lexiconExplorer';
-import { useExplorerView } from './explore/workbench/useExplorerView';
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -61,13 +60,12 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  * mount of the children subtree.
  *
  * Two kinds of move keep the key they have: around one account's repository
- * in the explorer, and around the lexicons explorer in its workbench and
- * Files views (LexiconShell). The workbench and Files shells rewrite the
- * address with the History API instead of navigating, precisely so the
- * shell stays mounted with the records it has fetched; in Classic, the
- * account's sidebar is a layout Next keeps mounted across its repo,
- * collection and record pages (AccountFrame). A fresh mount here would undo
- * either. The key starts as the pathname either way, so the server and the
+ * in the explorer, and around the lexicons explorer. The workbench and Files
+ * shells (ExplorerShell, LexiconShell) rewrite the address with the History
+ * API instead of navigating, precisely so the shell stays mounted with the
+ * records it has fetched; in Classic, the account's sidebar and the
+ * lexicons' are layouts Next keeps mounted across their pages (AccountFrame,
+ * LexiconFrame). A fresh mount here would undo either. The key starts as the pathname either way, so the server and the
  * first client render agree whatever view the visitor has chosen.
  *
  * Tuned for subtlety:
@@ -96,7 +94,6 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
-  const explorerView = useExplorerView();
   // The key follows the pathname, except across a move inside the explorer
   // shell (see above), where it holds. Worked out while rendering, from the
   // pathname the key was last decided for, so it is right in the same
@@ -107,8 +104,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
     const from = parseExplorerPath(keyed.path);
     const to = parseExplorerPath(pathname);
     const insideShell =
-      (!!from && !!to && from.repo === to.repo) ||
-      (explorerView !== 'classic' && isLexiconPath(keyed.path) && isLexiconPath(pathname));
+      (!!from && !!to && from.repo === to.repo) || (isLexiconPath(keyed.path) && isLexiconPath(pathname));
     if (!insideShell) pageKey = pathname;
     setKeyed({ path: pathname, key: pageKey });
   }

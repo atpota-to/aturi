@@ -48,6 +48,7 @@ export default function PdsRail({
   addressFor,
   files,
   onDone,
+  views = true,
 }: {
   base: string;
   host: string;
@@ -57,6 +58,11 @@ export default function PdsRail({
   addressFor: (patch: AddressPatch) => string;
   files: boolean;
   onDone: () => void;
+  /**
+   * Overview, Accounts and Relays. Classic's sidebar leaves them out: its
+   * page shows all three, one under another (PdsRoute).
+   */
+  views?: boolean;
 }) {
   const server = usePdsServer(base);
   const listing = usePdsRepos(base);
@@ -100,31 +106,33 @@ export default function PdsRail({
         </button>
       </div>
 
-      <nav aria-label="PDS" className="fx-wb-views">
-        {PDS_TABS.map((t) => {
-          const Icon = TAB_ICONS[t];
-          return (
-            <Link
-              key={t}
-              // A view's own address carries no filters; picking Accounts
-              // here shows them all.
-              href={addressFor({ tab: t, status: 'all', commit: null, account: null })}
-              prefetch={false}
-              className="fx-wb-view"
-              aria-current={tab === t ? 'page' : undefined}
-            >
-              <Icon size={14} aria-hidden />
-              {PDS_TAB_LABELS[t]}
-              {t === 'accounts' && rows.length > 0 && (
-                <span className="fx-pd-view-count">
-                  {rows.length.toLocaleString()}
-                  {listing.done ? '' : '+'}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      {views && (
+        <nav aria-label="PDS" className="fx-wb-views">
+          {PDS_TABS.map((t) => {
+            const Icon = TAB_ICONS[t];
+            return (
+              <Link
+                key={t}
+                // A view's own address carries no filters; picking Accounts
+                // here shows them all.
+                href={addressFor({ tab: t, status: 'all', commit: null, account: null })}
+                prefetch={false}
+                className="fx-wb-view"
+                aria-current={tab === t ? 'page' : undefined}
+              >
+                <Icon size={14} aria-hidden />
+                {PDS_TAB_LABELS[t]}
+                {t === 'accounts' && rows.length > 0 && (
+                  <span className="fx-pd-view-count">
+                    {rows.length.toLocaleString()}
+                    {listing.done ? '' : '+'}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="fx-pd-groups">
         {failed ? (
