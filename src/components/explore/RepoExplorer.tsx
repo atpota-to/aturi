@@ -26,7 +26,7 @@ import AccountStats from '@/components/account/AccountStats';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
-import BacklinksTab from './tabs/BacklinksTab';
+import PeekableBacklinks from './tabs/PeekableBacklinks';
 import GraphTab from './graph/GraphTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
@@ -298,6 +298,8 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
 
   function selectTab(id: TabId) {
     const next = new URLSearchParams(searchParams.toString());
+    // A linking record open beside the Backlinks list belongs to that tab.
+    next.delete('peek');
     if (id === 'collections') next.delete('tab');
     else next.set('tab', id);
     const qs = next.toString();
@@ -381,7 +383,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         )}
         {tab === 'identity' && <IdentityTab identity={identity} />}
         {tab === 'audit' && <AuditTab identity={identity} />}
-        {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
+        {tab === 'backlinks' && <PeekableBacklinks target={identity.did} own={identity} />}
         {tab === 'graph' && <GraphTab key={identity.did} identity={identity} />}
         {tab === 'lists' && (
           <div className="fx-tabpanel-tool">

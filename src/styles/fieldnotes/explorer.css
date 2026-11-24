@@ -261,6 +261,18 @@
   gap: 0;
   padding-top: 0;
 }
+/* The Backlinks tab with a linking record open beside its list
+   (PeekableBacklinks): the same split, inside the tab's sheet. */
+.fx-peekable[data-peek] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 46%);
+  align-items: start;
+  gap: 16px;
+}
+.fx-peekable-list {
+  min-width: 0;
+}
+
 /* Stepping brings the open row into view: clear of the header above and of
    the phone toolbar's height below. */
 .fx-records [data-current] {

@@ -30,6 +30,14 @@ export function useIsNarrow(): boolean {
 export const STACKED_QUERY = '(max-width: 959px)';
 
 /**
+ * Wide enough for the account's sidebar, a list and a record side by side:
+ * where the collection page opens a record beside its list
+ * (CollectionInspector) and the Backlinks tab a linking record beside its
+ * own (PeekableBacklinks). Narrower, those records open on their pages.
+ */
+export const INSPECT_QUERY = '(min-width: 1200px)';
+
+/**
  * Whether `query` matches, subscribed the same way as {@link useIsNarrow}.
  * Also `false` on the server.
  */

@@ -13,13 +13,7 @@ import { ChevronDown, ChevronUp, FileText, X } from 'lucide-react';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import type { AtRecord } from '@/utils/atproto/pdsClient';
 import { RecordPane, type RecordPaneTab } from './RecordExplorer';
-import { useMediaQuery } from './useIsNarrow';
-
-/**
- * Wide enough for the sidebar, the list and a record side by side. Below
- * it a record opens on its own page, as it always has.
- */
-export const INSPECT_QUERY = '(min-width: 1200px)';
+import { INSPECT_QUERY, useMediaQuery } from './useIsNarrow';
 
 /** Typing, or a dialog that is up, keeps the keys to itself. */
 function keysBelongElsewhere(e: KeyboardEvent): boolean {
