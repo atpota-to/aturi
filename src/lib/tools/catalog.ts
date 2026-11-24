@@ -99,12 +99,12 @@ export const TOOLS: ToolEntry[] = [
   {
     slug: 'pds',
     title: 'PDS version check',
-    desc: 'See whether a PDS runs the latest release of the reference PDS, how many releases behind it is, and since when.',
+    desc: 'See whether a PDS runs the latest release of its software, and how many releases behind it is.',
     tile: 'Check whether a PDS runs the latest release.',
-    lead: 'Compared with releases of the reference PDS. Other PDS software can’t be compared.',
+    lead: 'Knows the releases of the reference PDS, Tranquil, Cirrus, Cocoon and Tangled knots.',
     group: 'network',
     Icon: ServerCog,
-    keywords: ['pds', 'version', 'update', 'up to date', 'outdated', 'release', 'self-host', 'pdsadmin', 'health'],
+    keywords: ['pds', 'version', 'update', 'up to date', 'outdated', 'release', 'self-host', 'pdsadmin', 'health', 'tranquil', 'cirrus', 'cocoon', 'knot'],
   },
   {
     slug: 'handle',

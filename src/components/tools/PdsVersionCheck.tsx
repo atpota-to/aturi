@@ -8,16 +8,18 @@ import { resolvePdsTarget, type PdsTarget } from '@/lib/tools/pdsTargetClient';
 import {
   DISTRIBUTION_UPDATE_COMMAND,
   PDS_PACKAGE,
-  couldBeRelease,
+  PDS_SOFTWARE,
   formatReleaseDay,
   formatSpan,
   pdsVersionVerdict,
   readReportedVersion,
+  softwareOf,
   versionStanding,
   type PdsRelease,
   type PdsReleaseList,
+  type PdsSoftwareId,
 } from '@/lib/tools/pdsVersion';
-import { PDS_RELEASES_RUN, fetchPdsReleases } from '@/lib/tools/pdsVersionClient';
+import { fetchPdsReleases, pdsReleasesRun } from '@/lib/tools/pdsVersionClient';
 import { normalizeRelayInput } from '@/lib/tools/relay';
 import {
   ToolCard,
@@ -36,7 +38,6 @@ import { useSharedToolRun, useToolQuery, useToolRun } from './useToolQuery';
 const SLUG = 'pds';
 const EXAMPLES = [{ value: 'eurosky.social' }, { value: 'blacksky.app' }, { value: '@bsky.app' }];
 
-const CHANGELOG_URL = 'https://github.com/bluesky-social/atproto/blob/main/packages/pds/CHANGELOG.md';
 const DISTRIBUTION_URL = 'https://github.com/bluesky-social/pds';
 
 /** How many of the releases a host lacks are listed before the rest are counted. */
@@ -51,14 +52,23 @@ const VERDICT_ICON = {
 };
 
 /** A release's date, and how long ago that was. */
-function published(release: PdsRelease, now: number): string {
-  if (release.published === null) return 'Not dated by the registry';
-  return `${formatReleaseDay(release.published)} (${formatSpan(now - release.published)} ago)`;
+function published(at: number, now: number): string {
+  return `${formatReleaseDay(at)} (${formatSpan(now - at)} ago)`;
+}
+
+/** A software's name as a value of its own, where a sentence would not capitalize it. */
+function titled(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** The newest of the releases a host lacks, newest first, and how many more there are. */
+function newestMissed(missed: PdsRelease[]): { shown: PdsRelease[]; more: number } {
+  return { shown: missed.slice(-MISSED_SHOWN).reverse(), more: Math.max(0, missed.length - MISSED_SHOWN) };
 }
 
 /**
  * Asks a PDS what version it runs and compares that with the releases of the
- * reference PDS. The logic is in src/lib/tools/pdsVersion.ts.
+ * software it names. The logic is in src/lib/tools/pdsVersion.ts.
  */
 export default function PdsVersionCheck() {
   const [{ host: raw }, setQuery] = useToolQuery(['host'] as const);
@@ -73,19 +83,22 @@ export default function PdsVersionCheck() {
   const target = run.data ?? null;
   const probe = target?.pds;
 
-  // Only a version that could be a release needs the list to be read.
-  const comparable = couldBeRelease(probe?.version);
-  const releases = useSharedToolRun<PdsReleaseList>(comparable ? PDS_RELEASES_RUN : null, ({ signal }) =>
-    fetchPdsReleases(signal),
+  // Only a version that could be a release of something needs that list read.
+  const software = softwareOf(probe?.version);
+  const releases = useSharedToolRun<PdsReleaseList>(software ? pdsReleasesRun(software) : null, ({ signal }) =>
+    fetchPdsReleases(software as PdsSoftwareId, signal),
   );
   const [now] = useState(() => Date.now());
   const list = releases.data ?? null;
-  const listFailed = comparable && releases.status === 'error';
-  const reading = probe && list ? readReportedVersion(probe.version, list) : null;
+  const listFailed = software !== null && releases.status === 'error';
+  const reading = probe ? readReportedVersion(probe.version, list) : null;
   const standing = reading?.kind === 'release' && list ? versionStanding(reading.version, list, now) : null;
   const verdict =
-    target && probe && (!comparable || list) ? pdsVersionVerdict(target.host, probe, reading, standing, now) : null;
+    target && probe && reading ? pdsVersionVerdict(target.host, probe.reachable, reading, standing, now) : null;
   const behind = standing?.state === 'behind' ? standing : null;
+  const release = reading?.kind === 'release' ? reading : null;
+  const product = release ? PDS_SOFTWARE[release.software] : null;
+  const missed = behind ? newestMissed(behind.missed) : null;
 
   return (
     <ToolShell
@@ -97,7 +110,7 @@ export default function PdsVersionCheck() {
           onSubmit={(value) => setQuery({ host: value })}
           label="PDS hostname, or a handle or DID to look up its PDS"
           placeholder="pds.example.com"
-          busy={run.status === 'loading' || (comparable && releases.status === 'loading')}
+          busy={run.status === 'loading' || (software !== null && releases.status === 'loading')}
           examples={EXAMPLES}
           icon={<ServerCog size={17} />}
         />
@@ -131,22 +144,27 @@ export default function PdsVersionCheck() {
             </ToolVerdict>
           )}
 
-          {reading?.kind === 'release' && standing && (
+          {release && product && standing && (
             <ToolSection title="Version">
               <ToolCard>
                 <ToolFacts>
-                  <ToolFact label="Running">{standing.running.version}</ToolFact>
-                  <ToolFact label="Published" plain>
-                    {published(standing.running, now)}
+                  <ToolFact label="Software" plain>
+                    {titled(product.name)}
                   </ToolFact>
-                  {/* When it runs the latest, the two rows above already say so. */}
+                  <ToolFact label="Running">{standing.running.version}</ToolFact>
+                  {standing.running.published !== null && (
+                    <ToolFact label="Published" plain>
+                      {published(standing.running.published, now)}
+                    </ToolFact>
+                  )}
+                  {/* When it runs the latest, the rows above already say so. */}
                   {standing.state !== 'current' && (
-                    <>
-                      <ToolFact label="Latest release">{standing.latest.version}</ToolFact>
-                      <ToolFact label="Latest published" plain>
-                        {published(standing.latest, now)}
-                      </ToolFact>
-                    </>
+                    <ToolFact label="Latest release">{standing.latest.version}</ToolFact>
+                  )}
+                  {standing.state !== 'current' && standing.latest.published !== null && (
+                    <ToolFact label="Latest published" plain>
+                      {published(standing.latest.published, now)}
+                    </ToolFact>
                   )}
                   {behind && behind.since !== null && (
                     <ToolFact label="Behind since" plain>
@@ -155,18 +173,25 @@ export default function PdsVersionCheck() {
                   )}
                 </ToolFacts>
                 <p className="fn-tool-note fn-tool-pds-note">
-                  {reading.via === 'distribution' ? (
+                  {release.via === 'distribution' ? (
                     <>
-                      Reported as <code>{reading.reported}</code>, which is how the{' '}
+                      Reported as <code>{release.reported}</code>, which is how the{' '}
                       <a href={DISTRIBUTION_URL} target="_blank" rel="noreferrer noopener">
                         self-host distribution
                       </a>{' '}
-                      numbers release {reading.version}.
+                      numbers release {release.version}.
+                    </>
+                  ) : release.via === 'package' ? (
+                    <>
+                      Matched by number alone. A fork or other software reporting <code>{release.reported}</code>{' '}
+                      would read the same.
                     </>
                   ) : (
                     <>
-                      Matched by number alone. A fork or other software reporting <code>{reading.reported}</code>{' '}
-                      would read the same.
+                      Reported as <code>{release.reported}</code>.{' '}
+                      {release.ahead > 0 &&
+                        `That is ${release.ahead} ${release.ahead === 1 ? 'commit' : 'commits'} past the ${release.version} tag. `}
+                      Releases are {product.source.kind === 'git' ? 'the tags in its repository' : 'its versions on npm'}.
                     </>
                   )}
                 </p>
@@ -174,27 +199,31 @@ export default function PdsVersionCheck() {
             </ToolSection>
           )}
 
-          {behind && (
+          {behind && missed && product && (
             <ToolSection
               title="Released since"
               meta={behind.missed.length === 1 ? '1 release' : `${behind.missed.length} releases`}
             >
               <ToolCard>
                 <ToolFacts>
-                  {behind.missed
-                    .slice(-MISSED_SHOWN)
-                    .reverse()
-                    .map((release) => (
-                      <ToolFact key={release.version} label={release.version} plain>
-                        {published(release, now)}
+                  {/* A git tag has no date here, so those are a line of versions. */}
+                  {missed.shown.every((item) => item.published === null) ? (
+                    <ToolFact label={missed.shown.length === 1 ? 'Version' : 'Versions, newest first'} wide>
+                      {missed.shown.map((item) => item.version).join(', ')}
+                    </ToolFact>
+                  ) : (
+                    missed.shown.map((item) => (
+                      <ToolFact key={item.version} label={item.version} plain>
+                        {item.published === null ? 'Not dated' : published(item.published, now)}
                       </ToolFact>
-                    ))}
+                    ))
+                  )}
                 </ToolFacts>
                 <p className="fn-tool-note fn-tool-pds-note">
-                  {behind.missed.length > MISSED_SHOWN && `And ${behind.missed.length - MISSED_SHOWN} earlier. `}
-                  What changed is in the{' '}
-                  <a href={CHANGELOG_URL} target="_blank" rel="noreferrer noopener">
-                    changelog
+                  {missed.more > 0 && `And ${missed.more} earlier. `}
+                  {product.source.kind === 'git' ? 'Each is a tag in its ' : 'What changed is in the '}
+                  <a href={product.releasesUrl} target="_blank" rel="noreferrer noopener">
+                    {product.source.kind === 'git' ? 'repository' : 'changelog'}
                   </a>
                   .
                 </p>
@@ -202,10 +231,11 @@ export default function PdsVersionCheck() {
             </ToolSection>
           )}
 
-          {behind && reading?.kind === 'release' && (
+          {/* The one update path this page can vouch for is the reference PDS's own. */}
+          {behind && release?.software === 'reference' && (
             <ToolSection title="Updating">
               <ToolCard>
-                {reading.via === 'distribution' ? (
+                {release.via === 'distribution' ? (
                   <p>The self-host distribution updates itself nightly with Watchtower. To update now, on the server:</p>
                 ) : (
                   <p>If it was installed with the self-host distribution, run this on the server:</p>
@@ -214,7 +244,7 @@ export default function PdsVersionCheck() {
                   {DISTRIBUTION_UPDATE_COMMAND}
                 </ToolCode>
                 <p className="fn-tool-note fn-tool-pds-note">
-                  {reading.via === 'distribution'
+                  {release.via === 'distribution'
                     ? 'If it stays behind, check that its Watchtower container is running.'
                     : `A custom build updates its ${PDS_PACKAGE} dependency and redeploys.`}{' '}
                   This page changes nothing on the host.
@@ -287,21 +317,22 @@ export default function PdsVersionCheck() {
               ),
             },
             {
-              term: 'The number is matched to a release',
+              term: 'The version is matched to a release',
               text: (
                 <>
-                  Releases are the stable versions of <code>{PDS_PACKAGE}</code> on npm. The self-host distribution
-                  numbers them its own way: <code>0.4.5065</code> is release 0.5.65.
+                  The reference PDS reports a number, which its self-host distribution writes its own way:{' '}
+                  <code>0.4.5065</code> is release 0.5.65. Tranquil, Cirrus, Cocoon and Tangled knots put their name
+                  first, as in <code>tranquil 0.9.1</code>.
                 </>
               ),
             },
             {
               term: 'It’s compared with the latest',
-              text: 'Up to date, or how many releases behind and since when. A release under two days old isn’t counted against a host, since most update overnight.',
+              text: 'Releases are read from npm or from the project’s git tags. Where they’re dated, one under two days old isn’t counted against a host, since most update overnight.',
             },
             {
               term: 'It says when it can’t compare',
-              text: 'Bluesky’s own hosts report a commit hash, and other PDS software has its own releases.',
+              text: 'Bluesky’s own hosts report a commit hash, and some software publishes no releases to compare with.',
             },
           ]}
         />

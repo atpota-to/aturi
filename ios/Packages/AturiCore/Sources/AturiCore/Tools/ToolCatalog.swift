@@ -78,9 +78,9 @@ public enum ToolCatalog {
             slug: "pds",
             title: "PDS version check",
             desc: "Check whether a PDS runs the latest release.",
-            lead: "Compared with releases of the reference PDS. Other PDS software can’t be compared.",
+            lead: "Knows the releases of the reference PDS, Tranquil, Cirrus, Cocoon and Tangled knots.",
             group: .network,
-            keywords: ["pds", "version", "update", "up to date", "outdated", "release", "self-host", "pdsadmin", "health"]
+            keywords: ["pds", "version", "update", "up to date", "outdated", "release", "self-host", "pdsadmin", "health", "tranquil", "cirrus", "cocoon", "knot"]
         ),
         ToolEntry(
             slug: "handle",

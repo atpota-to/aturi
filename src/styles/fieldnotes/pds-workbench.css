@@ -613,6 +613,19 @@ a.fx-pd-version[data-tone='warn'],
   color: var(--tool-warn);
 }
 
+/* A version that cannot be compared: quieter than any answer, with a ring
+   where an answer has a dot, so it never reads as one. */
+a.fx-pd-version[data-tone='unknown'],
+.fx-pd-facts dd a.fx-pd-version[data-tone='unknown'] {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-version[data-tone='unknown'] .fx-pd-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-tertiary);
+}
+
 a.fx-pd-version:hover,
 .fx-pd-facts dd a.fx-pd-version:hover {
   text-decoration: underline;
