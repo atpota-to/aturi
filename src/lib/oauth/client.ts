@@ -3,7 +3,7 @@
 /**
  * Lazy singleton for the BrowserOAuthClient.
  *
- * Production: serves metadata via /oauth-client-metadata.json (host-keyed
+ * Production: serves metadata via /oauth/browser-client-metadata.json (host-keyed
  *   so it works on aturi.to, *.vercel.app preview deploys, etc).
  * Development: uses the loopback shortcut the spec provides for localhost
  *   so we don't need a tunnel for the OAuth server to fetch metadata.
@@ -18,6 +18,7 @@
 
 import type { BrowserOAuthClient } from '@atproto/oauth-client-browser';
 import type { HandleResolver } from '@atproto-labs/handle-resolver';
+import { BROWSER_CLIENT_METADATA_PATH } from './clientMetadata';
 import { METADATA_SCOPE } from './scopes';
 import { APPVIEW } from '@/utils/atproto/config';
 
@@ -156,7 +157,7 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
         handleResolver,
         didResolver,
         clientMetadata: {
-          client_id: `${origin}/oauth-client-metadata.json`,
+          client_id: `${origin}${BROWSER_CLIENT_METADATA_PATH}`,
           client_name: 'aturi.to',
           client_uri: origin,
           logo_uri: `${origin}/icon.svg`,
