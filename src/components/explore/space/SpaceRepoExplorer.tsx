@@ -342,8 +342,7 @@ function SpaceRepoView({
                   )}
                   {!complete && records.length > 0 && (
                     <p className="fx-sp-note fx-sp-foot">
-                      Counts are from the first {formatCount(records.length)} records;
-                      the listing was cut off before the end.
+                      Counts from the first {formatCount(records.length)} records.
                     </p>
                   )}
                 </>

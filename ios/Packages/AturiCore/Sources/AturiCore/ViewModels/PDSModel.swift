@@ -486,7 +486,13 @@ public final class PDSModel {
         authServers = PDSExplorer.authorizationServers(metadata?.authorizationServers)
     }
 
-    private func loadPage(after: String?, generation gen: Int) async {
+    /// `followShort` asks for the page after a short one straight away,
+    /// once. The reference PDS hands back a cursor with every page that
+    /// isn't empty, so a host with six accounts would otherwise read as
+    /// "6+ listed, more on the host" until someone tapped Load more and
+    /// got nothing. A short page can't be taken as the end either, since a
+    /// host may filter a page down and still have more behind the cursor.
+    private func loadPage(after: String?, generation gen: Int, followShort: Bool = true) async {
         isLoadingRepos = true
         reposError = nil
         do {
@@ -512,6 +518,15 @@ public final class PDSModel {
             // A cursor that doesn't move would page forever.
             if next == nil || page.repos.isEmpty || next == after {
                 done = true
+            }
+            if !done, followShort, page.repos.count < Self.pageSize, let next {
+                // The rows already listed get their names while the next
+                // page is asked for; isLoadingRepos stays set so the
+                // footer doesn't flicker between the two requests.
+                scheduleProfileLoads()
+                scheduleHostLookups()
+                await loadPage(after: next, generation: gen, followShort: false)
+                return
             }
             isLoadingRepos = false
             scheduleProfileLoads()

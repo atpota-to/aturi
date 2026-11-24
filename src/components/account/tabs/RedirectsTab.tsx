@@ -78,18 +78,15 @@ export default function RedirectsTab() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Auto-redirect</h2>
         <p className="settings-card-sub">
-          Pick a client per kind of record and Aturi will open links in it
-          directly, instead of showing you the list. This skips Aturi&rsquo;s own
-          page — the preview, the picker, the explorer links — for the kinds you
-          configure. To see the page for one link, add <code>?stay=1</code> to
-          its URL; going back from a client never sends you out again.
+          Links open straight in the client you pick, skipping Aturi&rsquo;s page.
+          Add <code>?stay=1</code> to a link to see the page instead.
         </p>
       </div>
 
       <Toggle
         id="auto-redirect"
         label="Open links in my preferred client"
-        description="Off by default. Nothing is redirected until you choose a client below."
+        description="Only for kinds with a client chosen below."
         checked={enabled}
         onChange={(next) => update((p) => setAutoRedirect(p, next))}
       />
@@ -111,9 +108,7 @@ export default function RedirectsTab() {
 
       {rows.length === 0 ? (
         <p className="settings-card-sub">
-          No client families to configure yet. Waypoints are only offered here
-          once they&rsquo;re visible in your picker — check the{' '}
-          <strong>Waypoints</strong> tab.
+          Nothing to configure. Only waypoints in your groups are offered here.
         </p>
       ) : (
         rows.map(({ family, destinations }) => {

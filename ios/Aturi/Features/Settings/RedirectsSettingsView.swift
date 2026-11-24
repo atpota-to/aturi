@@ -50,11 +50,11 @@ struct RedirectsSettingsView: View {
         List {
             SettingsSection(
                 "Auto-redirect",
-                footer: "Pick a client per kind of record. When a link opens in Aturi, the picker puts that client first as a one-tap button. A link that arrives from outside the app opens there on its own after a short countdown you can cancel."
+                footer: "The picker puts your client first. Links from other apps open in it after a short countdown you can cancel."
             ) {
                 SettingsToggleRow(
                     "Open links in my preferred client",
-                    detail: "Off by default. Nothing is redirected until you choose a client below.",
+                    detail: "Only for kinds with a client chosen below.",
                     isOn: autoRedirect
                 )
                 if sessionStore.state.isSignedIn {
@@ -71,15 +71,12 @@ struct RedirectsSettingsView: View {
 
             if rows.isEmpty {
                 SettingsSection {
-                    Text("No client families to configure yet. Waypoints are only offered here once they are visible in your picker; check Waypoint groups.")
+                    Text("Nothing to configure. Only waypoints in your groups are offered here.")
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                 }
             } else {
-                SettingsSection(
-                    "Preferred client",
-                    footer: "A family earns a row when it has at least two clients in your groups, so there is a choice to make. Aturi's own pages are never a destination."
-                ) {
+                SettingsSection("Preferred client") {
                     ForEach(rows) { row in
                         familyPicker(row)
                     }

@@ -128,12 +128,24 @@ struct HandleToolView: View {
     }
 
     private var intro: some View {
-        ToolSection("What it checks") {
-            HandleIntroStep(number: 1, term: "The domain names a DID", text: "A TXT record at _atproto.<handle>, or a text file at /.well-known/atproto-did. Either is enough; both are read.")
-            HandleIntroStep(number: 2, term: "The DID claims the domain", text: "The DID document has to list at://<handle> first under alsoKnownAs. Without it, apps show handle.invalid.")
-            HandleIntroStep(number: 3, term: "The account is reachable", text: "Its PDS answers for the repository, reports it active, and agrees about the handle.")
-            HandleIntroStep(number: 4, term: "Bluesky has caught up", text: "The AppView keeps its own copy of each handle, which can lag behind a change.")
-        }
+        ToolIntro("What it checks", items: [
+            (
+                "The domain names a DID",
+                "A TXT record at _atproto.<handle> or a file at /.well-known/atproto-did. Either is enough."
+            ),
+            (
+                "The DID claims the domain",
+                "The DID document lists at://<handle> first under alsoKnownAs. Otherwise apps show handle.invalid."
+            ),
+            (
+                "The account is reachable",
+                "Its PDS serves the repository, reports it active and agrees on the handle."
+            ),
+            (
+                "Bluesky has caught up",
+                "The AppView\u{2019}s copy of the handle can lag behind a change."
+            ),
+        ])
     }
 }
 
@@ -240,17 +252,36 @@ private struct HandleCheckView: View {
         }
     }
 
+    /* An answer from DNS or the well-known file starts with an arrow. The
+       arrow gets its own column so a long DID or record after it wraps
+       under itself, not back under the arrow. */
+    @ViewBuilder
+    private func evidenceLine(_ line: String) -> some View {
+        if line.hasPrefix("\u{2192} ") {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\u{2192}")
+                Text(String(line.dropFirst(2)))
+            }
+            .font(AturiFont.monoSmall)
+            .foregroundStyle(theme.textTertiary)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text(line)
+                .font(AturiFont.monoSmall)
+                .foregroundStyle(theme.textTertiary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ToolCheckRow(status: status, title: check.title, detail: check.summary)
             if !check.detail.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(check.detail.enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .font(AturiFont.monoSmall)
-                            .foregroundStyle(theme.textTertiary)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
+                        evidenceLine(line)
                     }
                 }
                 .padding(.leading, 28)
@@ -316,37 +347,6 @@ private struct HandleLinkRow: View {
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// One numbered line of "What it checks", the web's `ToolIntro`.
-private struct HandleIntroStep: View {
-    let number: Int
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(number)")
-                .font(AturiFont.sans(.caption, weight: .bold))
-                .foregroundStyle(theme.accentSoftFg)
-                .frame(width: 22, height: 22)
-                .background(theme.accentSoft, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(term)
-                    .font(AturiFont.sans(.subheadline, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(text)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
 }

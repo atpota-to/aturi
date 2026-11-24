@@ -1,7 +1,8 @@
 /**
  * OAuth client metadata for the iOS app. See `src/lib/iosApp.ts` for why the
- * native app cannot reuse `/oauth-client-metadata.json`, and that file's
- * sibling route for the host rules, which are the same here.
+ * native app cannot reuse a web client's document, and the browser client's
+ * route (`src/app/oauth/browser-client-metadata.json/route.ts`) for the host
+ * rules, which are the same here.
  */
 
 import { NextResponse } from 'next/server';

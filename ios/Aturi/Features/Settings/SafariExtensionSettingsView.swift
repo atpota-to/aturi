@@ -45,6 +45,10 @@ struct SafariExtensionSettingsView: View {
         return "In Safari, tap the page menu in the address bar, then Manage Extensions."
     }
 
+    private var useItStep: String {
+        "Tap Aturi in \(pageMenu) on any page."
+    }
+
     /// Where Settings keeps Safari's extensions. iOS 18 moved the apps'
     /// settings under Apps.
     private var settingsPath: String {
@@ -69,7 +73,7 @@ struct SafariExtensionSettingsView: View {
     var body: some View {
         List {
             SettingsSection {
-                Text("Aturi's Safari extension shows the other atproto clients that can open the page you are on, copies aturi.to links, and can send links straight to the client you prefer. It comes with this app, so there is nothing else to install.")
+                Text("Shows the clients that can open the page you\u{2019}re on, copies aturi.to links and redirects to your preferred client. Included with this app.")
                     .font(AturiFont.body)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -79,7 +83,7 @@ struct SafariExtensionSettingsView: View {
             if safariIsTooOld {
                 SettingsSection("Needs iOS 18.4") {
                     Label {
-                        Text("The extension needs Safari 18.4, which comes with iOS 18.4. Update in Settings > General > Software Update to use it.")
+                        Text("Update in Settings > General > Software Update.")
                             .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -92,24 +96,37 @@ struct SafariExtensionSettingsView: View {
             }
 
             if #available(iOS 26.2, *) {
-                SettingsSection("Status") {
-                    statusRow
-                }
-                openSettingsSection
+                statusSection
             }
 
-            SettingsSection(
-                "Turn it on",
-                footer: "Or turn it on in \(settingsPath) > Aturi."
-            ) {
-                StepRow(number: 1, text: openExtensionsStep)
-                StepRow(number: 2, text: "Turn on Aturi.")
-                StepRow(number: 3, text: "Aturi now has an entry in \(pageMenu). Tap it on any page to open the picker.")
+            /* Once Safari reports the extension on, the steps to turn it on
+               are done, so only the last one, how to use it, is left. Every
+               other state, including no report at all, keeps the steps. */
+            if status == .on {
+                SettingsSection(
+                    "Use it",
+                    footer: "To turn it off, use \(settingsPath) > Aturi."
+                ) {
+                    Text(useItStep)
+                        .font(AturiFont.body)
+                        .foregroundStyle(theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 2)
+                }
+            } else {
+                SettingsSection(
+                    "Turn it on",
+                    footer: "Or turn it on in \(settingsPath) > Aturi."
+                ) {
+                    StepRow(number: 1, text: openExtensionsStep)
+                    StepRow(number: 2, text: "Turn on Aturi.")
+                    StepRow(number: 3, text: useItStep)
+                }
             }
 
             SettingsSection(
                 "Site access",
-                footer: "The extension's own settings page lists the sites your redirects cover and can ask for all of them at once."
+                footer: "The extension\u{2019}s settings page can request every site your redirects cover at once."
             ) {
                 ForEach(Array(siteAccessParagraphs.enumerated()), id: \.offset) { _, paragraph in
                     Text(paragraph)
@@ -135,9 +152,9 @@ struct SafariExtensionSettingsView: View {
        redirected. */
     private var siteAccessParagraphs: [String] {
         [
-            "Safari lets an extension read a site only after you allow it there. Until you do, Aturi cannot see which page you are on, and links to that site are not redirected.",
-            "On a site Aturi has not been allowed on yet, tap Aturi in \(pageMenu) and Safari asks whether to allow it. Access allowed for one day runs out, and links to that site stop being redirected until you allow it again.",
-            "\(settingsPath) > Aturi lists the sites you have allowed, and changes them.",
+            "Safari lets an extension read a site only after you allow it. Until then, Aturi can\u{2019}t see the page and won\u{2019}t redirect links to that site.",
+            "To allow a site, tap Aturi in \(pageMenu) there. Access allowed for one day expires, and redirects stop until you allow it again.",
+            "\(settingsPath) > Aturi lists and changes allowed sites.",
         ]
     }
 
@@ -145,13 +162,13 @@ struct SafariExtensionSettingsView: View {
     private var statusRow: some View {
         switch status {
         case .checking:
-            statusLabel("Checking whether the extension is on", systemImage: "hourglass", tint: theme.textTertiary)
+            statusLabel("Checking", systemImage: "hourglass", tint: theme.textTertiary)
         case .on:
             statusLabel("On in Safari", systemImage: "checkmark.circle.fill", tint: theme.textAccent)
         case .off:
-            statusLabel("Off. Turn it on in Safari's extension settings.", systemImage: "circle", tint: theme.textTertiary)
+            statusLabel("Off", systemImage: "circle", tint: theme.textTertiary)
         case .unknown:
-            statusLabel("Safari did not report the extension's state. Follow the steps below to check it.", systemImage: "questionmark.circle", tint: theme.textTertiary)
+            statusLabel("Unknown. Check with the steps below.", systemImage: "questionmark.circle", tint: theme.textTertiary)
         }
     }
 
@@ -168,22 +185,33 @@ struct SafariExtensionSettingsView: View {
         .padding(.vertical, 2)
     }
 
+    /// The status card with the button to Settings beneath it. The button
+    /// sits in the section's footer, not in a row of its own: inset grouped
+    /// rows clip their content to the section's rounded corners, which are
+    /// far larger than the button's, so a row the button fills edge to edge
+    /// cuts its corners off.
     @available(iOS 26.2, *)
-    private var openSettingsSection: some View {
+    private var statusSection: some View {
         Section {
-            Button("Open Safari Extension Settings", action: openSettings)
-                .buttonStyle(.aturiPrimary)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
+            statusRow
+                .listRowBackground(theme.bgSecondary)
+        } header: {
+            Text("Status")
+                .foregroundStyle(theme.textTertiary)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Open Safari Extension Settings", action: openSettings)
+                    .buttonStyle(.aturiPrimary)
 
-            if openFailed {
-                Text("Settings did not open. Use the steps below instead.")
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                if openFailed {
+                    Text("Settings did not open. Use the steps below instead.")
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .textCase(nil)
+            .padding(.top, 12)
         }
     }
 

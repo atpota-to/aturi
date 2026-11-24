@@ -33,15 +33,17 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 
     var detail: String {
         switch self {
-        case .general: return "Color scheme, dark or light, picker layout, pinned lexicons"
-        case .sections: return "What the record and repo pages show, and in what order"
-        case .waypoints: return "Which clients the picker shows, and in what groups"
-        case .redirects: return "Open links straight in a preferred client"
-        case .clients: return "Tell other Atmosphere apps which clients you use"
-        case .custom: return "Your own destinations, built from URL templates"
-        case .account: return "Sign in to sync settings to your PDS"
-        case .safari: return "Turn on Aturi in Safari on this device"
-        case .about: return "Version, links, licence and privacy"
+        case .general: return "Theme, picker layout, pinned lexicons"
+        case .sections: return "What explorer pages show"
+        case .waypoints: return "Which clients the picker shows"
+        case .redirects: return "Open links in a preferred client"
+        case .clients: return "Tell other apps your clients"
+        case .custom: return "Your own URL templates"
+        /* Not listed in Settings any more: the account page is its own tab,
+           and `AppRouter.openSettings(.account)` sends links there. */
+        case .account: return "Sign in to sync"
+        case .safari: return "Turn on Aturi in Safari"
+        case .about: return "Version, licence, privacy"
         }
     }
 
@@ -64,48 +66,70 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 /// turned into a list of pages. Anyone can change every preference; the
 /// banner at the top says where those changes live until they sign in.
 struct SettingsView: View {
+    @Environment(AppRouter.self) private var router
     @Environment(\.sessionStore) private var sessionStore
     @Environment(\.aturiTheme) private var theme
 
-    private var accountDetail: String {
-        if let identifier = sessionStore.state.displayIdentifier {
-            return "Signed in as \(identifier)"
-        }
-        return SettingsPage.account.detail
-    }
+    /// Ids of the rows the router's scroll-to-top lands on: the banner
+    /// when it shows, else the first Preferences row.
+    private static let bannerID = "settings-banner"
+    private static let firstPageID = "settings-first-page"
 
     var body: some View {
+        ScrollViewReader { proxy in
+            list
+                .onChange(of: router.scrollToTopRequest[.settings, default: 0]) { _, _ in
+                    let top = sessionStore.state.isSignedIn ? Self.firstPageID : Self.bannerID
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(top, anchor: .top)
+                    }
+                }
+        }
+        .navigationTitle("Settings")
+        .navigationDestination(for: SettingsPage.self) { page in
+            SettingsPageDestination(page: page)
+        }
+    }
+
+    private var list: some View {
         List {
+            /* Signing in lives on the Account tab; the banner points there. */
             if !sessionStore.state.isSignedIn {
                 SettingsSection {
-                    NavigationLink(value: SettingsPage.account) {
+                    Button {
+                        router.show(.account)
+                    } label: {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "icloud.slash")
                                 .foregroundStyle(theme.textAccent)
                                 .accessibilityHidden(true)
-                            Text("Settings are saved on this device only. Sign in to sync them to your PDS and carry them across devices.")
+                            Text("Settings are saved on this device only. Sign in on the Account tab to sync them.")
                                 .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(AturiFont.footnote)
+                                .foregroundStyle(theme.textTertiary)
+                                .accessibilityHidden(true)
                         }
                         .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens the Account tab")
+                    .id(Self.bannerID)
                 }
             }
 
             SettingsSection("Preferences") {
                 pageLink(.general)
+                    .id(Self.firstPageID)
                 pageLink(.sections)
                 pageLink(.waypoints)
                 pageLink(.redirects)
                 pageLink(.clients)
                 pageLink(.custom)
-            }
-
-            SettingsSection("Account") {
-                NavigationLink(value: SettingsPage.account) {
-                    SettingsRowLabel(SettingsPage.account.title, detail: accountDetail, systemImage: SettingsPage.account.systemImage)
-                }
             }
 
             SettingsSection {
@@ -114,10 +138,6 @@ struct SettingsView: View {
             }
         }
         .settingsList()
-        .navigationTitle("Settings")
-        .navigationDestination(for: SettingsPage.self) { page in
-            SettingsPageDestination(page: page)
-        }
     }
 
     private func pageLink(_ page: SettingsPage) -> some View {

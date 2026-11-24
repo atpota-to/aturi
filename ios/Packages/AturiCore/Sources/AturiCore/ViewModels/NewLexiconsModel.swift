@@ -18,7 +18,7 @@ public final class NewLexiconsModel {
     public nonisolated static let expandedCount = AtmospherePulseModel.newExpandedCount
 
     public nonisolated static let title = "New lexicons"
-    public nonisolated static let subtitle = "Record types seen for the first time in this window, with three or more accounts using them."
+    public nonisolated static let subtitle = "First seen in this window, by 3+ accounts."
     public nonisolated static let emptyMessage = AtmospherePulseModel.newEmptyMessage
 
     public var window: UFOsWindow = .sevenDays {
@@ -110,6 +110,6 @@ public final class NewLexiconsModel {
     /// when the answer does not say when UFOs' history begins.
     public var note: String? {
         guard let historyBegins = answer.value?.historyBegins, !historyBegins.isEmpty else { return nil }
-        return "First seen means no activity UFOs recorded between \(historyBegins), when its history begins, and the start of the window. Account counts are estimates, and a few accounts can still be one developer testing."
+        return "First seen: no activity from \(historyBegins), when UFOs\u{2019} history begins, to the window\u{2019}s start. Account counts are estimates; a few may be one developer testing."
     }
 }

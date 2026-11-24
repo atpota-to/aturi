@@ -103,7 +103,7 @@ export function ToolShell({
             </span>
             <h1 className="fn-lexhead-title">{tool.title}</h1>
           </div>
-          <p className="fn-tool-lead">{tool.lead}</p>
+          {tool.lead ? <p className="fn-tool-lead">{tool.lead}</p> : null}
           {form}
         </header>
       </AppearIn>

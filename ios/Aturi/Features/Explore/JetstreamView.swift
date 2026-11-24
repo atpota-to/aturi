@@ -46,6 +46,9 @@ struct JetstreamView: View {
             ops: compact ? [.create] : JetstreamOperation.allCases,
             maxRows: compact ? JetstreamView.compactRows : JetstreamView.dashboardRows
         ))
+        /* The field shows the filter in force, so a Watch opened for one
+           lexicon reads as already narrowed rather than as an empty box. */
+        _collectionFilter = State(initialValue: collections.joined(separator: ", "))
         _wantsLive = State(initialValue: startsLive)
     }
 
@@ -109,6 +112,12 @@ struct JetstreamView: View {
         return model.rows.isEmpty ? "Off" : "Paused"
     }
 
+    /// A feed narrowed to collections names them in the title; "across
+    /// the Atmosphere" would be wrong for a single lexicon's Watch.
+    private var headerTitle: String {
+        model.collections.isEmpty ? JetstreamModel.title : "Live in " + model.collections.joined(separator: ", ")
+    }
+
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "waveform.path.ecg")
@@ -119,11 +128,12 @@ struct JetstreamView: View {
                 .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? 0 : model.stats.total)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(JetstreamModel.title)
+                Text(headerTitle)
                     .aturiLabel()
                     .foregroundStyle(theme.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+                    .truncationMode(.middle)
                 Text(statusText)
                     .font(AturiFont.monoSmall)
                     .monospacedDigit()
@@ -213,7 +223,10 @@ struct JetstreamView: View {
                 }
                 .accessibilityLabel("Operations, \(opsSummary)")
                 Spacer(minLength: 0)
-                if !model.collections.isEmpty {
+                /* The field already shows the filter once it is submitted;
+                   the readout only earns its place while the field holds an
+                   edit that has not been applied yet, so the two can differ. */
+                if !model.collections.isEmpty && Self.parseCollections(collectionFilter) != model.collections {
                     Text(model.collections.joined(separator: ", "))
                         .font(AturiFont.monoSmall)
                         .foregroundStyle(theme.textTertiary)
@@ -235,6 +248,7 @@ struct JetstreamView: View {
                     .onSubmit(applyCollectionFilter)
                     .accessibilityLabel("Filter by collection")
                     .accessibilityHint("Applies when submitted")
+                    .accessibilityValue(model.collections.isEmpty ? "All collections" : model.collections.joined(separator: ", "))
                 if !collectionFilter.isEmpty || !model.collections.isEmpty {
                     Button {
                         collectionFilter = ""
@@ -257,12 +271,15 @@ struct JetstreamView: View {
 
     /// Commas and whitespace both separate NSIDs; a trailing `*` on any
     /// entry is passed through for the model's namespace match.
-    private func applyCollectionFilter() {
-        let parts = collectionFilter
+    private static func parseCollections(_ text: String) -> [String] {
+        text
             .split(whereSeparator: { $0 == "," || $0.isWhitespace })
             .map { String($0) }
             .filter { !$0.isEmpty }
-        model.setCollections(parts)
+    }
+
+    private func applyCollectionFilter() {
+        model.setCollections(Self.parseCollections(collectionFilter))
     }
 
     // MARK: Rows
@@ -298,8 +315,8 @@ struct JetstreamView: View {
         } label: {
             VStack(spacing: 6) {
                 Text(compact
-                     ? "Watch new records appear across the network as they are created."
-                     : "Watch records being created, updated and deleted across the network as they happen.")
+                     ? "New records as they\u{2019}re created."
+                     : "Every create, update and delete, as it happens.")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .multilineTextAlignment(.center)
@@ -318,20 +335,42 @@ struct JetstreamView: View {
 
     // MARK: Stats footer (full mode)
 
+    /// One row when it fits, two when it does not. A sideways scroll with
+    /// no indicator hid the counters past the card's edge with nothing to
+    /// say they were there, which is what a narrow card or a larger text
+    /// size produced.
     private var statsFooter: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) {
-                ForEach(model.statItems) { item in
-                    statItem(item.value, item.label, hint: item.hint)
-                }
-                statItem(model.stats.creates.formatted(), "creates", hint: "Creates seen since the feed loaded")
-                statItem(model.stats.updates.formatted(), "updates", hint: "Updates seen since the feed loaded")
-                statItem(model.stats.deletes.formatted(), "deletes", hint: "Deletes seen since the feed loaded")
-                statItem(model.eventsPerMinute.formatted(), "/min", hint: "Arrivals over the last minute")
+                summaryStats
+                operationStats
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 16) {
+                    summaryStats
+                }
+                HStack(spacing: 16) {
+                    operationStats
+                }
+            }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var summaryStats: some View {
+        ForEach(model.statItems) { item in
+            statItem(item.value, item.label, hint: item.hint)
+        }
+    }
+
+    @ViewBuilder
+    private var operationStats: some View {
+        statItem(model.stats.creates.formatted(), "creates", hint: "Creates seen since the feed loaded")
+        statItem(model.stats.updates.formatted(), "updates", hint: "Updates seen since the feed loaded")
+        statItem(model.stats.deletes.formatted(), "deletes", hint: "Deletes seen since the feed loaded")
+        statItem(model.eventsPerMinute.formatted(), "/min", hint: "Arrivals over the last minute")
     }
 
     private func statItem(_ value: String, _ label: String, hint: String) -> some View {

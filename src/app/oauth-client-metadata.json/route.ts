@@ -1,63 +1,47 @@
 /**
- * Dynamic OAuth client metadata.
+ * Confidential OAuth client metadata.
  *
- * The OAuth spec ties `client_id` to the URL the metadata JSON is served
- * from, so we generate the metadata per-request from the incoming Host
- * header rather than baking in a single origin. Localhost dev uses the
- * loopback shortcut in `src/lib/oauth/client.ts` instead of this route.
+ * One of two clients, alongside the public one at
+ * /oauth/browser-client-metadata.json. `client_id` is the URL the document is
+ * served from, so neither document ever changes kind in place: two run in
+ * parallel, and NEXT_PUBLIC_AUTH_MODE decides which one new sign-ins use. This
+ * one holds the conventional path so the consent screen can name it by host;
+ * `src/lib/oauth/clientMetadata.ts` has the history.
  *
- * Allowed hosts:
- *   - aturi.to / www.aturi.to (production)
- *   - testing.aturi.to (staging)
+ * Host-keyed, so testing.aturi.to keeps its own client identity and its own
+ * consent records exactly as it does today.
  */
 
 import { NextResponse } from 'next/server';
-import { METADATA_SCOPE } from '@/lib/oauth/scopes';
+import { buildClientMetadata } from '@/lib/oauth/clientMetadata';
+import { isBffConfigured } from '@/lib/oauth/server/env';
+import { resolveOrigin } from '@/lib/oauth/server/http';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-const REDIRECT_PATH = '/oauth/callback';
-
-function isAllowedHost(hostname: string): boolean {
-  return (
-    hostname === 'aturi.to' ||
-    hostname === 'www.aturi.to' ||
-    hostname === 'testing.aturi.to'
-  );
-}
-
 export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const host = request.headers.get('host') || url.host;
-  const hostname = host.split(':')[0];
-  if (!isAllowedHost(hostname)) {
-    return new NextResponse('Unknown host', { status: 400 });
+  const origin = resolveOrigin(request);
+  if (!origin) return new NextResponse('Unknown host', { status: 400 });
+
+  // Publishing a confidential client_id whose JWKS cannot be served would let
+  // an authorization server cache a client it can never authenticate. Fail
+  // closed instead — and never fall back to a public document at this URL,
+  // which is the silent confidential→public downgrade the keyset loader also
+  // refuses.
+  if (!isBffConfigured()) {
+    return new NextResponse('Backend OAuth is not configured on this deployment', {
+      status: 404,
+    });
   }
 
-  const proto = request.headers.get('x-forwarded-proto') || url.protocol.replace(':', '');
-  const origin = `${proto}://${host}`;
-
-  const metadata = {
-    client_id: `${origin}/oauth-client-metadata.json`,
-    client_name: 'aturi.to',
-    client_uri: origin,
-    logo_uri: `${origin}/icon.svg`,
-    tos_uri: `${origin}/terms`,
-    policy_uri: `${origin}/terms`,
-    redirect_uris: [`${origin}${REDIRECT_PATH}`],
-    scope: METADATA_SCOPE,
-    grant_types: ['authorization_code', 'refresh_token'],
-    response_types: ['code'],
-    token_endpoint_auth_method: 'none',
-    application_type: 'web',
-    dpop_bound_access_tokens: true,
-  };
-
-  return NextResponse.json(metadata, {
+  return NextResponse.json(buildClientMetadata(origin), {
     headers: {
-      'Cache-Control': 'public, max-age=300',
-      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json; charset=utf-8',
+      // The authorization server re-fetches this to validate every requested
+      // scope and already caches it for about ten minutes. A CDN copy on top
+      // only adds a second cache that can mask a deploy.
+      'Cache-Control': 'no-store',
     },
   });
 }

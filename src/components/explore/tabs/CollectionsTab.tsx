@@ -332,8 +332,7 @@ export default function CollectionsTab({
     return (
       <>{bridge}<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <p className="explore-placeholder">
-          No collections to list: this repo is{' '}
-          {identity.repoStatus.status || 'inactive'} and its PDS refuses record reads.
+          No collections: this repo is {identity.repoStatus.status || 'inactive'}.
         </p>
         <details className="explore-raw-details">
           <summary>Raw response</summary>

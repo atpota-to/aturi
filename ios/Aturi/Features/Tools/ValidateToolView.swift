@@ -210,7 +210,7 @@ struct ValidateToolView: View {
             }
 
             if check.schema.isFound && !check.report.unresolved.isEmpty {
-                Text("Not checked, because these could not be found: \(check.report.unresolved.joined(separator: ", ")).")
+                Text("Not found, so not checked: \(check.report.unresolved.joined(separator: ", ")).")
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -229,7 +229,7 @@ struct ValidateToolView: View {
         RecordToolsIntro(items: [
             (
                 "The schema is the published one",
-                "The record\u{2019}s $type names a lexicon. Its schema is found the way the network finds it: the _lexicon DNS record on its domain, then the schema record in that account\u{2019}s repository."
+                "The $type\u{2019}s schema, found as the network finds it: the _lexicon DNS record, then the schema record in that repository."
             ),
             (
                 "Every field is checked",
@@ -237,7 +237,7 @@ struct ValidateToolView: View {
             ),
             (
                 "References are followed",
-                "When a field\u{2019}s type lives in another lexicon, that one is fetched and checked too. Anything that could not be found is listed, not passed."
+                "Types from other lexicons are fetched and checked too. Anything not found is listed, not passed."
             ),
         ])
     }
@@ -396,8 +396,8 @@ struct RecordToolsError: View {
     }
 }
 
-/// What a tool does, numbered, shown before it has any input: the web
-/// tools' `ToolIntro`.
+/// The record tools' intro, under the name their call sites use: the
+/// shared `ToolIntro`, so it looks like every other tool's.
 struct RecordToolsIntro: View {
     var title: String = "What it checks"
     let items: [(term: String, text: String)]
@@ -407,31 +407,7 @@ struct RecordToolsIntro: View {
         self.items = items
     }
 
-    @Environment(\.aturiTheme) private var theme
-
     var body: some View {
-        ToolSection(title) {
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(AturiFont.sans(.footnote, weight: .bold))
-                            .foregroundStyle(theme.textAccent)
-                            .frame(width: 18)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.term)
-                                .font(AturiFont.sans(.subheadline, weight: .semibold))
-                                .foregroundStyle(theme.textPrimary)
-                            Text(item.text)
-                                .font(AturiFont.footnote)
-                                .foregroundStyle(theme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
-        }
+        ToolIntro(title, items: items)
     }
 }

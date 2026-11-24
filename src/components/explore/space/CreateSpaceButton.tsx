@@ -115,7 +115,7 @@ export default function CreateSpaceButton({
         onClose={close}
         busy={busy}
         title="Create a space"
-        description="A space is anchored on your account, which becomes its authority. Nothing in it is public, and nothing is announced to the network."
+        description="Your account becomes the space’s authority. Nothing in it is public or announced to the network."
         error={error}
         footer={
           <>
@@ -134,8 +134,8 @@ export default function CreateSpaceButton({
           hintId={typeHintId}
           hint={
             trimmedType && !typeValid
-              ? 'That is not an NSID. A space type is a lexicon name in reverse-domain form, like app.example.group.'
-              : 'The NSID describing what kind of space this is. Its lexicon declares the collections apps should expect to find here.'
+              ? 'Not an NSID. Use reverse-domain form, like app.example.group.'
+              : 'The lexicon NSID for this kind of space.'
           }
         >
           <input
@@ -156,8 +156,8 @@ export default function CreateSpaceButton({
           hintId={skeyHintId}
           hint={
             !skeyValid
-              ? 'That is not a record key. Letters, digits and . _ : ~ - only, up to 512 characters.'
-              : 'Distinguishes spaces of the same type under your account. Left blank, your server generates a TID.'
+              ? 'Not a record key. Letters, digits and . _ : ~ - only, up to 512 characters.'
+              : 'Tells spaces of the same type apart. Leave blank for a generated TID.'
           }
         >
           <input
@@ -181,7 +181,7 @@ export default function CreateSpaceButton({
         />
 
         <p className="fx-sp-dialog-note">
-          Both rules can be changed afterwards from the space’s own page.
+          You can change both rules later.
         </p>
       </SpaceDialog>
     </>

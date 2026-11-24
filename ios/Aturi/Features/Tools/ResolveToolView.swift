@@ -117,19 +117,17 @@ struct ResolveToolView: View {
     }
 
     private var note: String {
-        var message = model.isTooLongToShare
-            ? "This list is too long to keep in the link, so it cannot be shared as one."
-            : "The list is kept in the link, so this table can be shared."
+        var parts: [String] = []
+        if model.isTooLongToShare { parts.append("Too long to share as a link.") }
         let duplicates = model.list.duplicates
         if duplicates > 0 {
-            let left = duplicates == 1 ? "duplicate was" : "duplicates were"
-            message += " \(duplicates.formatted()) \(left) left out."
+            parts.append("\(duplicates.formatted()) \(duplicates == 1 ? "duplicate" : "duplicates") left out.")
         }
         let dropped = model.list.dropped
         if dropped > 0 {
-            message += " Only the first \(BulkResolve.maxIdentifiers) are resolved; \(dropped.formatted()) more were left out."
+            parts.append("Only the first \(BulkResolve.maxIdentifiers) are resolved; \(dropped.formatted()) left out.")
         }
-        return message
+        return parts.joined(separator: " ")
     }
 
     private var identitiesSection: some View {
@@ -142,7 +140,7 @@ struct ResolveToolView: View {
                         .tint(theme.accent)
                         .accessibilityLabel("Identifiers resolved")
                         .accessibilityValue("\(counts.settled) of \(counts.total)")
-                } else {
+                } else if !note.isEmpty {
                     Text(note)
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
@@ -162,45 +160,37 @@ struct ResolveToolView: View {
         }
     }
 
+    /* Wrapped rather than scrolled sideways, so the last button drops to a
+       second line on a narrow phone instead of being cut off at the edge. */
     private var exportButtons: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ResolveCopyButton(title: "Copy CSV", value: model.csv)
-                ResolveCopyButton(title: "Copy JSON", value: model.json)
-                ShareLink(item: model.csv, subject: Text("identities.csv")) {
-                    Label("Download CSV", systemImage: "square.and.arrow.down")
-                        .font(AturiFont.footnote)
-                }
-                .buttonStyle(.aturiSecondary)
-                .disabled(model.isRunning)
+        SettingsWrapLayout(spacing: 8) {
+            ResolveCopyButton(title: "Copy CSV", value: model.csv)
+            ResolveCopyButton(title: "Copy JSON", value: model.json)
+            ShareLink(item: model.csv, subject: Text("identities.csv")) {
+                Label("Download CSV", systemImage: "square.and.arrow.down")
+                    .font(AturiFont.footnote)
             }
-            .padding(.vertical, 1)
+            .buttonStyle(.aturiSecondary)
+            .disabled(model.isRunning)
         }
+        .padding(.vertical, 1)
     }
 
     private var intro: some View {
-        ToolSection("What it does") {
-            ResolveIntroStep(
-                number: 1,
-                term: "Reads the list",
-                text: "Handles, DIDs, @handles, at:// URIs and profile links, one per line or separated by commas. Duplicates are dropped and the order is kept, up to \(BulkResolve.maxIdentifiers)."
-            )
-            ResolveIntroStep(
-                number: 2,
-                term: "Resolves each one",
-                text: "A handle to its DID and a DID to its handle, with the PDS the account lives on. A handle only counts when its DID points back at it."
-            )
-            ResolveIntroStep(
-                number: 3,
-                term: "Flags what is off",
-                text: "A handle that does not resolve, a DID with no handle, a handle that now belongs to a differently named account, and anything that is not an identifier at all."
-            )
-            ResolveIntroStep(
-                number: 4,
-                term: "Hands the table back",
-                text: "Copy it as CSV or JSON, or download the CSV. A short list is kept in the link, so the table can be shared."
-            )
-        }
+        ToolIntro("What it does", items: [
+            (
+                "Reads the list",
+                "Handles, DIDs, at:// URIs or profile links, one per line or comma-separated, up to \(BulkResolve.maxIdentifiers)."
+            ),
+            (
+                "Resolves each one",
+                "Each to its DID, handle and PDS. A handle counts only when its DID points back."
+            ),
+            (
+                "Flags what is off",
+                "Handles that don\u{2019}t resolve, DIDs with no handle, handles now on another account, and anything that isn\u{2019}t an identifier."
+            ),
+        ])
     }
 }
 
@@ -237,7 +227,9 @@ private struct ResolveRowView: View {
                 Text(row.input)
                     .font(AturiFont.monoFont(.footnote, weight: .medium))
                     .foregroundStyle(theme.textPrimary)
-                    .lineLimit(2)
+                    /* One line: a DID has no break points, so a second line
+                       splits it mid-identifier; the middle is what is cut. */
+                    .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 Spacer(minLength: 0)
@@ -337,36 +329,5 @@ private struct ResolveCopyButton: View {
             guard !Task.isCancelled else { return }
             copied = false
         }
-    }
-}
-
-/// One numbered line of "What it does", the web's `ToolIntro`.
-private struct ResolveIntroStep: View {
-    let number: Int
-    let term: String
-    let text: String
-
-    @Environment(\.aturiTheme) private var theme
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(number)")
-                .font(AturiFont.sans(.caption, weight: .bold))
-                .foregroundStyle(theme.accentSoftFg)
-                .frame(width: 22, height: 22)
-                .background(theme.accentSoft, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(term)
-                    .font(AturiFont.sans(.subheadline, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(text)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
     }
 }

@@ -182,8 +182,7 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
           )}
           {tree.more && (
             <p className="fx-sp-note fx-sp-foot">
-              Showing the first {OWN_SPACES_LIMIT} spaces; the listing was cut
-              off before the end.
+              Showing the first {OWN_SPACES_LIMIT} spaces.
             </p>
           )}
         </>
@@ -200,10 +199,8 @@ function NotSelfNote({ signedInDid }: { signedInDid: string | null | undefined }
   return (
     <div className="fx-sp-body">
       <p className="fx-sp-note">
-        Only the account itself can list this. A PDS keeps the record of which
-        spaces it has written to for its own account and no one else’s, so
-        there is no way to ask it about somebody else, not even with a
-        whole-space credential.
+        Only the account itself can list this, even with a whole-space
+        credential.
         {signedInDid && (
           <>
             {' '}
@@ -349,8 +346,7 @@ export function SpaceWrittenList({
             {visible.length > 0 && <SpaceRows uris={visible} selfDid={signedInDid} />}
             {!complete && uris.length > 0 && (
               <p className="fx-sp-note fx-sp-foot">
-                Showing the first {formatCount(uris.length)} spaces; the listing
-                was cut off before the end.
+                Showing the first {formatCount(uris.length)} spaces.
               </p>
             )}
           </>

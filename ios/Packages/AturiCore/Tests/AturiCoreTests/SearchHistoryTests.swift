@@ -173,15 +173,116 @@ final class SearchHistoryTests: XCTestCase {
         XCTAssertEqual(store.entries[0].label, "Dame")
         XCTAssertEqual(store.entries[0].handle, "dame.bsky.social")
         XCTAssertEqual(store.entries[0].did, "DID:PLC:X")
-        // A query visit carries no DID, so a DID-spelled path is its own entry
-        // until a later actor visit folds it (the web behaves the same way).
+        // A query visit carries no DID, but a DID-spelled actor path is one,
+        // so it folds into the handle entry too.
         clock.tick()
         store.recordQueryVisit("did:plc:X", path: "/explore/did:plc:X")
-        XCTAssertEqual(store.entries.count, 2)
-        XCTAssertEqual(store.entries[0].path, "/explore/did:plc:x")
+        XCTAssertEqual(store.entries.count, 1)
+        XCTAssertEqual(store.entries[0].count, 3)
+        XCTAssertEqual(store.entries[0].path, "/explore/dame.is")
         // A record path under the same DID is its own destination.
         store.recordQueryVisit("a post", path: "/explore/did:plc:x/app.bsky.feed.post/3k")
-        XCTAssertEqual(store.entries.count, 3)
+        XCTAssertEqual(store.entries.count, 2)
+    }
+
+    func testAHandleThenItsDidStayOneRow() async {
+        let clock = Clock()
+        let store = makeStore(clock: clock)
+        store.recordActorVisit(did: "did:plc:x", handle: "dame.is")
+        clock.tick()
+        store.recordQueryVisit("did:plc:x", path: "/explore/did:plc:x")
+        store.enrich(path: "/explore/did:plc:x", patch: SearchHistoryPatch(did: "did:plc:x"))
+        XCTAssertEqual(store.entries.count, 1)
+        XCTAssertEqual(store.entries[0].count, 2)
+    }
+
+    func testEnrichFoldsABackfilledDidIntoTheActorEntry() async {
+        let clock = Clock()
+        let store = makeStore(clock: clock)
+        // The DID search comes first, before the account is known by handle.
+        store.recordQueryVisit("did:plc:x", path: "/explore/did:plc:x")
+        clock.tick()
+        store.recordQueryVisit("dame", path: "/explore/dame.is")
+        XCTAssertEqual(store.entries.count, 2)
+        XCTAssertTrue(store.enrich(path: "/explore/dame.is", patch: SearchHistoryPatch(did: "did:plc:x")))
+        XCTAssertEqual(store.entries.count, 1, "the backfilled DID merges the two rows straight away")
+        XCTAssertEqual(store.entries[0].count, 2)
+        XCTAssertEqual(SearchHistoryStore(defaults: defaults).entries.count, 1, "persisted")
+    }
+
+    func testRecordQueryVisitSkipsJunkDestinations() async {
+        let store = makeStore()
+        store.recordQueryVisit("!!!@@@", path: "/explore/!!!@@@")
+        store.recordQueryVisit("coffee cake", path: SearchRouting.resolveSearchPath("coffee cake")!)
+        store.recordQueryVisit("at://not a uri", path: SearchRouting.resolveSearchPath("at://not a uri")!)
+        XCTAssertTrue(store.entries.isEmpty)
+    }
+
+    func testRecordQueryVisitKeepsRealDestinations() async {
+        let clock = Clock()
+        let store = makeStore(clock: clock)
+        for query in ["dame.is", "@other.test", "did:plc:abc123", "at://did:plc:abc123/app.bsky.feed.post/3k", "https://pds.example.com"] {
+            store.recordQueryVisit(query, path: SearchRouting.resolveSearchPath(query)!)
+            clock.tick()
+        }
+        XCTAssertEqual(store.entries.map(\.path), [
+            "/explore/pds/pds.example.com",
+            "/explore/did:plc:abc123/app.bsky.feed.post/3k",
+            "/explore/did:plc:abc123",
+            "/explore/other.test",
+            "/explore/dame.is",
+        ])
+    }
+
+    func testIsRememberable() async {
+        XCTAssertTrue(SearchHistory.isRememberable(path: "/explore/dame.is"))
+        XCTAssertTrue(SearchHistory.isRememberable(path: "/explore/@Dame.is"))
+        XCTAssertTrue(SearchHistory.isRememberable(path: "/explore/did%3Aplc%3Ax/app.bsky.feed.post"))
+        XCTAssertTrue(SearchHistory.isRememberable(path: "/explore/pds/bsky.social"))
+        XCTAssertTrue(SearchHistory.isRememberable(path: "/explore/lexicons/app.bsky.feed.post"))
+        XCTAssertFalse(SearchHistory.isRememberable(path: "/explore/coffee cake"))
+        XCTAssertFalse(SearchHistory.isRememberable(path: "/explore/@@dame.is"), "only one @ is stripped")
+        XCTAssertFalse(SearchHistory.isRememberable(path: "/explore/dame/app.bsky.feed.post/3k"))
+    }
+
+    func testTheStoreDropsJunkItReads() async {
+        let rows: [SearchHistoryEntry] = [
+            entry("/explore/coffee cake", label: "coffee cake", at: 2),
+            entry("/explore/dame.is", label: "dame", at: 1),
+        ]
+        defaults.set(SearchHistory.serialize(rows), forKey: SearchHistory.storageKey)
+        XCTAssertEqual(makeStore().entries.map(\.label), ["dame"])
+    }
+
+    func testRemoveDropsEveryVariantAndPersists() async {
+        let clock = Clock()
+        let rows: [SearchHistoryEntry] = [
+            entry("/explore/dame.is", label: "one", at: 2),
+            entry("/explore/other.test", label: "other", at: 1),
+        ]
+        defaults.set(SearchHistory.serialize(rows), forKey: SearchHistory.storageKey)
+        let store = makeStore(clock: clock)
+        store.remove(entry("/explore/@Dame.is"))
+        XCTAssertEqual(store.entries.map(\.label), ["other"])
+        XCTAssertEqual(SearchHistoryStore(defaults: defaults).entries.map(\.label), ["other"], "persisted")
+        store.remove(store.entries[0])
+        XCTAssertTrue(store.entries.isEmpty)
+        XCTAssertTrue(SearchHistoryStore(defaults: defaults).entries.isEmpty)
+    }
+
+    func testClearEmptiesRecentsAndFrequent() async {
+        let clock = Clock()
+        let store = makeStore(clock: clock)
+        store.recordActorVisit(handle: "a.test")
+        clock.tick()
+        store.recordActorVisit(handle: "a.test")
+        clock.tick()
+        store.recordActorVisit(handle: "b.test")
+        XCTAssertFalse(store.recents(limit: 5).isEmpty)
+        XCTAssertFalse(store.frequent(limit: 5).isEmpty)
+        store.clear()
+        XCTAssertEqual(store.recents(limit: 5), [])
+        XCTAssertEqual(store.frequent(limit: 5), [])
     }
 
     func testRecordQueryVisitTrimsAndIgnoresBlanks() async {

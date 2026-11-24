@@ -5,19 +5,32 @@ import AturiCore
 /// in `ToolCatalog`, by group. Each row pushes the tool's page; a tool's
 /// input travels in its route's query, as it does in the web's address.
 struct ToolsView: View {
+    @Environment(AppRouter.self) private var router
     @Environment(\.aturiTheme) private var theme
 
     private static let pageURL = Endpoints.aturiBase.appending(path: "tools")
+    /// The padded content's id, scrolled to when the router asks for the
+    /// top (the tab reselected at its root, or a `/tools` link). It sits
+    /// outside the padding so the header comes back with its margin.
+    static let topID = "tools-top"
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                header
-                ForEach(ToolCatalog.byGroup(), id: \.group.id) { entry in
-                    groupSection(entry.group, tools: entry.tools)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    header
+                    ForEach(ToolCatalog.byGroup(), id: \.group.id) { entry in
+                        groupSection(entry.group, tools: entry.tools)
+                    }
+                }
+                .padding(16)
+                .id(Self.topID)
+            }
+            .onChange(of: router.scrollToTopRequest[.tools, default: 0]) { _, _ in
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(Self.topID, anchor: .top)
                 }
             }
-            .padding(16)
         }
         .background(theme.bgPrimary)
         .navigationTitle("Tools")
@@ -42,28 +55,15 @@ struct ToolsView: View {
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            /* The web's intro, less "on its own page": here each opens on
-               its own screen and keeps its input in the link it shares. */
-            Text("Single-purpose utilities for atproto: check a handle, validate a record, watch the network. Each one keeps its input in the link it shares, so a result can be passed on.")
-                .font(AturiFont.body)
-                .foregroundStyle(theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func groupSection(_ group: ToolGroup, tools: [ToolEntry]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(group.title)
-                    .font(AturiFont.sans(.headline, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
-                Text(group.blurb)
-                    .font(AturiFont.footnote)
-                    .foregroundStyle(theme.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+            Text(group.title)
+                .font(AturiFont.sans(.headline, weight: .bold))
+                .foregroundStyle(theme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) {
                 ForEach(Array(tools.enumerated()), id: \.element.id) { index, tool in
                     if index > 0 {

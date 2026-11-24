@@ -105,15 +105,15 @@ final class AtmosphericConditionsModelTests: XCTestCase {
         XCTAssertTrue(model.hasLoaded)
         XCTAssertFalse(model.isDown)
         XCTAssertEqual(model.measuredAt?.timeIntervalSince1970 ?? 0, 1_795_115_824, accuracy: 0.001)
-        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: "Breezy", note: "497 records a second \u{00B7} 12,456 accounts"))
-        XCTAssertEqual(model.againstUsual, AtmosphericStat(label: "Against usual", value: "+6%", note: "About as busy as usual over the last hour"))
+        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: "Breezy", note: "497 records/s \u{00B7} 12,456 accounts"))
+        XCTAssertEqual(model.againstUsual, AtmosphericStat(label: "Against usual", value: "+6%", note: "About as busy as usual \u{00B7} last hour"))
         XCTAssertEqual(model.diversity, AtmosphericStat(
             label: "Diversity index", value: "3.47", level: "moderate",
-            note: "0.75% of active accounts write with 25 other apps"
+            note: "0.75% on 25 non-Bluesky apps"
         ))
         XCTAssertEqual(model.hosting, AtmosphericStat(
             label: "Hosting diversity", value: "9.08", level: "early days",
-            note: "1.68% of accounts on 1,940 independent PDSes"
+            note: "1.68% on 1,940 independent PDSes"
         ))
 
         XCTAssertEqual(fake.requests(containing: Self.station).map { $0.url?.absoluteString }, ["https://atpota.to/api/atmosphere"])
@@ -149,7 +149,7 @@ final class AtmosphericConditionsModelTests: XCTestCase {
         await model.load().value
 
         XCTAssertNil(model.usual)
-        XCTAssertEqual(model.againstUsual, AtmosphericStat(label: "Against usual", value: nil, note: "Still learning what usual looks like"))
+        XCTAssertEqual(model.againstUsual, AtmosphericStat(label: "Against usual", value: nil, note: "No baseline yet"))
     }
 
     func testTheDaysBeforeStandInUntilAWeekdayIsHeard() async throws {
@@ -161,7 +161,7 @@ final class AtmosphericConditionsModelTests: XCTestCase {
         let usual = try XCTUnwrap(model.usual)
         XCTAssertEqual(usual.basis, .days)
         XCTAssertEqual(model.againstUsual.value, "+9%")
-        XCTAssertEqual(model.againstUsual.note, "Busier than usual over the last hour")
+        XCTAssertEqual(model.againstUsual.note, "Busier than usual \u{00B7} last hour")
     }
 
     func testBothDownSaysSo() async {
@@ -170,8 +170,8 @@ final class AtmosphericConditionsModelTests: XCTestCase {
 
         XCTAssertTrue(model.hasLoaded)
         XCTAssertTrue(model.isDown)
-        XCTAssertEqual(model.rightNow.note, "The station isn\u{2019}t answering")
-        XCTAssertEqual(model.againstUsual.note, "The almanac isn\u{2019}t answering")
+        XCTAssertEqual(model.rightNow.note, "Station not answering")
+        XCTAssertEqual(model.againstUsual.note, "Almanac not answering")
     }
 
     func testTheAlmanacCanAnswerWhileTheStationIsDown() async {
@@ -180,8 +180,8 @@ final class AtmosphericConditionsModelTests: XCTestCase {
 
         XCTAssertFalse(model.isDown)
         XCTAssertNil(model.reading)
-        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: nil, note: "The station isn\u{2019}t answering"))
-        XCTAssertEqual(model.diversity.note, "The station isn\u{2019}t answering")
+        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: nil, note: "Station not answering"))
+        XCTAssertEqual(model.diversity.note, "Station not answering")
         XCTAssertEqual(model.againstUsual.value, "+6%")
     }
 
@@ -196,9 +196,9 @@ final class AtmosphericConditionsModelTests: XCTestCase {
         let model = makeModel(transport(station: .init(status: 200, body: sample)))
         await model.load().value
 
-        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: "Calm", note: "12 records a second"))
+        XCTAssertEqual(model.rightNow, AtmosphericStat(label: "Right now", value: "Calm", note: "12 records/s"))
         XCTAssertEqual(model.diversity.level, "low")
-        XCTAssertEqual(model.hosting, AtmosphericStat(label: "Hosting diversity", value: nil, note: "Not in this reading"))
+        XCTAssertEqual(model.hosting, AtmosphericStat(label: "Hosting diversity", value: nil, note: "Not reported"))
     }
 
     func testRefreshIfStaleWaitsOutTheMinute() async {
@@ -225,7 +225,6 @@ final class AtmosphericConditionsModelTests: XCTestCase {
 
     func testTheCardCopy() {
         XCTAssertEqual(AtmosphericConditionsModel.title, "Atmospheric conditions")
-        XCTAssertEqual(AtmosphericConditionsModel.subtitle, "The last minute of the whole firehose, from atpota.to\u{2019}s weather station")
         XCTAssertEqual(AtmosphericConditionsModel.reportLinkLabel, "Full weather report")
         XCTAssertEqual(AtmosphericConditionsModel.refreshInterval, 60)
     }

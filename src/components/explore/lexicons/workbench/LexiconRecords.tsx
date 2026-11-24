@@ -179,8 +179,8 @@ export default function LexiconRecordsView({
         <p className="fx-lx-sub">
           <code className="fx-lx-sub-nsid">{nsid}</code>{' '}
           {live
-            ? 'New records from Jetstream as they’re written, over the latest UFOs sampled.'
-            : 'The latest records UFOs sampled from the firehose, from every account that writes them.'}
+            ? 'Live from Jetstream, above the latest UFOs sampled.'
+            : 'The latest UFOs sampled, from every account.'}
         </p>
       </div>
       <section aria-label="Records" className="fx-records fx-wb-records" id={CHROME_RESULTS_ID}>
@@ -191,8 +191,8 @@ export default function LexiconRecordsView({
             <RecordRowsSkeleton />
           ) : records.length === 0 ? (
             <p className="fx-records-msg">
-              {live ? 'Waiting for the next one. ' : 'UFOs hasn’t sampled any recently. '}
-              {!live && 'Live will show new ones as they’re written.'}
+              {live ? 'Waiting for the next one. ' : 'None sampled recently. '}
+              {!live && 'Live will catch new ones.'}
             </p>
           ) : (
             <ul className="fx-lx-recs">

@@ -140,23 +140,22 @@ export default function ActivityCalendar({ subject, heading }: { subject?: strin
               term: 'Record keys carry the time',
               text: (
                 <>
-                  Most record keys are TIDs, which hold the moment they were made. A key such as{' '}
-                  <code>3lb2…</code> dates its record without the record being kept. Keys with no time in
-                  them fall back to the record&rsquo;s <code>createdAt</code>.
+                  Most keys are TIDs, which hold when the record was made. Others fall back to{' '}
+                  <code>createdAt</code>.
                 </>
               ),
             },
             {
               term: 'Every collection, newest first',
-              text: 'Each collection in the repository is read from its newest record back, and reading stops at the first key older than the calendar. Posts, likes, and records from any other app count alike.',
+              text: 'Each collection is read back from its newest record to the start of the calendar. Every app counts.',
             },
             {
               term: 'A bounded number of requests',
-              text: `The account’s own PDS answers every request, so only ${SCAN_CONCURRENCY} collections are read at a time and each stops after ${PAGES_PER_COLLECTION} pages. A collection that runs longer says so, and can be read further.`,
+              text: `To spare the account’s PDS, ${SCAN_CONCURRENCY} collections are read at a time, up to ${PAGES_PER_COLLECTION} pages each. Longer ones can be read further.`,
             },
             {
               term: 'What it cannot see',
-              text: 'A deleted record leaves no key behind and an edit does not change one. The calendar shows records that still exist, on the day each was created.',
+              text: 'Deleted records leave no key, and edits don’t change one.',
             },
           ]}
         />
@@ -266,8 +265,7 @@ function ActivityResults({
           )}
 
           <p className="fn-tool-note">
-            Days are in your time zone ({timeZone}). Records that still exist are counted on the day each
-            was created; deleted records and later edits leave no trace in a record key.
+            Days are in your time zone ({timeZone}). Deleted records are not counted.
           </p>
         </ToolCard>
       </ToolSection>
@@ -360,7 +358,7 @@ function ActivityResults({
       >
         <div className="fn-tool-bar fn-tool-activity-bar">
           <Segmented ariaLabel="Group records by" options={BY_OPTIONS} value={by} onChange={setBy} />
-          <span className="fn-tool-note">Pick a row to show only its records on the calendar.</span>
+          <span className="fn-tool-note">Pick a row to filter the calendar.</span>
         </div>
         {shares.length === 0 ? (
           <ToolEmpty>

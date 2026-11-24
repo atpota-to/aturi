@@ -26,16 +26,16 @@ type TabId =
   | 'custom'
   | 'about';
 
-const TABS: { id: TabId; label: string; lede: string }[] = [
-  { id: 'account', label: 'Account', lede: 'Your identity, your repo and where your settings are kept.' },
-  { id: 'general', label: 'General', lede: 'How Aturi looks, what it tells you about, and how the explorer behaves.' },
-  { id: 'keyboard', label: 'Keyboard', lede: 'Shortcuts, chords and the command palette.' },
-  { id: 'sections', label: 'Sections', lede: 'Which sections the explorer pages show, and in what order.' },
-  { id: 'waypoints', label: 'Waypoints', lede: 'The groups and layout of the universal-link picker.' },
-  { id: 'redirects', label: 'Redirects', lede: 'Open links straight in the client you prefer.' },
-  { id: 'clients', label: 'Clients', lede: 'Tell other Atmosphere apps which clients you use.' },
-  { id: 'custom', label: 'Custom', lede: 'Your own waypoints, written as URL templates.' },
-  { id: 'about', label: 'About', lede: 'What Aturi is, and where to read more.' },
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'account', label: 'Account' },
+  { id: 'general', label: 'General' },
+  { id: 'keyboard', label: 'Keyboard' },
+  { id: 'sections', label: 'Sections' },
+  { id: 'waypoints', label: 'Waypoints' },
+  { id: 'redirects', label: 'Redirects' },
+  { id: 'clients', label: 'Clients' },
+  { id: 'custom', label: 'Custom' },
+  { id: 'about', label: 'About' },
 ];
 
 const HASH_TO_TAB: Record<string, TabId> = {
@@ -186,7 +186,6 @@ export default function SettingsShell() {
       >
         <div className="settings-page-head">
           <h1 className="settings-page-title">{current.label}</h1>
-          <p className="settings-page-lede">{current.lede}</p>
         </div>
         {/* Not on the Account tab: there the sign-in card is the page, and
             the note's link would only re-select the tab it is on. Not on
@@ -223,7 +222,7 @@ function LocalModeBanner({ onSignIn }: { onSignIn: () => void }) {
         <button type="button" onClick={onSignIn} className="settings-local-banner-link">
           Sign in
         </button>{' '}
-        to sync them to your PDS and carry them across devices.
+        to sync them.
       </span>
     </div>
   );

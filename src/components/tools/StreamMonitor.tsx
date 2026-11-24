@@ -860,7 +860,7 @@ export default function StreamMonitor({ about }: { about: ReactNode }) {
       : { value: a, state: 'error', note: 'not found', title: 'This handle did not resolve to a DID' };
   });
 
-  let emptyMessage = 'Waiting for matching events. With narrow filters this can take a while.';
+  let emptyMessage = 'Waiting for matching events. Narrow filters can take a while.';
   if (!jetstreamWanted && !plcWanted && !noAccountResolved) emptyMessage = 'Every event type is switched off.';
   if (accountsPending && noAccountResolved) emptyMessage = 'Resolving handles…';
   else if (noAccountResolved) emptyMessage = 'None of those accounts resolved to a DID.';
@@ -1086,7 +1086,7 @@ export default function StreamMonitor({ about }: { about: ReactNode }) {
               label="Accounts"
               icon={<User size={14} />}
               placeholder="Handle or DID"
-              hint="Handles or DIDs, for both sources. Jetstream sends only these accounts’ events."
+              hint="Handles or DIDs, for both sources."
               tokens={accountTokens}
               max={MAX_ACCOUNTS}
               parse={(raw) => {
@@ -1114,7 +1114,7 @@ export default function StreamMonitor({ about }: { about: ReactNode }) {
                 label="Collections"
                 icon={<Braces size={14} />}
                 placeholder="NSID or app.bsky.*"
-                hint="NSIDs, or a namespace ending in .* (app.bsky.graph.*). Narrows Jetstream commits; identity and account events have no collection and still show."
+                hint="NSIDs, or a namespace like app.bsky.graph.*. Identity and account events still show."
                 tokens={view.collections.map((value) => ({ value }))}
                 max={MAX_COLLECTIONS}
                 parse={(raw) => {
@@ -1131,7 +1131,7 @@ export default function StreamMonitor({ about }: { about: ReactNode }) {
             <h3 className="fn-sm-sec-title">Contains text</h3>
             <label
               className="fx-field fn-sm-text"
-              title="Matched anywhere in the event’s JSON: post text, handles, URIs, PDS hosts"
+              title="Matched anywhere in the event’s JSON"
             >
               <Search size={14} aria-hidden />
               <span className="fn-sr-only">Contains text</span>

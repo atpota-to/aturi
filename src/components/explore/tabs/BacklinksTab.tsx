@@ -191,14 +191,14 @@ function BacklinksUnavailable() {
 type RelationMeta = { label: string; icon: LucideIcon; about: string };
 
 const ACCOUNT_RELATIONS: Record<BacklinkRelation, RelationMeta> = {
-  follow: { label: 'Followers', icon: UserPlus, about: 'Accounts that follow this one, in any app.' },
-  mention: { label: 'Mentions', icon: AtSign, about: 'Posts, documents and lists that mention this account.' },
-  list: { label: 'Lists', icon: List, about: 'Lists, starter packs and groups this account is in.' },
-  block: { label: 'Blocks', icon: ShieldBan, about: 'Accounts that block this one.' },
+  follow: { label: 'Followers', icon: UserPlus, about: '' },
+  mention: { label: 'Mentions', icon: AtSign, about: '' },
+  list: { label: 'Lists', icon: List, about: 'Lists, starter packs and groups.' },
+  block: { label: 'Blocks', icon: ShieldBan, about: '' },
   verify: {
     label: 'Verifications',
     icon: BadgeCheck,
-    about: 'Verification records that name this account, by others or by itself.',
+    about: 'From others or the account itself.',
   },
   endorse: {
     label: 'Vouches',
@@ -208,28 +208,28 @@ const ACCOUNT_RELATIONS: Record<BacklinkRelation, RelationMeta> = {
   embed: {
     label: 'Embedded copies',
     icon: Layers,
-    about: 'Records that keep a copy of this account’s details, like a starter pack showing a feed it made.',
+    about: 'Records holding a copy of this account’s details.',
   },
   other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.' },
 };
 
 const RECORD_RELATIONS: Record<RecordBacklinkRelation, RelationMeta> = {
-  reply: { label: 'Replies', icon: MessageCircle, about: 'Replies and comments that answer this record directly.' },
+  reply: { label: 'Replies', icon: MessageCircle, about: 'Direct replies and comments.' },
   thread: {
     label: 'In thread',
     icon: MessagesSquare,
-    about: 'Every reply in the thread this record started, at any depth.',
+    about: 'Every reply in its thread, at any depth.',
   },
-  quote: { label: 'Quotes', icon: Quote, about: 'Posts that quote or embed this record.' },
-  repost: { label: 'Reposts', icon: Repeat2, about: 'Accounts that reposted this record.' },
+  quote: { label: 'Quotes', icon: Quote, about: '' },
+  repost: { label: 'Reposts', icon: Repeat2, about: '' },
   like: { label: 'Likes', icon: Heart, about: 'Likes, stars, votes and recommendations.' },
-  mention: { label: 'Mentions', icon: AtSign, about: 'Records that link to this one in their text.' },
+  mention: { label: 'Mentions', icon: AtSign, about: 'Links in a record’s text.' },
   item: {
     label: 'Items',
     icon: FolderOpen,
-    about: 'Records filed under this one, like a list’s members or a publication’s documents.',
+    about: 'Like a list’s members or a publication’s documents.',
   },
-  subscribe: { label: 'Subscribers', icon: Rss, about: 'Subscriptions to this record.' },
+  subscribe: { label: 'Subscribers', icon: Rss, about: '' },
   via: { label: 'Came via', icon: Signpost, about: 'Follows and sign-ups made through this record.' },
   other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.' },
 };
@@ -357,7 +357,7 @@ function BacklinkRelations({
       <section className="fx-bl-detail" aria-labelledby={headingId}>
         <div className="fx-bl-detail-head">
           <h3 id={headingId}>{about.label}</h3>
-          <p>{about.about}</p>
+          {about.about && <p>{about.about}</p>}
         </div>
 
         {showApps && (
@@ -455,7 +455,7 @@ function RelationTile({
   // could share an account.
   const hint =
     `${bucket.count.toLocaleString()} ${bucket.count === 1 ? 'link' : 'links'} through ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` +
-    (sourceCount > 1 ? '. Accounts are counted per source, so one account linking through two counts twice.' : '.');
+    (sourceCount > 1 ? '. Accounts count once per source.' : '.');
   const sub = bucket.accounts
     ? `${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`
     : `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}`;
@@ -525,7 +525,7 @@ function RelationLauncher({
               rel="nofollow"
               className="fx-bl-nav-row"
               aria-current={listed === b.relation ? 'true' : undefined}
-              title={about}
+              title={about || undefined}
             >
               <Icon size={15} aria-hidden />
               <span className="fx-bl-nav-label">{label}</span>

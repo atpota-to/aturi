@@ -241,7 +241,7 @@ struct PDSView: View {
     /// "Hosted" figure; nil until one has counted any.
     private var relaysDetail: String? {
         guard let count = model.relays.accountCount else { return nil }
-        return "\(count.formatted()) \(count == 1 ? "account" : "accounts") hosted, as the relays count them"
+        return "\(count.formatted()) \(count == 1 ? "account" : "accounts"), per the relays"
     }
 
     // MARK: The accounts

@@ -92,8 +92,8 @@ export default function SpaceConfigFields({
           hintId={managingAppHintId}
           hint={
             managingAppInvalid
-              ? 'That is not a DID. A managing app is named by DID, optionally with a service fragment: did:web:example.com#forum.'
-              : 'The service asked about every user, by DID with an optional service fragment: did:web:example.com#forum. Your server calls its checkUserAccess.'
+              ? 'Not a DID. Use a DID, optionally with a service fragment: did:web:example.com#forum.'
+              : 'A DID, optionally with a service fragment: did:web:example.com#forum.'
           }
         >
           <input
@@ -148,7 +148,7 @@ export default function SpaceConfigFields({
           label="Allowed client IDs"
           htmlFor={allowedId}
           hintId={allowedHintId}
-          hint="One OAuth client ID per line, matched against each app's attested identity. aturi.to is a public client and can never be attested, so an allow list locks this explorer out of reading the space — you will still be able to administer it here."
+          hint="One OAuth client ID per line. aturi.to can never be attested, so an allow list stops this explorer reading the space. You can still administer it here."
         >
           <textarea
             id={allowedId}
@@ -167,9 +167,8 @@ export default function SpaceConfigFields({
 
       {(policy.kind === 'unknown' || appAccess.kind === 'unknown') && (
         <p className="fx-sp-dialog-note fx-sp-dialog-warn">
-          This space carries a rule this build doesn’t recognise. It is left
-          exactly as it is unless you change it, and changing it replaces the
-          whole rule rather than editing it.
+          This space has a rule this build doesn’t recognise. It stays as is
+          unless you change it, and changing it replaces the whole rule.
         </p>
       )}
     </>
