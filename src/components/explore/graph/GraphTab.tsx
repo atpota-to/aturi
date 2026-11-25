@@ -6,7 +6,7 @@ import type { IdentityBundle } from '@/utils/atproto/identity';
 import { relationOf } from '@/lib/socialGraph';
 import { loadNeighbourhood, STAGE_LABELS, STAGE_ORDER, type Neighbourhood } from '@/utils/atproto/graphData';
 import { Segmented } from '../lexicons/primitives';
-import { ExchangeAccount, ExchangeLegend } from './ExchangeView';
+import { ExchangeAccount } from './ExchangeView';
 import { FlowAccount } from './FlowView';
 import { LedgerAccount } from './LedgerView';
 import { OrbitAccount } from './OrbitView';
@@ -97,11 +97,8 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
         </p>
       ) : data ? (
         <>
-          {layout === 'exchange' ? (
-            <ExchangeLegend subject={subjectName} />
-          ) : (
-            layout !== 'ledger' && <Legend subject={subjectName} />
-          )}
+          {/* Exchange names its own directions on its figures, so it carries no key. */}
+          {layout !== 'ledger' && layout !== 'exchange' && <Legend subject={subjectName} />}
           <div className="fx-graph-split" data-open={shown ? '' : undefined}>
             <div className="fx-graph-main" {...drawingProps}>
               {layout === 'orbit' && <OrbitAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}

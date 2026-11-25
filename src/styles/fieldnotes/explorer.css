@@ -1377,6 +1377,19 @@
     padding: 12px;
   }
 }
+/* Stacked, the account page's strip runs wider than the screen, and a tab
+   scrolled past the card's edge was cut off in the page's own gutter. The
+   strip reaches into that gutter on both sides and pads itself back by the
+   same amount, so at rest the first tab sits where it did, and a scrolled tab
+   runs on to the screen's edge. The padding is scroll padding too, so a tab
+   brought into view by the keyboard stops clear of the edge. */
+@media (max-width: 959px) {
+  .fx-explorer[data-page='repo'] .fx-main .fx-repo > .fx-tabs {
+    margin-inline: calc(-1 * var(--page-edge));
+    padding-inline: calc(var(--page-edge) + var(--tab-inset));
+    scroll-padding-inline: calc(var(--page-edge) + var(--tab-inset));
+  }
+}
 
 /* --- collections tree ---------------------------------------------------- */
 

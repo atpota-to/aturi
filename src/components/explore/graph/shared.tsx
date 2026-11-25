@@ -552,11 +552,12 @@ export function GraphDetail({
         {focus.note && <p className="fx-graph-detail-text">{focus.note}</p>}
         {full && (
           <>
-            {/* Named both ways: beside this person's name, "to them" read as
-                to this person, the opposite of what the count is. */}
+            {/* Inbound and outbound are the account the graph is about, as
+                in Exchange: "to them" beside this person's name read as to
+                this person, the opposite of what the count is. */}
             <dl className="fx-graph-facts">
-              <Fact k={`To ${subjectName}`} v={fmt(full.in)} />
-              <Fact k={`From ${subjectName}`} v={fmt(full.out)} />
+              <Fact k="Inbound" v={fmt(full.in)} />
+              <Fact k="Outbound" v={fmt(full.out)} />
             </dl>
             {(full.in > 0 || full.out > 0) && (
               <p className="fx-graph-detail-text">

@@ -41,6 +41,185 @@
   --g-pin-4: #bf3f73;
 }
 
+/* Each colour scheme gets its own set, so the drawing reads as part of the
+   scheme rather than Moss's colours laid over it. The mutual colour sits on
+   the scheme's accent hue and the other relations turn with it, keeping the
+   gaps between them; the neutral is tinted toward the scheme's surface. Each
+   set, dark and light, was checked as Moss's was: the four relation
+   colours at least 8 apart (OKLab x100) for protan and deutan readers and
+   15 apart for everyone, the neutral at least 7 from each of them, and all
+   at least 3:1 against the card, the page and the high contrast surfaces.
+   Moss's own set is 6.6 apart at its closest pair. Noir has no hue of its
+   own, so it keeps Moss's hues, quieter. The pins move with each set so
+   they stay clear of its relation colours. */
+[data-theme='dark'][data-scheme='ember'] {
+  --g-mutual: #c37e4d;
+  --g-following: #755498;
+  --g-follower: #3b7336;
+  --g-second: #309fc5;
+  --g-further: #7c7877;
+  --g-pin-1: #e5b421;
+  --g-pin-2: #29d0ea;
+  --g-pin-3: #9886f2;
+  --g-pin-4: #c3447c;
+}
+
+[data-theme='light'][data-scheme='ember'] {
+  --g-mutual: #914f19;
+  --g-following: #684c90;
+  --g-follower: #379755;
+  --g-second: #048cb1;
+  --g-further: #74716e;
+  --g-pin-1: #a57e1a;
+  --g-pin-2: #0144a7;
+  --g-pin-3: #7b74d8;
+  --g-pin-4: #81254b;
+}
+
+[data-theme='dark'][data-scheme='tide'] {
+  --g-mutual: #2d9fc0;
+  --g-following: #8c6500;
+  --g-follower: #795396;
+  --g-second: #ca7664;
+  --g-further: #6a6e70;
+  --g-pin-1: #deb23a;
+  --g-pin-2: #39d1ea;
+  --g-pin-3: #8d78eb;
+  --g-pin-4: #f97aad;
+}
+
+[data-theme='light'][data-scheme='tide'] {
+  --g-mutual: #038eaf;
+  --g-following: #9f7b24;
+  --g-follower: #733985;
+  --g-second: #934132;
+  --g-further: #6e7274;
+  --g-pin-1: #615f00;
+  --g-pin-2: #005e8b;
+  --g-pin-3: #7c73e1;
+  --g-pin-4: #d05584;
+}
+
+[data-theme='dark'][data-scheme='dusk'] {
+  --g-mutual: #7a62b2;
+  --g-following: #00a99d;
+  --g-follower: #aa4f4d;
+  --g-second: #ae8623;
+  --g-further: #7b7884;
+  --g-pin-1: #e3b535;
+  --g-pin-2: #20d4ef;
+  --g-pin-3: #9782f8;
+  --g-pin-4: #ff87b6;
+}
+
+[data-theme='light'][data-scheme='dusk'] {
+  --g-mutual: #6d55a3;
+  --g-following: #2f9872;
+  --g-follower: #903324;
+  --g-second: #a17906;
+  --g-further: #746f7a;
+  --g-pin-1: #646000;
+  --g-pin-2: #005281;
+  --g-pin-3: #6f78ea;
+  --g-pin-4: #c54c7b;
+}
+
+[data-theme='dark'][data-scheme='sol'] {
+  --g-mutual: #9c7906;
+  --g-following: #9d5389;
+  --g-follower: #02a287;
+  --g-second: #608fd7;
+  --g-further: #656256;
+  --g-pin-1: #d8a918;
+  --g-pin-2: #5dd0e5;
+  --g-pin-3: #725bce;
+  --g-pin-4: #cd7a99;
+}
+
+[data-theme='light'][data-scheme='sol'] {
+  --g-mutual: #9f7c0f;
+  --g-following: #803b74;
+  --g-follower: #18998c;
+  --g-second: #4373ba;
+  --g-further: #757166;
+  --g-pin-1: #5e5e00;
+  --g-pin-2: #005181;
+  --g-pin-3: #8d6de1;
+  --g-pin-4: #c64477;
+}
+
+[data-theme='dark'][data-scheme='bloom'] {
+  --g-mutual: #9e3f68;
+  --g-following: #2079bb;
+  --g-follower: #b88914;
+  --g-second: #18a97f;
+  --g-further: #7f7a7c;
+  --g-pin-1: #e6b733;
+  --g-pin-2: #55d0e6;
+  --g-pin-3: #8b78e4;
+  --g-pin-4: #f77cad;
+}
+
+[data-theme='light'][data-scheme='bloom'] {
+  --g-mutual: #b53c73;
+  --g-following: #168cd1;
+  --g-follower: #a77e0c;
+  --g-second: #006a45;
+  --g-further: #8e8589;
+  --g-pin-1: #815700;
+  --g-pin-2: #006893;
+  --g-pin-3: #4834a4;
+  --g-pin-4: #7a304c;
+}
+
+[data-theme='dark'][data-scheme='trans'] {
+  --g-mutual: #2b9fcd;
+  --g-following: #437223;
+  --g-follower: #935ea5;
+  --g-second: #d07655;
+  --g-further: #636068;
+  --g-pin-1: #ceae5f;
+  --g-pin-2: #12d0eb;
+  --g-pin-3: #947ff4;
+  --g-pin-4: #fd78ae;
+}
+
+[data-theme='light'][data-scheme='trans'] {
+  --g-mutual: #2b90b9;
+  --g-following: #68944e;
+  --g-follower: #8a528c;
+  --g-second: #893d21;
+  --g-further: #847a7d;
+  --g-pin-1: #8d6900;
+  --g-pin-2: #00608c;
+  --g-pin-3: #7e73e7;
+  --g-pin-4: #8d024d;
+}
+
+[data-theme='dark'][data-scheme='noir'] {
+  --g-mutual: #47a784;
+  --g-following: #b06f3d;
+  --g-follower: #5385c0;
+  --g-second: #905080;
+  --g-further: #7d7d7d;
+  --g-pin-1: #ceae5f;
+  --g-pin-2: #19cae4;
+  --g-pin-3: #9e8aff;
+  --g-pin-4: #d6558c;
+}
+
+[data-theme='light'][data-scheme='noir'] {
+  --g-mutual: #3d9b76;
+  --g-following: #a55e32;
+  --g-follower: #567cba;
+  --g-second: #824677;
+  --g-further: #717171;
+  --g-pin-1: #9c8601;
+  --g-pin-2: #00648f;
+  --g-pin-3: #4834a4;
+  --g-pin-4: #90003e;
+}
+
 .fx-graph {
   container-type: inline-size;
   display: flex;

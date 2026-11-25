@@ -52,7 +52,7 @@ export function ExchangeAccount({ data, focus, onFocus, onSelect }: { data: Neig
       <ExchangeSummary totals={totals} />
       <Days days={data.days} start={data.windowStart} readFrom={data.inboundSince} />
       <div className="fx-graph-x-pair">
-        <ByKind kinds={kinds} subject={subject} />
+        <ByKind kinds={kinds} />
         <section className="fx-graph-rank" aria-labelledby={pairsId}>
           <h3 className="fx-graph-rank-h" id={pairsId}>
             Back and forth
@@ -75,26 +75,6 @@ export function ExchangeAccount({ data, focus, onFocus, onSelect }: { data: Neig
   );
 }
 
-/** The view's key, in place of the relation key the other layouts carry. */
-export function ExchangeLegend({ subject }: { subject: string }) {
-  return (
-    <ul className="fx-graph-legend" aria-label="Key">
-      <li>
-        <span className="fx-graph-swatch" data-dir="in" aria-hidden />
-        Engaged with {subject}
-      </li>
-      <li>
-        <span className="fx-graph-swatch" data-dir="both" aria-hidden />
-        Both ways
-      </li>
-      <li>
-        <span className="fx-graph-swatch" data-dir="out" aria-hidden />
-        {subject} engaged with
-      </li>
-    </ul>
-  );
-}
-
 /**
  * In, both ways and out as three figures, over the overlap drawn to scale:
  * the top row is everyone in, the bottom row everyone out, and the column
@@ -108,7 +88,7 @@ export function ExchangeSummary({ totals, compact = false }: { totals: ExchangeT
         <div>
           <dt>
             <span className="fx-graph-swatch" data-dir="in" aria-hidden />
-            In
+            Inbound
           </dt>
           <dd>{fmt(totals.in)}</dd>
         </div>
@@ -127,7 +107,7 @@ export function ExchangeSummary({ totals, compact = false }: { totals: ExchangeT
         <div>
           <dt>
             <span className="fx-graph-swatch" data-dir="out" aria-hidden />
-            Out
+            Outbound
           </dt>
           <dd>{fmt(totals.out)}</dd>
         </div>
@@ -158,7 +138,7 @@ function Overlap({ totals }: { totals: ExchangeTotals }) {
     <div
       className="fx-graph-xs-bar"
       role="img"
-      aria-label={`${fmt(inOnly)} in only, ${fmt(totals.both)} both ways, ${fmt(outOnly)} out only`}
+      aria-label={`${fmt(inOnly)} inbound only, ${fmt(totals.both)} both ways, ${fmt(outOnly)} outbound only`}
     >
       {row('top')}
       {row('bottom')}
@@ -210,17 +190,17 @@ function Days({ days, start, readFrom }: { days: Neighbourhood['days']; start: n
         <span>Accounts per day</span>
         <span className="fx-graph-days-read" aria-live="polite">
           {at == null ? (
-            peak > 0 && `Busiest: ${dayLabel(dayStart(peakIn))}, ${fmt(peak)} in`
+            peak > 0 && `Busiest: ${dayLabel(dayStart(peakIn))}`
           ) : (
             <>
               {dayLabel(dayStart(at))}
               <span>
                 <span className="fx-graph-swatch" data-dir="in" aria-hidden />
-                {fmt(days.in[at])} in
+                {fmt(days.in[at])} inbound
               </span>
               <span>
                 <span className="fx-graph-swatch" data-dir="out" aria-hidden />
-                {fmt(days.out[at])} out
+                {fmt(days.out[at])} outbound
               </span>
             </>
           )}
@@ -231,7 +211,7 @@ function Days({ days, start, readFrom }: { days: Neighbourhood['days']; start: n
         className="fx-graph-days-svg"
         tabIndex={0}
         role="img"
-        aria-label={`Accounts engaging each day for 30 days, in above the line and out below. Use the arrow keys to read a day.`}
+        aria-label={`Accounts engaging each day for 30 days, inbound above the line and outbound below. Use the arrow keys to read a day.`}
         data-active={at == null ? undefined : ''}
         onPointerMove={pointAt}
         onPointerLeave={(e) => e.pointerType === 'mouse' && setAt(null)}
@@ -277,8 +257,8 @@ function Days({ days, start, readFrom }: { days: Neighbourhood['days']; start: n
   );
 }
 
-/** Accounts per kind of engagement, toward the account on the left and from it on the right. */
-function ByKind({ kinds, subject }: { kinds: ReturnType<typeof kindReach>; subject: string }) {
+/** Accounts per kind of engagement, inbound on the left and outbound on the right. */
+function ByKind({ kinds }: { kinds: ReturnType<typeof kindReach> }) {
   const max = Math.max(1, ...ENGAGEMENT_KINDS.flatMap((k) => [kinds.in[k], kinds.out[k]]));
   const bar = (v: number) => ({ width: v ? `max(2px, calc((100% - 5ch) * ${(v / max).toFixed(4)}))` : '0' });
   const headId = useId();
@@ -290,11 +270,11 @@ function ByKind({ kinds, subject }: { kinds: ReturnType<typeof kindReach>; subje
       <table className="fx-graph-kinds-table">
         <thead>
           <tr>
-            <th scope="col">To {subject}</th>
+            <th scope="col">Inbound</th>
             <th scope="col">
               <span className="fn-sr-only">Kind</span>
             </th>
-            <th scope="col">From {subject}</th>
+            <th scope="col">Outbound</th>
           </tr>
         </thead>
         <tbody>
@@ -343,7 +323,7 @@ function BackAndForth({
             type="button"
             className="fx-graph-xrow"
             data-focus={focused === p.did || undefined}
-            aria-label={`${nameOf(p)}: ${fmt(p.in)} in, ${fmt(p.out)} out`}
+            aria-label={`${nameOf(p)}: ${fmt(p.in)} inbound, ${fmt(p.out)} outbound`}
             onClick={() => (onSelect ?? onFocus)({ kind: 'person', person: p })}
             onFocus={() => onFocus({ kind: 'person', person: p })}
           >
