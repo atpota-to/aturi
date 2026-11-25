@@ -20,7 +20,8 @@ import { ExchangeSummary } from './ExchangeView';
  * 30 days, whom it engaged with, and both, from the same read as the Graph
  * tab. That read is a few hundred requests, so the card never starts it on
  * its own: it shows a read already done or under way (from the Graph tab,
- * or this card earlier), and otherwise offers one.
+ * or this card earlier, in this visit or kept from one in the last day),
+ * and otherwise offers one.
  */
 export default function ExchangeCard({ identity }: { identity: IdentityBundle }) {
   const [data, setData] = useState<Neighbourhood | null>(null);

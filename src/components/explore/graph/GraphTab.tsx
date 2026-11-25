@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { relationOf } from '@/lib/socialGraph';
-import { loadNeighbourhood, STAGE_LABELS, STAGE_ORDER, type Neighbourhood } from '@/utils/atproto/graphData';
+import {
+  forgetNeighbourhood,
+  loadNeighbourhood,
+  STAGE_LABELS,
+  STAGE_ORDER,
+  type Neighbourhood,
+} from '@/utils/atproto/graphData';
 import { Segmented } from '../lexicons/primitives';
 import { ExchangeAccount } from './ExchangeView';
 import { FlowAccount } from './FlowView';
@@ -31,7 +38,9 @@ export const GRAPH_LAYOUT_OPTIONS: { value: GraphLayout; label: string }[] = [
  * shared link land on the same view.
  *
  * Nothing is read until the tab is opened; the read is staged (see
- * graphData.ts). A progress bar names each stage as it runs, and the drawing
+ * graphData.ts). A finished read is kept in the browser for a day
+ * (graphStore.ts) and shown again without a request; the head says how old
+ * it is and Refresh reads it again. A progress bar names each stage as it runs, and the drawing
  * fills in underneath it as the data lands: dots appear as accounts are
  * found and move rings as follows are checked.
  *
@@ -46,6 +55,8 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const layout: GraphLayout = (GRAPH_LAYOUTS as readonly string[]).includes(param ?? '') ? (param as GraphLayout) : 'orbit';
   const [data, setData] = useState<Neighbourhood | null>(null);
   const [failed, setFailed] = useState(false);
+  // Bumped by Refresh, to run the read below again once the kept one is gone.
+  const [reads, setReads] = useState(0);
   const {
     picked: selected,
     pick,
@@ -64,7 +75,14 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
       if (!done && !ac.signal.aborted) setFailed(true);
     });
     return () => ac.abort();
-  }, [identity.did, identity.pds]);
+  }, [identity.did, identity.pds, reads]);
+
+  async function refresh() {
+    setData(null);
+    setFailed(false);
+    await forgetNeighbourhood(identity.did);
+    setReads((n) => n + 1);
+  }
 
   function selectLayout(next: GraphLayout) {
     const params = new URLSearchParams(searchParams.toString());
@@ -88,7 +106,20 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
     <div ref={rootRef} className="fx-graph" data-pick onKeyDown={onKeyDown}>
       <div className="fx-graph-head">
         <Segmented ariaLabel="Graph layout" options={GRAPH_LAYOUT_OPTIONS} value={layout} onChange={selectLayout} />
-        {!loading && <p className="fx-graph-status">{fmt(data.people.length)} accounts</p>}
+        {!loading && (
+          <>
+            <p className="fx-graph-status">
+              {fmt(data.people.length)} accounts ·{' '}
+              <time dateTime={new Date(data.windowEnd).toISOString()} title={new Date(data.windowEnd).toLocaleString()}>
+                read {readAgo(data.windowEnd)}
+              </time>
+            </p>
+            <button type="button" className="fx-btn fx-btn-sm fx-graph-refresh" onClick={refresh}>
+              <RefreshCw size={13} aria-hidden />
+              Refresh
+            </button>
+          </>
+        )}
       </div>
       {loading && <GraphProgress data={data} />}
       {empty ? (
@@ -115,6 +146,15 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
       )}
     </div>
   );
+}
+
+/** How long ago a read started, in words: "just now", "12 minutes ago", "3 hours ago". */
+function readAgo(at: number): string {
+  const minutes = Math.floor((Date.now() - at) / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} hour${hours === 1 ? '' : 's'} ago`;
 }
 
 /**

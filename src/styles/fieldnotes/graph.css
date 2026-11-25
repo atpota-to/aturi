@@ -252,6 +252,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Refresh sits at the end of the head, after the count and the read's age. */
+.fx-graph-refresh {
+  margin-left: auto;
+  color: var(--text-secondary);
+}
+
 .fx-graph-legend {
   list-style: none;
   margin: 0;

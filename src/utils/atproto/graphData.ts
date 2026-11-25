@@ -24,6 +24,7 @@
 import { withIdentification } from '../requestDeadline';
 import { appForCollection } from './backlinkRelations';
 import { TTLMap } from './cache';
+import { forgetStoredGraph, isFresh, readStoredGraph, storeGraph } from './graphStore';
 import { APPVIEW, CONSTELLATION } from './config';
 import { backlinksFromPage, flattenSources, getBacklinkSources, getBacklinks } from './constellation';
 import {
@@ -272,7 +273,43 @@ export type Neighbourhood = {
   windowEnd: number;
 };
 
-const neighbourhoodCache = new TTLMap<string, Neighbourhood>(10 * 60_000);
+/**
+ * Finished reads, by DID, served until they are a day old (graphStore.ts).
+ * Kept here for this page's lifetime and in IndexedDB across reloads and
+ * tabs; a read's age runs from `windowEnd`, the moment it started.
+ */
+const neighbourhoodCache = new Map<string, Neighbourhood>();
+
+/**
+ * What a stored read must match to be served: the shape of a Neighbourhood
+ * and the limits it was read under. Bump the leading number when the shape
+ * changes; a change to LIMITS or the window retires old reads by itself.
+ */
+const STORE_SCHEMA = `neighbourhood/1/${WINDOW_DAYS}/${JSON.stringify(LIMITS)}`;
+
+/** A finished read of `did` young enough to show, from this page's memory. */
+function cachedNeighbourhood(did: string): Neighbourhood | undefined {
+  const n = neighbourhoodCache.get(did);
+  if (n && isFresh(n.windowEnd)) return n;
+  if (n) neighbourhoodCache.delete(did);
+  return undefined;
+}
+
+/** Remember a finished read here and in the browser's store. */
+function keepNeighbourhood(n: Neighbourhood, store: boolean) {
+  neighbourhoodCache.set(n.subject.did, n);
+  if (store) void storeGraph(n.subject.did, STORE_SCHEMA, n, n.windowEnd);
+}
+
+/**
+ * Forget the finished read of `did`, here and in the browser's store, so the
+ * next loadNeighbourhood reads it fresh. A read already under way is left to
+ * finish. Resolves once the stored copy is gone.
+ */
+export function forgetNeighbourhood(did: string): Promise<void> {
+  neighbourhoodCache.delete(did);
+  return forgetStoredGraph(did);
+}
 
 type ListRecordsPage = { records?: { uri: string; value: Record<string, unknown> }[]; cursor?: string };
 
@@ -383,7 +420,7 @@ export function loadNeighbourhood(
   onUpdate: (n: Neighbourhood) => void,
   signal?: AbortSignal,
 ): Promise<Neighbourhood | null> {
-  const cached = neighbourhoodCache.get(subject.did);
+  const cached = cachedNeighbourhood(subject.did);
   if (cached) {
     onUpdate(cached);
     return Promise.resolve(cached);
@@ -392,15 +429,23 @@ export function loadNeighbourhood(
   if (!flight) {
     const ac = new AbortController();
     const f: Flight = { latest: null, listeners: new Set(), ac, done: Promise.resolve(null) };
-    f.done = readNeighbourhood(
-      subject,
-      (n) => {
-        f.latest = n;
-        f.listeners.forEach((l) => l(n));
-        watchers.get(subject.did)?.forEach((w) => w(n));
-      },
-      ac.signal,
-    ).finally(() => {
+    const emit = (n: Neighbourhood) => {
+      f.latest = n;
+      f.listeners.forEach((l) => l(n));
+      watchers.get(subject.did)?.forEach((w) => w(n));
+    };
+    // A read stored in the last day is served as it is; otherwise read.
+    f.done = readStoredGraph<Neighbourhood>(subject.did, STORE_SCHEMA)
+      .then((stored) => {
+        if (ac.signal.aborted) return null;
+        if (stored) {
+          keepNeighbourhood(stored.value, false);
+          emit(stored.value);
+          return stored.value;
+        }
+        return readNeighbourhood(subject, emit, ac.signal);
+      })
+      .finally(() => {
       if (flights.get(subject.did) === f) flights.delete(subject.did);
     });
     flights.set(subject.did, f);
@@ -431,8 +476,16 @@ export function watchNeighbourhood(did: string, onUpdate: (n: Neighbourhood) => 
   let set = watchers.get(did);
   if (!set) watchers.set(did, (set = new Set()));
   set.add(onUpdate);
-  const now = neighbourhoodCache.get(did) ?? flights.get(did)?.latest;
+  const now = cachedNeighbourhood(did) ?? flights.get(did)?.latest;
   if (now) onUpdate(now);
+  // Nothing here yet: a read stored in an earlier visit is shown without
+  // starting a new one, unless a read starts first.
+  else
+    void readStoredGraph<Neighbourhood>(did, STORE_SCHEMA).then((stored) => {
+      if (!stored || !set.has(onUpdate) || cachedNeighbourhood(did) || flights.get(did)?.latest) return;
+      keepNeighbourhood(stored.value, false);
+      onUpdate(stored.value);
+    });
   return () => {
     set.delete(onUpdate);
     if (!set.size && watchers.get(did) === set) watchers.delete(did);
@@ -724,7 +777,7 @@ async function readNeighbourhood(
   if (signal?.aborted) return null;
   stage = 'done';
   const done = snapshot();
-  neighbourhoodCache.set(subject.did, done);
+  keepNeighbourhood(done, true);
   onUpdate(done);
   return done;
 }
